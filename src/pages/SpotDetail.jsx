@@ -27,12 +27,12 @@ export default function SpotDetail({
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.latitude},${spot.longitude}`;
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-surface-900 pb-6">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-surface-900/95 px-4 py-3 backdrop-blur">
+    <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-[#0c0c0f]/95 px-4 py-3 backdrop-blur-xl">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
+          className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <ArrowLeft className="h-5 w-5" />
           Back
@@ -40,13 +40,13 @@ export default function SpotDetail({
         <button
           type="button"
           onClick={() => toggleFavorite(spot.id)}
-          className="rounded-full p-2 text-white hover:bg-white/5"
+          className="rounded-full p-2 text-white transition hover:bg-white/5"
           aria-label={isFavorite(spot.id) ? 'Unsave' : 'Save'}
         >
           <Heart
             className="h-5 w-5"
-            fill={isFavorite(spot.id) ? '#ef4444' : 'transparent'}
-            stroke={isFavorite(spot.id) ? '#ef4444' : 'currentColor'}
+            fill={isFavorite(spot.id) ? '#f43f5e' : 'transparent'}
+            stroke={isFavorite(spot.id) ? '#f43f5e' : 'currentColor'}
             strokeWidth={2}
           />
         </button>
@@ -75,7 +75,7 @@ export default function SpotDetail({
             {spot.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-surface-700 px-2.5 py-1 text-xs text-slate-400"
+                className="rounded-full bg-[#27272a] px-2.5 py-1 text-xs text-slate-400"
               >
                 {tag}
               </span>
@@ -83,13 +83,13 @@ export default function SpotDetail({
           </div>
         )}
         {spot.photoBy && (
-          <p className="mt-2 text-xs text-slate-600">Photo: {spot.photoBy}</p>
+          <p className="mt-2 text-xs text-slate-500">Photo: {spot.photoBy}</p>
         )}
         <a
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-surface-800 py-3 text-sm font-medium text-accent hover:bg-surface-700 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface-900"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#18181b] py-3 text-sm font-medium text-emerald-400 transition hover:bg-[#27272a] focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-[#0c0c0f]"
         >
           <ExternalLink className="h-4 w-4" />
           Open in Maps

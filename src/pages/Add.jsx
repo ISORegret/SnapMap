@@ -33,8 +33,8 @@ export default function Add({ onAdd }) {
   };
 
   return (
-    <div className="mx-auto max-w-md bg-surface-900 px-4 pb-20 pt-5">
-      <header className="border-b border-white/5 pb-5">
+    <div className="mx-auto max-w-md bg-[#0c0c0f] px-4 pb-20 pt-5">
+      <header className="border-b border-white/[0.06] pb-5">
         <h1 className="text-xl font-semibold tracking-tight text-white">
           Add a spot
         </h1>
@@ -51,7 +51,7 @@ export default function Add({ onAdd }) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Spot name"
             required
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div>
@@ -61,7 +61,7 @@ export default function Add({ onAdd }) {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Street, city"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -72,7 +72,7 @@ export default function Add({ onAdd }) {
               value={lat}
               onChange={(e) => setLat(e.target.value)}
               placeholder="37.8021"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -82,7 +82,7 @@ export default function Add({ onAdd }) {
               value={lng}
               onChange={(e) => setLng(e.target.value)}
               placeholder="-122.4488"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function Add({ onAdd }) {
             value={bestTime}
             onChange={(e) => setBestTime(e.target.value)}
             placeholder="e.g. Golden hour, Sunset"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div>
@@ -103,7 +103,7 @@ export default function Add({ onAdd }) {
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="automotive, urban, sunset"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div>
@@ -113,7 +113,7 @@ export default function Add({ onAdd }) {
             value={imageUri}
             onChange={(e) => setImageUri(e.target.value)}
             placeholder="https://..."
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div>
@@ -123,12 +123,12 @@ export default function Add({ onAdd }) {
             value={photoBy}
             onChange={(e) => setPhotoBy(e.target.value)}
             placeholder="You"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-surface-800 px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-accent py-3 font-semibold text-white hover:bg-accent-light focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface-900"
+          className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#0c0c0f]"
         >
           Add spot
         </button>

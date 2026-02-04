@@ -13,6 +13,10 @@ L.Icon.Default.mergeOptions({
 
 const defaultCenter = [37.8021, -122.4488];
 
+// Modern dark map tiles (CartoDB Voyager = light; Stadia Alidade Smooth Dark = dark)
+const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
 function FitBounds({ spots }) {
   const map = useMap();
   useEffect(() => {
@@ -28,7 +32,7 @@ function MapResizeFix() {
   useEffect(() => {
     const t = setTimeout(() => {
       map.invalidateSize();
-    }, 100);
+    }, 150);
     return () => clearTimeout(t);
   }, [map]);
   return null;
@@ -39,39 +43,37 @@ export default function Map({ allSpots }) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <div
-      className="relative w-full flex-1"
-      style={{ height: 'calc(100vh - 56px)' }}
-    >
+    <div className="relative h-full min-h-0 w-full flex-1">
       {!mounted ? (
-        <div className="flex h-full items-center justify-center bg-slate-800 text-slate-400">
-          Loading map…
+        <div className="flex h-full min-h-[50vh] items-center justify-center bg-[#1a1a24] text-slate-400">
+          <span className="animate-pulse">Loading map…</span>
         </div>
       ) : (
         <MapContainer
           center={defaultCenter}
           zoom={6}
-          className="h-full w-full"
-          style={{ height: '100%', width: '100%' }}
+          className="h-full w-full rounded-none"
+          style={{ height: '100%', width: '100%', minHeight: '100%' }}
           scrollWheelZoom
+          preferCanvas
         >
           <MapResizeFix />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution={TILE_ATTRIBUTION}
+            url={TILE_URL}
           />
           <FitBounds spots={allSpots} />
           {allSpots.map((spot) => (
             <Marker key={spot.id} position={[spot.latitude, spot.longitude]}>
-              <Popup>
+              <Popup className="snapmap-popup">
                 <Link
                   to={`/spot/${spot.id}`}
-                  className="font-semibold text-emerald-500 hover:underline"
+                  className="font-semibold text-emerald-400 hover:underline"
                 >
                   {spot.name}
                 </Link>
                 <br />
-                <small className="text-slate-500">{spot.bestTime}</small>
+                <small className="text-slate-400">{spot.bestTime}</small>
               </Popup>
             </Marker>
           ))}
