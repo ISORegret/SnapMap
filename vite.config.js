@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => ({
       devOptions: { enabled: true },
     }),
   ],
-  base: mode === 'android' ? './' : '/',
+  base: process.env.BASE_PATH || (mode === 'android' ? './' : '/'),
   build: {
     outDir: 'dist',
   },
