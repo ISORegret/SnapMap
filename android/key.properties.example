@@ -1,0 +1,8 @@
+# Copy this file to key.properties and fill in the password you use when creating the keystore.
+# Do not commit key.properties or the keystore file to git.
+
+# Path relative to android/app/ (so android/snapmap-release.keystore = ../snapmap-release.keystore)
+storeFile=../snapmap-release.keystore
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyAlias=snapmap
+keyPassword=YOUR_KEY_PASSWORD
