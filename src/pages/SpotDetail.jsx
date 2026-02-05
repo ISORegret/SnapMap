@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2 } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
 
@@ -142,6 +142,7 @@ export default function SpotDetail({
   isFavorite,
   toggleFavorite,
   updateSpot,
+  onDeleteSpot,
   collections = [],
   addToCollection,
   removeFromCollection,
@@ -285,12 +286,18 @@ export default function SpotDetail({
       )}
       <div className="px-4 pt-4">
         <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
-        {spot.address && (
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-            <MapPin className="h-4 w-4 shrink-0" />
-            {spot.address}
-          </p>
-        )}
+        {(() => {
+          const hasCoords = spot.latitude != null && spot.longitude != null;
+          const locationText = (spot.address && spot.address !== 'Not specified')
+            ? spot.address
+            : (hasCoords ? `${Number(spot.latitude).toFixed(5)}, ${Number(spot.longitude).toFixed(5)}` : null);
+          return locationText ? (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+              <MapPin className="h-4 w-4 shrink-0" />
+              {locationText}
+            </p>
+          ) : null;
+        })()}
         {spot.parking && (
           <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
             <Car className="h-4 w-4 shrink-0" />
@@ -438,6 +445,27 @@ export default function SpotDetail({
 
         {/* Weather — in-app from Open-Meteo API (no key) */}
         <WeatherAtSpot latitude={latitude} longitude={longitude} />
+
+        {/* Delete listing (user spots only) */}
+        {isUserSpot(spot.id) && onDeleteSpot && (
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Your listing
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Delete this spot? This cannot be undone.')) {
+                  onDeleteSpot(spot.id);
+                }
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete listing
+            </button>
+          </div>
+        )}
 
         {/* Add to collection */}
         {otherCollections.length > 0 && (

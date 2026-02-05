@@ -79,7 +79,7 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "/index.html",
-    "revision": "0.jmplqjj62i8"
+    "revision": "0.m9bu3qsfmd4"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -90,6 +90,13 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
     "cacheName": "leaflet-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 10,
+      maxAgeSeconds: 2592000
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i, new workbox.CacheFirst({
+    "cacheName": "osm-tiles",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 200,
       maxAgeSeconds: 2592000
     })]
   }), 'GET');

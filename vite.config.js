@@ -23,7 +23,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        // In dev, dev-dist only has sw.js + workbox-*.js; include workbox so the glob matches and the warning goes away
+        globPatterns: mode === 'development' ? ['**/workbox-*.js'] : ['**/*.{js,css,html,ico,svg,woff2}'],
+        globIgnores: mode === 'development' ? ['**/node_modules/**/*'] : ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [

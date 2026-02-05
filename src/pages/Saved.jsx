@@ -40,9 +40,15 @@ function SpotCard({ spot, onUnsave, compact }) {
         <h2 className="font-medium text-white truncate group-hover:text-emerald-400">{spot.name}</h2>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
           <MapPin className="h-3 w-3 shrink-0" />
-          {spot.address || `${spot.latitude?.toFixed(2)}, ${spot.longitude?.toFixed(2)}`}
+          {(spot.address && spot.address !== 'Not specified')
+            ? spot.address
+            : (spot.latitude != null && spot.longitude != null
+              ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
+              : '—')}
         </p>
-        {!compact && <p className="mt-1 text-xs text-slate-500">{spot.bestTime}</p>}
+        {!compact && spot.bestTime && spot.bestTime !== 'Not specified' && (
+          <p className="mt-1 text-xs text-slate-500">{spot.bestTime}</p>
+        )}
       </div>
       <div className="flex items-center pr-2 text-slate-500 group-hover:text-emerald-400">
         <ChevronRight className="h-5 w-5" />
