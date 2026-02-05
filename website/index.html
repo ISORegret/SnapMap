@@ -31,8 +31,11 @@
     .badge {
       display: inline-block;
       margin-bottom: 0.5rem;
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
       color: var(--muted);
+      text-transform: uppercase;
     }
     h1 {
       font-size: clamp(2rem, 5vw, 2.75rem);
@@ -41,9 +44,12 @@
       letter-spacing: -0.02em;
     }
     .subtitle {
-      font-size: 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
       color: var(--muted);
       margin: 0 0 1.5rem;
+      text-transform: uppercase;
     }
     .hero h2 {
       font-size: 1.25rem;
@@ -68,10 +74,40 @@
       color: var(--muted);
     }
     section p { margin: 0 0 1rem; color: var(--text); }
-    .features { display: grid; gap: 1.5rem; }
-    .feature h3 { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem; }
-    .feature ul { margin: 0; padding-left: 1.25rem; color: var(--muted); font-size: 0.9375rem; }
-    .feature li { margin-bottom: 0.25rem; }
+    .inside-banner {
+      background: var(--surface);
+      margin: 0 -1.25rem;
+      padding: 1.25rem 1.25rem 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .inside-banner h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
+    }
+    .inside-banner .lead { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
+    .inside-banner p { margin: 0 0 1rem; }
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.75rem 1.5rem;
+    }
+    @media (max-width: 520px) { .features { grid-template-columns: 1fr; } }
+    .feature h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+    .feature h3 .bar { color: var(--accent); font-weight: 700; }
+    .feature p { font-size: 0.9375rem; margin: 0 0 0.5rem; }
+    .feature ul { margin: 0; padding-left: 1.25rem; color: var(--muted); font-size: 0.875rem; }
+    .feature li { margin-bottom: 0.2rem; }
     .screens {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -168,15 +204,16 @@
       <p class="privacy"><strong>One app.</strong> No account. <strong>Your data stays yours.</strong></p>
     </section>
 
-    <section>
-      <h2>What’s inside</h2>
-      <h3 style="font-size:1.25rem;font-weight:600;margin:0 0 0.5rem;">Everything you need</h3>
-      <p>Log spots once. See them on the map. Know the best light with sunrise, sunset, and golden-hour times. One app for photographers and car enthusiasts.</p>
+    <section class="inside-banner">
+      <h2>What's inside</h2>
+      <p class="lead">Everything you need</p>
+      <p>Log once. See the full picture. Plan the right time to shoot.</p>
+      <p>Sunrise, sunset, and golden-hour times for every spot. Add your own locations, photos, and notes. One app for photographers and car enthusiasts.</p>
     </section>
 
     <section class="features">
       <div class="feature">
-        <h3>Map & spots</h3>
+        <h3><span class="bar">|</span> Map & spots</h3>
         <p>Browse and add spots in one place.</p>
         <ul>
           <li>Map view — see all spots and filters</li>
@@ -185,7 +222,7 @@
         </ul>
       </div>
       <div class="feature">
-        <h3>Best light</h3>
+        <h3><span class="bar">|</span> Best light</h3>
         <p>Plan around sun and golden hour.</p>
         <ul>
           <li>Sunrise, sunset, golden & blue hour</li>
@@ -194,7 +231,7 @@
         </ul>
       </div>
       <div class="feature">
-        <h3>Save & share</h3>
+        <h3><span class="bar">|</span> Save & share</h3>
         <p>Favorites and multiple photos per spot.</p>
         <ul>
           <li>Saved list — quick access to favorites</li>
@@ -203,7 +240,7 @@
         </ul>
       </div>
       <div class="feature">
-        <h3>Built for you</h3>
+        <h3><span class="bar">|</span> Built for you</h3>
         <p>Private. Works offline. No account.</p>
         <ul>
           <li>Categories — urbex, cars, landscape, etc.</li>

@@ -1,6 +1,15 @@
 # SnapMap landing site
 
-This folder is deployed to GitHub Pages as the SnapMap marketing/launch page (PepTalk-style).
+Static marketing/launch page (PepTalk-style). Deploy with **Cloudflare Pages**.
 
-- **Deploy:** Push to `main`; the workflow uploads `website/` as the Pages artifact.
-- **APK:** To make “Download APK” work, add `SnapMap.apk` into this folder (e.g. copy from `android/app/build/outputs/apk/debug/app-debug.apk` and rename to `SnapMap.apk`), then commit and push.
+## Cloudflare Pages
+
+- **Build command:** leave empty (static site, no build).
+- **Build output directory:** `website`  
+  (So the *contents* of this folder are the site root: `index.html`, `favicon.svg`, `SnapMap.apk`.)
+
+Push to your connected branch; Cloudflare will deploy the `website` folder.
+
+## APK
+
+“Download APK” links to `./SnapMap.apk`. Add your built APK here (e.g. copy from `android/app/build/outputs/apk/debug/app-debug.apk` and rename to `SnapMap.apk`).
