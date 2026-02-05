@@ -1,54 +1,27 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useJsApiLoader, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 
-const defaultCenter = { lat: 37.8021, lng: -122.4488 };
+import 'leaflet/dist/leaflet.css';
+
+const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
 
-// Full-screen map: fill space above bottom nav (nav ~64px)
 const NAV_HEIGHT_PX = 64;
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-  minHeight: 300,
-};
 
-const mapOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  mapTypeControl: true,
-  scaleControl: false,
-  streetViewControl: false,
-  rotateControl: false,
-  fullscreenControl: true,
-  styles: [
-    { elementType: 'geometry', stylers: [{ color: '#1a1a24' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a24' }] },
-    { elementType: 'labels.text.fill', stylers: [{ color: '#9ca3af' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#27272a' }] },
-    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-  ],
-};
-
-function MapTroubleshoot() {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="absolute bottom-3 left-3 right-3 z-10 rounded-lg bg-black/70 p-2 text-xs text-slate-400 backdrop-blur sm:left-auto sm:right-3 sm:max-w-[280px]">
-      <button type="button" onClick={() => setShow((s) => !s)} className="text-emerald-400 hover:underline">
-        {show ? 'Hide troubleshooting' : 'Map not loading? Click here'}
-      </button>
-      {show && (
-        <ul className="mt-2 list-inside list-disc space-y-1 text-slate-500">
-          <li>Enable <strong className="text-slate-400">Maps JavaScript API</strong> in Google Cloud</li>
-          <li>Enable <strong className="text-slate-400">billing</strong> for the project</li>
-          <li>If key has referrer restrictions, add <code className="rounded bg-white/10 px-1">http://localhost:5173/*</code></li>
-        </ul>
-      )}
-    </div>
-  );
-}
+// Fix default marker icon in react-leaflet (webpack/vite)
+const icon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 function hasParking(spot) {
   return Boolean(spot.parking && String(spot.parking).trim());
@@ -65,35 +38,34 @@ const FILTER_OPTIONS = [
   ...CATEGORIES.filter((c) => c.id !== 'all'),
 ];
 
+function FitBounds({ spots }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (!spots?.length) return;
+    const bounds = L.latLngBounds(spots.map((s) => [s.latitude, s.longitude]));
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }, [map, spots]);
+  return null;
+}
+
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
+
 export default function Map({ allSpots }) {
   const navigate = useNavigate();
   const [selectedSpotId, setSelectedSpotId] = useState(null);
-  const [map, setMap] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
 
   const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey || '',
-    id: 'snapmap-google-map',
-    version: 'weekly',
-    loadingElement: <div style={{ height: `calc(100vh - ${NAV_HEIGHT_PX}px)`, minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a24', color: '#9ca3af' }}>Loading map…</div>,
-  });
-
-  const onLoad = useCallback((mapInstance) => {
-    setMap(mapInstance);
-  }, []);
-
-  const onUnmount = useCallback(() => {
-    setMap(null);
-  }, []);
-
-  const onMapClick = useCallback((e) => {
-    if (!e.latLng) return;
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
+  const onMapClick = useCallback(({ lat, lng }) => {
     setPendingPin({ lat, lng });
     setSelectedSpotId(null);
   }, []);
@@ -104,118 +76,63 @@ export default function Map({ allSpots }) {
     setPendingPin(null);
   }, [navigate, pendingPin]);
 
-  // Fit bounds when spots or map change (use filtered spots)
-  React.useEffect(() => {
-    if (!map || !filteredSpots?.length) return;
-    const bounds = new window.google.maps.LatLngBounds();
-    filteredSpots.forEach((spot) => {
-      bounds.extend({ lat: spot.latitude, lng: spot.longitude });
-    });
-    map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-    const listener = map.addListener('idle', () => {
-      const z = map.getZoom();
-      if (z > 14) map.setZoom(14);
-    });
-    return () => window.google.maps.event.removeListener(listener);
-  }, [map, filteredSpots]);
-
-  if (loadError) {
-    return (
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a1a24] px-4 py-8 text-center text-slate-400"
-        style={{ bottom: NAV_HEIGHT_PX }}
-      >
-        <p className="font-medium">Google Maps failed to load</p>
-        <p className="text-sm text-slate-500">{loadError.message || 'Check the browser console (F12) for details.'}</p>
-        <div className="mt-2 max-w-md rounded-xl border border-white/10 bg-black/20 p-4 text-left text-xs text-slate-500">
-          <p className="mb-2 font-medium text-slate-400">Checklist:</p>
-          <ul className="list-inside list-disc space-y-1">
-            <li>Enable <strong>Maps JavaScript API</strong> in{' '}
-              <a href="https://console.cloud.google.com/apis/library/maps-backend.googleapis.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">Google Cloud Console</a>
-            </li>
-            <li>Enable <strong>billing</strong> for your project (required for Maps)</li>
-            <li>If the key has referrer restrictions, add <code className="rounded bg-white/10 px-1">http://localhost:5173/*</code> and <code className="rounded bg-white/10 px-1">http://127.0.0.1:5173/*</code></li>
-          </ul>
-        </div>
-      </div>
-    );
-  }
-
-  if (!apiKey) {
-    return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#1a1a24] px-4 text-center text-slate-400" style={{ bottom: NAV_HEIGHT_PX }}>
-        <p className="font-medium">Google Maps API key required</p>
-        <p className="text-sm">
-          Create a <code className="rounded bg-white/10 px-1.5 py-0.5 text-emerald-400">.env</code> file with:
-        </p>
-        <pre className="mt-1 rounded-lg bg-black/30 px-3 py-2 text-left text-xs text-slate-300">
-          VITE_GOOGLE_MAPS_API_KEY=your_key_here
-        </pre>
-        <p className="text-xs text-slate-500">
-          Get a key at{' '}
-          <a
-            href="https://console.cloud.google.com/google/maps-apis"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-emerald-400 hover:underline"
-          >
-            Google Cloud Console
-          </a>{' '}
-          (Maps JavaScript API).
-        </p>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a24] text-slate-400" style={{ bottom: NAV_HEIGHT_PX }}>
-        <span className="animate-pulse">Loading map…</span>
-      </div>
-    );
-  }
-
   return (
     <div
       className="absolute inset-0 w-full"
       style={{ bottom: NAV_HEIGHT_PX }}
     >
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
+      <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        onClick={onMapClick}
-        options={mapOptions}
+        className="h-full w-full"
+        style={{ height: '100%', minHeight: 300 }}
+        scrollWheelZoom
       >
-        {pendingPin && <Marker position={pendingPin} zIndex={1000} />}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FitBounds spots={filteredSpots} />
+        <MapClickHandler onMapClick={onMapClick} />
+
+        {pendingPin && (
+          <Marker
+            position={[pendingPin.lat, pendingPin.lng]}
+            icon={icon}
+            zIndexOffset={1000}
+          />
+        )}
         {filteredSpots.map((spot) => (
           <Marker
             key={spot.id}
-            position={{ lat: spot.latitude, lng: spot.longitude }}
-            onClick={() => setSelectedSpotId(spot.id)}
+            position={[spot.latitude, spot.longitude]}
+            icon={icon}
+            eventHandlers={{
+              click: () => setSelectedSpotId(spot.id),
+            }}
           >
-            {selectedSpotId === spot.id && (
-              <InfoWindow onCloseClick={() => setSelectedSpotId(null)}>
-                <div className="min-w-[140px] text-zinc-900">
-                  <Link
-                    to={`/spot/${spot.id}`}
-                    className="font-semibold text-emerald-600 hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {spot.name}
-                  </Link>
-                  <br />
-                  <small className="text-zinc-600">{spot.bestTime}</small>
-                </div>
-              </InfoWindow>
-            )}
+            <Popup
+              onClose={() => setSelectedSpotId(null)}
+              className="snapmap-popup"
+            >
+              <div className="min-w-[140px] text-slate-200">
+                <Link
+                  to={`/spot/${spot.id}`}
+                  className="font-semibold text-emerald-400 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {spot.name}
+                </Link>
+                <br />
+                <small className="text-slate-400">{spot.bestTime || '—'}</small>
+              </div>
+            </Popup>
           </Marker>
         ))}
-      </GoogleMap>
+      </MapContainer>
+
       {/* Single filter row */}
-      <div className="absolute left-3 right-3 top-3 z-10 flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
+      <div className="absolute left-3 right-3 top-3 z-[1000] flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.id}
@@ -229,11 +146,11 @@ export default function Map({ allSpots }) {
           </button>
         ))}
       </div>
-      <div className="absolute bottom-14 left-3 z-10 rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
+      <div className="absolute bottom-14 left-3 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
         Tap map to pin · Save spot here
       </div>
       {pendingPin && (
-        <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm">
+        <div className="absolute bottom-14 left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm">
           <p className="text-sm font-medium text-white">Save spot here</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}
@@ -257,7 +174,6 @@ export default function Map({ allSpots }) {
           </div>
         </div>
       )}
-      <MapTroubleshoot />
     </div>
   );
 }

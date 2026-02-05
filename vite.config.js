@@ -33,6 +33,11 @@ export default defineConfig(({ mode }) => ({
             options: { cacheName: 'leaflet-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 } },
           },
           {
+            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'osm-tiles', expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
             handler: 'CacheFirst',
             options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
