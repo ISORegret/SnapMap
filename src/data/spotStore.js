@@ -1,5 +1,6 @@
 const USER_SPOTS_KEY = 'snapmap-user-spots';
 const FAVORITES_KEY = 'snapmap-favorites';
+const COLLECTIONS_KEY = 'snapmap-collections';
 
 export function loadUserSpots() {
   try {
@@ -33,4 +34,60 @@ export function saveFavorites(ids) {
   } catch {
     // e.g. private browsing, quota exceeded — fail silently like load functions
   }
+}
+
+// Collections: named lists of spot ids
+export function loadCollections() {
+  try {
+    const raw = localStorage.getItem(COLLECTIONS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    if (list.length === 0) {
+      const defaultList = [{ id: 'favorites', name: 'Favorites', spotIds: [] }];
+      localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(defaultList));
+      return defaultList;
+    }
+    return list;
+  } catch {
+    return [{ id: 'favorites', name: 'Favorites', spotIds: [] }];
+  }
+}
+
+export function saveCollections(collections) {
+  try {
+    localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections));
+  } catch {}
+}
+
+export function addSpotToCollection(collectionId, spotId) {
+  const list = loadCollections();
+  const coll = list.find((c) => c.id === collectionId);
+  if (!coll || coll.spotIds.includes(spotId)) return list;
+  const next = list.map((c) =>
+    c.id === collectionId ? { ...c, spotIds: [...c.spotIds, spotId] } : c
+  );
+  saveCollections(next);
+  return next;
+}
+
+export function removeSpotFromCollection(collectionId, spotId) {
+  const list = loadCollections();
+  const next = list.map((c) =>
+    c.id === collectionId ? { ...c, spotIds: c.spotIds.filter((id) => id !== spotId) } : c
+  );
+  saveCollections(next);
+  return next;
+}
+
+export function createCollection(name) {
+  const list = loadCollections();
+  const id = `coll-${Date.now()}`;
+  const next = [...list, { id, name: name.trim() || 'New list', spotIds: [] }];
+  saveCollections(next);
+  return next;
+}
+
+export function deleteCollection(collectionId) {
+  const list = loadCollections().filter((c) => c.id !== collectionId);
+  saveCollections(list);
+  return list;
 }

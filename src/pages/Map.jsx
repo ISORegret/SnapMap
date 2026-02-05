@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useJsApiLoader, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { MapPin } from 'lucide-react';
+import { CATEGORIES, matchesCategory } from '../utils/categories';
 
 const defaultCenter = { lat: 37.8021, lng: -122.4488 };
 const defaultZoom = 6;
@@ -49,11 +50,29 @@ function MapTroubleshoot() {
   );
 }
 
+function hasParking(spot) {
+  return Boolean(spot.parking && String(spot.parking).trim());
+}
+function applyFilter(spots, filter) {
+  if (filter === 'all') return spots;
+  if (filter === 'hasParking') return spots.filter(hasParking);
+  return spots.filter((s) => matchesCategory(s, filter));
+}
+
+const FILTER_OPTIONS = [
+  { id: 'all', label: 'All' },
+  { id: 'hasParking', label: 'Has parking' },
+  ...CATEGORIES.filter((c) => c.id !== 'all'),
+];
+
 export default function Map({ allSpots }) {
   const navigate = useNavigate();
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [map, setMap] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
+  const [filter, setFilter] = useState('all');
+
+  const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const { isLoaded, loadError } = useJsApiLoader({
@@ -85,11 +104,11 @@ export default function Map({ allSpots }) {
     setPendingPin(null);
   }, [navigate, pendingPin]);
 
-  // Fit bounds when spots or map change
+  // Fit bounds when spots or map change (use filtered spots)
   React.useEffect(() => {
-    if (!map || !allSpots?.length) return;
+    if (!map || !filteredSpots?.length) return;
     const bounds = new window.google.maps.LatLngBounds();
-    allSpots.forEach((spot) => {
+    filteredSpots.forEach((spot) => {
       bounds.extend({ lat: spot.latitude, lng: spot.longitude });
     });
     map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
@@ -98,7 +117,7 @@ export default function Map({ allSpots }) {
       if (z > 14) map.setZoom(14);
     });
     return () => window.google.maps.event.removeListener(listener);
-  }, [map, allSpots]);
+  }, [map, filteredSpots]);
 
   if (loadError) {
     return (
@@ -171,7 +190,7 @@ export default function Map({ allSpots }) {
         options={mapOptions}
       >
         {pendingPin && <Marker position={pendingPin} zIndex={1000} />}
-        {allSpots.map((spot) => (
+        {filteredSpots.map((spot) => (
           <Marker
             key={spot.id}
             position={{ lat: spot.latitude, lng: spot.longitude }}
@@ -195,6 +214,21 @@ export default function Map({ allSpots }) {
           </Marker>
         ))}
       </GoogleMap>
+      {/* Single filter row */}
+      <div className="absolute left-3 right-3 top-3 z-10 flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
+        {FILTER_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setFilter(opt.id)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              filter === opt.id ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
       <div className="absolute bottom-14 left-3 z-10 rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
         Tap map to pin · Save spot here
       </div>

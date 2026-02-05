@@ -8,18 +8,23 @@ export default {
     extend: {
       colors: {
         surface: {
-          700: '#1c1c24',
-          800: '#16161d',
-          900: '#0c0c0f',
+          700: '#151a18',
+          800: '#0f1412',
+          900: '#080c0a',
         },
         accent: {
-          DEFAULT: '#22c55e',
-          light: '#4ade80',
-          dark: '#16a34a',
+          DEFAULT: '#10b981',
+          light: '#34d399',
+          glow: '#34d399',
+          dark: '#059669',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      boxShadow: {
+        'glow': '0 0 24px -4px rgba(52, 211, 153, 0.25)',
+        'glow-sm': '0 0 16px -4px rgba(52, 211, 153, 0.2)',
       },
     },
   },

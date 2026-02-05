@@ -24,7 +24,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
-        navigateFallback: null,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/unpkg\.com\/leaflet.*/i,
@@ -36,8 +37,14 @@ export default defineConfig(({ mode }) => ({
             handler: 'CacheFirst',
             options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
+          {
+            urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'open-meteo', expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 } },
+          },
         ],
       },
+      devOptions: { enabled: true },
     }),
   ],
   base: mode === 'android' ? './' : '/',

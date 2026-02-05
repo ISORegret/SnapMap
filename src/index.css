@@ -14,7 +14,8 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: #0c0c0f;
+  background: linear-gradient(165deg, #080c0a 0%, #0a0f0d 35%, #0c0c0f 100%);
+  background-attachment: fixed;
   color: #f4f4f5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -34,6 +35,15 @@ body {
 a {
   color: #34d399;
   text-decoration: none;
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #f0fdf4 0%, #a7f3d0 50%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
 a:hover {
@@ -63,4 +73,13 @@ a:hover {
 
 .leaflet-popup-tip {
   background: #18181b;
+}
+
+/* Hide scrollbar for horizontal category row */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
