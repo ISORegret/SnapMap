@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapMap — Photography & Spot Tracker</title>
+  <meta name="description" content="Find and save the best photography and automotive spots. Map, favorites, and best light times in one app." />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #22c55e;
+      --accent-dim: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 1.25rem; }
+    .badge {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      margin: 0 0 1.5rem;
+    }
+    .hero h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    .tagline {
+      font-size: 1rem;
+      color: var(--muted);
+      margin: 0 0 0.25rem;
+    }
+    .privacy {
+      font-size: 0.9375rem;
+      margin: 0 0 2.5rem;
+    }
+    .privacy strong { color: var(--text); }
+    section { padding: 2rem 0; }
+    section h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--muted);
+    }
+    section p { margin: 0 0 1rem; color: var(--text); }
+    .features { display: grid; gap: 1.5rem; }
+    .feature h3 { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem; }
+    .feature ul { margin: 0; padding-left: 1.25rem; color: var(--muted); font-size: 0.9375rem; }
+    .feature li { margin-bottom: 0.25rem; }
+    .screens {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .screen {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .screen-placeholder {
+      width: 100%;
+      aspect-ratio: 9/16;
+      max-height: 200px;
+      background: linear-gradient(145deg, var(--surface) 0%, #1a1a24 100%);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .cta {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--surface);
+    }
+    .cta p { margin-bottom: 1rem; }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid #27272a;
+    }
+    .btn-secondary:hover { background: #1f1f24; }
+    .footer-meta { font-size: 0.875rem; color: var(--muted); margin-top: 1rem; }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1rem;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 360px;
+      width: 100%;
+    }
+    .modal h3 { margin: 0 0 1rem; font-size: 1.125rem; }
+    .modal ol { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9375rem; }
+    .modal .btn { margin-top: 0.5rem; }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <p class="badge">Android · Free</p>
+    <h1>SnapMap</h1>
+    <p class="subtitle">Map · Spots · Save · Best light</p>
+
+    <section class="hero">
+      <h2>Find the best places for photography and cars</h2>
+      <p class="tagline">Discover · Save · Shoot</p>
+      <p class="privacy"><strong>One app.</strong> No account. <strong>Your data stays yours.</strong></p>
+    </section>
+
+    <section>
+      <h2>What’s inside</h2>
+      <h3 style="font-size:1.25rem;font-weight:600;margin:0 0 0.5rem;">Everything you need</h3>
+      <p>Log spots once. See them on the map. Know the best light with sunrise, sunset, and golden-hour times. One app for photographers and car enthusiasts.</p>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <h3>Map & spots</h3>
+        <p>Browse and add spots in one place.</p>
+        <ul>
+          <li>Map view — see all spots and filters</li>
+          <li>Feed — list with categories and parking</li>
+          <li>Add your own — location, photos, notes</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <h3>Best light</h3>
+        <p>Plan around sun and golden hour.</p>
+        <ul>
+          <li>Sunrise, sunset, golden & blue hour</li>
+          <li>Pick a date — times update for the spot</li>
+          <li>No guessing — plan the right time to shoot</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <h3>Save & share</h3>
+        <p>Favorites and multiple photos per spot.</p>
+        <ul>
+          <li>Saved list — quick access to favorites</li>
+          <li>Multiple photos per spot with attribution</li>
+          <li>Optional link per spot (e.g. Google Maps)</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <h3>Built for you</h3>
+        <p>Private. Works offline. No account.</p>
+        <ul>
+          <li>Categories — urbex, cars, landscape, etc.</li>
+          <li>Data stays on your device — no account</li>
+          <li>PWA — install and use offline</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Summary</h2>
+      <div class="screens">
+        <div class="screen">
+          <div class="screen-placeholder"></div>
+          Map
+        </div>
+        <div class="screen">
+          <div class="screen-placeholder"></div>
+          Feed
+        </div>
+        <div class="screen">
+          <div class="screen-placeholder"></div>
+          Saved
+        </div>
+        <div class="screen">
+          <div class="screen-placeholder"></div>
+          Spot
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <p><strong>Private.</strong> Your data stays on your device. No accounts, no selling data.</p>
+      <a href="./SnapMap.apk" class="btn btn-primary">Download APK</a>
+      <a href="#" class="btn btn-secondary" id="ios-btn">Add to Home Screen (iOS)</a>
+      <p class="footer-meta">Free · Android: APK above · iOS: open the link in Safari on your iPhone, then Share → Add to Home Screen</p>
+    </section>
+  </main>
+
+  <div class="modal" id="ios-modal" aria-hidden="true">
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+      <h3>Add SnapMap to your home screen</h3>
+      <ol>
+        <li>Open this page in <strong>Safari</strong> (if you're not already).</li>
+        <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
+        <li>Tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong>.</li>
+      </ol>
+      <a href="#" class="btn btn-primary" id="modal-gotit">Got it</a>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var iosBtn = document.getElementById('ios-btn');
+      var modal = document.getElementById('ios-modal');
+      var closeBtn = document.getElementById('modal-close');
+      var gotIt = document.getElementById('modal-gotit');
+      function openModal() { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); }
+      function closeModal() { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
+      iosBtn.addEventListener('click', function (e) { e.preventDefault(); openModal(); });
+      closeBtn.addEventListener('click', closeModal);
+      gotIt.addEventListener('click', function (e) { e.preventDefault(); closeModal(); });
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    })();
+  </script>
+</body>
+</html>
