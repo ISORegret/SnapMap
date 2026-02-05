@@ -1,0 +1,8 @@
+{
+  "appId": "com.snapmap.app",
+  "appName": "SnapMap",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  }
+}
