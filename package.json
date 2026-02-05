@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:phone": "vite --host",
     "build": "vite build",
     "build:android": "vite build --mode android && npx cap sync android",
     "preview": "vite preview"

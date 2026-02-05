@@ -67,12 +67,12 @@ Research covered: **PhotoHound**, **Atlas Photo**, **Explorest**, **LensScape**,
 - **Shot lists**, **boards**, notes; add new locations.
 - iOS + web; Android offered.
 
-### LocationScout
-- 233k+ entries, 184+ countries.
-- **Crowd levels**, **best visiting times**, **sunrise/sunset**.
-- **Exact coordinates**, **parking**.
-- **Trip planner**, “visited” tracking, hidden spots.
-- Bucket list style.
+### LocationScout (locationscout.net)
+- **Scale:** 219k–243k entries worldwide (locations, countries, photo themes); 139k+ users.
+- **Messaging:** “The best places for photography and travel”; “Get exact geo-positions for the world’s most beautiful photo spots”; “No matter where you are, you always know the best spots”; “Say goodbye to endless searching” / **“Plan less, travel more.”**; “Craft your dream itinerary”; “The World in your Pocket” (app).
+- **Features:** Exact coordinates, photo tips, travel info; real-time discovery around you or a destination; **crowd levels**, **best visiting times**, sunrise/sunset; **navigation** (Apple/Google Maps, Waze) — users cite “navigation to the spot” as a killer feature; **private/public boards** for bookmarking and trip planning; synced across devices; Learn section (tutorials). Premium: “Around Me”, direct GPS to location.
+- **UI (2025–2026):** Floating bottom nav; unified search with filters; **location type badges** below spot names; infinite scroll + lazy loading; profile/settings top-right.
+- **Takeaways for SnapMap:** Lead with “best places” + exact geo; emphasize “plan less, travel more” and “craft your itinerary” (Saved = boards); push “Open in Maps” as a key action; consider location-type badges (tags) under spot names.
 
 ### GoSnap
 - **Community** spots and real photos per spot.

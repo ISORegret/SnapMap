@@ -66,6 +66,9 @@ export default function SpotDetail({
             {spot.address}
           </p>
         )}
+        {spot.description && (
+          <p className="mt-3 text-sm text-slate-400 leading-relaxed">{spot.description}</p>
+        )}
         <p className="mt-2 text-sm text-slate-500">
           {spot.bestTime}
           {spot.score != null && spot.score > 0 && ` · ${spot.score}`}

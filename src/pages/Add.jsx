@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function Add({ onAdd }) {
+  const location = useLocation();
+  const fromMap = location.state?.lat != null && location.state?.lng != null;
+
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
-  const [lat, setLat] = useState('37.8021');
-  const [lng, setLng] = useState('-122.4488');
+  const [lat, setLat] = useState(() =>
+    fromMap ? String(location.state.lat) : '37.8021'
+  );
+  const [lng, setLng] = useState(() =>
+    fromMap ? String(location.state.lng) : '-122.4488'
+  );
   const [bestTime, setBestTime] = useState('');
   const [imageUri, setImageUri] = useState('');
   const [photoBy, setPhotoBy] = useState('');
@@ -21,6 +30,7 @@ export default function Add({ onAdd }) {
     const longitude = parseCoord(lng, -122.4);
     onAdd({
       name: name.trim(),
+      description: description.trim() || '',
       address: address.trim() || 'Not specified',
       latitude,
       longitude,
@@ -55,6 +65,16 @@ export default function Add({ onAdd }) {
           />
         </div>
         <div>
+          <label className="block text-xs font-medium text-slate-500">Short description (optional)</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Iconic overlook with city views"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
           <label className="block text-xs font-medium text-slate-500">Address</label>
           <input
             type="text"
@@ -64,6 +84,11 @@ export default function Add({ onAdd }) {
             className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
+        {fromMap && (
+          <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
+            Location set from map pin — add a name and save.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-500">Latitude</label>

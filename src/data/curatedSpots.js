@@ -3,6 +3,7 @@ export const CURATED_SPOTS = [
   {
     id: 'palace-fine-arts',
     name: 'Palace of Fine Arts',
+    description: 'Iconic SF landmark with columns and lagoon — perfect for cars and architecture.',
     address: '3601 Lyon St, San Francisco, CA',
     latitude: 37.8021,
     longitude: -122.4488,
@@ -15,6 +16,7 @@ export const CURATED_SPOTS = [
   {
     id: 'twin-peaks',
     name: 'Twin Peaks overlook',
+    description: '360° city views from the top — sunset and night shots are unbeatable.',
     address: 'Twin Peaks Blvd, San Francisco, CA',
     latitude: 37.7544,
     longitude: -122.4477,
@@ -27,6 +29,7 @@ export const CURATED_SPOTS = [
   {
     id: 'pacific-coast-hwy',
     name: 'Pacific Coast Highway pullout',
+    description: 'Classic coastal pullout with ocean and cliffs — golden hour and fog.',
     address: 'PCH, Big Sur area',
     latitude: 36.2704,
     longitude: -121.8081,
