@@ -23,6 +23,8 @@ This folder is **separate from PepTalk** so the two projects stay independent.
   3. In Android Studio: pick an emulator or connected device and run (green Play).  
   After code changes, run `npm run build:android` again (or `npm run build -- --mode android` then `npm run cap:sync`), then run from Android Studio.
 
+- **Get an APK (installable file):** Run `npm run build:apk` from the project root. The APK is at **`android/app/build/outputs/apk/debug/app-debug.apk`**. Copy it to your phone and open it to install (enable “Install from unknown sources” if prompted), or run from Android Studio with a device connected.
+
 ---
 
 ## Scripts
@@ -35,6 +37,30 @@ This folder is **separate from PepTalk** so the two projects stay independent.
 | `npm run build:android` | Build for Android + sync to native project |
 | `npm run cap:sync` | Sync `dist` to Android (after a build) |
 | `npm run cap:open:android` | Open Android project in Android Studio |
+| `npm run build:apk` | Build web app + sync + assemble debug APK |
+
+---
+
+## Share APK on the website (like PepTalk)
+
+The site can show a **Download Android app (APK)** link that points to the latest GitHub Release.
+
+1. **Create a release with an APK**
+   - **Option A (recommended):** Push a version tag to trigger the workflow:
+     ```bash
+     git tag v1.0.0
+     git push origin v1.0.0
+     ```
+     The workflow builds the APK and creates a release with asset **SnapMap.apk**.
+   - **Option B:** Run the workflow manually: **Actions → Build and release APK → Run workflow**. The APK is uploaded as a workflow artifact (download from the run). To have it on Releases, create a release in the repo and upload the APK, or use Option A.
+
+2. **Download URL**
+   - After at least one release with `SnapMap.apk`, the link on the site goes to:
+   - **https://github.com/OWNER/SnapMap/releases/latest/download/SnapMap.apk**
+   - The deployed site (GitHub Pages) gets `VITE_GITHUB_REPO` from the workflow, so the “Download Android app” button on the front page uses the correct repo automatically.
+
+3. **Local dev**
+   - To show the button locally, add to `.env`: `VITE_GITHUB_REPO=YOUR_USERNAME/SnapMap`
 
 ---
 

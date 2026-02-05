@@ -32,8 +32,8 @@ jobs:
 
       - name: Build
         env:
-          # GitHub Pages serves at https://<user>.github.io/<repo>/
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_GITHUB_REPO: ${{ github.repository }}
         run: npm run build
 
       - name: Upload artifact

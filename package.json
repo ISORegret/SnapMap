@@ -8,6 +8,7 @@
     "dev:phone": "vite --host",
     "build": "vite build",
     "build:android": "vite build --mode android && npx cap sync android",
+    "build:apk": "npm run build:android && cd android && .\\gradlew.bat assembleDebug",
     "cap:sync": "npx cap sync android",
     "cap:open:android": "npx cap open android",
     "preview": "vite preview"
