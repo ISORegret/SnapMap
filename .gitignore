@@ -32,3 +32,8 @@ pnpm-debug.log*
 android/app/build
 android/.gradle
 ios/App/build
+
+# Android signing (keep these private)
+android/key.properties
+android/*.keystore
+android/*.jks

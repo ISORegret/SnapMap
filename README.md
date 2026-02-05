@@ -41,26 +41,9 @@ This folder is **separate from PepTalk** so the two projects stay independent.
 
 ---
 
-## Share APK on the website (like PepTalk)
+## Share APK (separate launch site later)
 
-The site can show a **Download Android app (APK)** link that points to the latest GitHub Release.
-
-1. **Create a release with an APK**
-   - **Option A (recommended):** Push a version tag to trigger the workflow:
-     ```bash
-     git tag v1.0.0
-     git push origin v1.0.0
-     ```
-     The workflow builds the APK and creates a release with asset **SnapMap.apk**.
-   - **Option B:** Run the workflow manually: **Actions → Build and release APK → Run workflow**. The APK is uploaded as a workflow artifact (download from the run). To have it on Releases, create a release in the repo and upload the APK, or use Option A.
-
-2. **Download URL**
-   - After at least one release with `SnapMap.apk`, the link on the site goes to:
-   - **https://github.com/OWNER/SnapMap/releases/latest/download/SnapMap.apk**
-   - The deployed site (GitHub Pages) gets `VITE_GITHUB_REPO` from the workflow, so the “Download Android app” button on the front page uses the correct repo automatically.
-
-3. **Local dev**
-   - To show the button locally, add to `.env`: `VITE_GITHUB_REPO=YOUR_USERNAME/SnapMap`
+Build a signed APK in Android Studio (**Build → Generate Signed Bundle / APK** → APK → release), then upload it to a GitHub Release or host it on a separate launch website. You can add a dedicated site for that later.
 
 ---
 

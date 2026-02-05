@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, Download } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
@@ -55,17 +55,6 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite }) {
         <p className="relative mx-auto mt-3 max-w-md text-sm text-slate-400 leading-relaxed">
           Exact geo-positions, best times, and directions. Save spots to your list, open in Maps, and plan less — travel more.
         </p>
-        {import.meta.env.VITE_GITHUB_REPO && (
-          <a
-            href={`https://github.com/${import.meta.env.VITE_GITHUB_REPO}/releases/latest/download/SnapMap.apk`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20"
-          >
-            <Download className="h-4 w-4" />
-            Download Android app (APK)
-          </a>
-        )}
       </header>
 
       {/* Single filter row: All, Has parking, categories */}
