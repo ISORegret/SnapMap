@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#0a0a0f',
         background_color: '#0a0a0f',
         display: 'standalone',
-        start_url: mode === 'android' ? './index.html' : '/',
-        scope: mode === 'android' ? './' : '/',
+        start_url: mode === 'android' ? './index.html' : (process.env.BASE_PATH || '/'),
+        scope: mode === 'android' ? './' : (process.env.BASE_PATH || '/'),
         icons: [
           { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
           { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'maskable' },
