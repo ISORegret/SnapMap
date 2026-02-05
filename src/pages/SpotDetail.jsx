@@ -286,12 +286,18 @@ export default function SpotDetail({
       )}
       <div className="px-4 pt-4">
         <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
-        {spot.address && (
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-            <MapPin className="h-4 w-4 shrink-0" />
-            {spot.address}
-          </p>
-        )}
+        {(() => {
+          const hasCoords = spot.latitude != null && spot.longitude != null;
+          const locationText = (spot.address && spot.address !== 'Not specified')
+            ? spot.address
+            : (hasCoords ? `${Number(spot.latitude).toFixed(5)}, ${Number(spot.longitude).toFixed(5)}` : null);
+          return locationText ? (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+              <MapPin className="h-4 w-4 shrink-0" />
+              {locationText}
+            </p>
+          ) : null;
+        })()}
         {spot.parking && (
           <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
             <Car className="h-4 w-4 shrink-0" />
