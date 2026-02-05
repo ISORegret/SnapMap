@@ -55,6 +55,22 @@ export default function App() {
     saveUserSpots(next);
   }, [userSpots]);
 
+  const deleteSpot = useCallback((spotId) => {
+    const nextSpots = userSpots.filter((s) => s.id !== spotId);
+    setUserSpots(nextSpots);
+    saveUserSpots(nextSpots);
+    const nextFavs = favoriteIds.filter((id) => id !== spotId);
+    setFavoriteIds(nextFavs);
+    saveFavorites(nextFavs);
+    const nextColls = collections.map((c) => ({
+      ...c,
+      spotIds: c.spotIds.filter((id) => id !== spotId),
+    }));
+    setCollections(nextColls);
+    saveCollections(nextColls);
+    navigate('/');
+  }, [userSpots, favoriteIds, collections, navigate]);
+
   const toggleFavorite = useCallback((spotId) => {
     const next = favoriteIds.includes(spotId)
       ? favoriteIds.filter((id) => id !== spotId)
@@ -137,6 +153,7 @@ export default function App() {
                 isFavorite={isFavorite}
                 toggleFavorite={toggleFavorite}
                 updateSpot={updateSpot}
+                onDeleteSpot={deleteSpot}
                 collections={collections}
                 addToCollection={addToCollection}
                 removeFromCollection={removeFromCollection}

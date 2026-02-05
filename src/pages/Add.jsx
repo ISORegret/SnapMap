@@ -67,6 +67,8 @@ export default function Add({ onAdd }) {
     };
     const latitude = parseCoord(lat, 37.8);
     const longitude = parseCoord(lng, -122.4);
+    const addressOrLocation = address.trim()
+      || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
     const validImages = images
       .filter((img) => img?.uri && String(img.uri).trim())
       .map((img) => ({ uri: img.uri.trim(), photoBy: (img.photoBy || 'You').trim() }));
@@ -74,7 +76,7 @@ export default function Add({ onAdd }) {
     onAdd({
       name: name.trim(),
       description: description.trim() || '',
-      address: address.trim() || 'Not specified',
+      address: addressOrLocation,
       parking: parking.trim() || '',
       howToAccess: howToAccess.trim() || '',
       latitude,
