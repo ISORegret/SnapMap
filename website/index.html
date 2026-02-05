@@ -36,10 +36,26 @@
         linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
       background-size: 24px 24px;
     }
-    .wrap { max-width: 640px; margin: 0 auto; padding: 0 1.25rem; }
+    main { width: 100%; display: block; }
+    .wrap {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: block;
+    }
 
     /* ——— Hero (centered, like PepTalk) ——— */
-    .hero-block { text-align: center; padding: 2rem 0 2.5rem; }
+    .hero-block {
+      text-align: center;
+      padding: 2rem 0 2.5rem;
+    }
+    .hero-block .badge-pill,
+    .hero-block .hero-title,
+    .hero-block .hero-nav,
+    .hero-block .hero-tagline,
+    .hero-block .hero-dots,
+    .hero-block .hero-privacy { display: block; margin-left: auto; margin-right: auto; text-align: center; }
     .badge-pill {
       display: inline-block;
       padding: 0.35rem 0.75rem;
@@ -110,6 +126,8 @@
       border-radius: 999px;
     }
     .inside-content { text-align: center; padding: 0.5rem 0 2rem; }
+    .inside-content .inside-lead,
+    .inside-content p { text-align: center; }
     .inside-lead {
       font-size: 1.25rem;
       font-weight: 700;
@@ -147,7 +165,7 @@
     .feature-card li { margin-bottom: 0.2rem; }
 
     /* ——— Summary: phone mockups ——— */
-    .summary-section { padding: 1rem 0 2rem; }
+    .summary-section { padding: 1rem 0 2rem; text-align: center; }
     .section-title {
       font-size: 0.8rem;
       font-weight: 600;
@@ -155,6 +173,7 @@
       margin: 0 0 1rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      text-align: center;
     }
     .screens {
       display: grid;
@@ -185,9 +204,10 @@
       border-top: 1px solid var(--card-border);
       text-align: center;
     }
-    .cta-section .privacy { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; }
+    .cta-section .privacy { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; max-width: 100%; }
     .cta-section .privacy strong { color: var(--text); }
-    .btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .cta-section .footer-note { text-align: center; margin: 0; }
+    .btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
     .btn {
       display: inline-block;
       padding: 0.6rem 1.25rem;
