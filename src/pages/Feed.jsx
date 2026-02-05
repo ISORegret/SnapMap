@@ -143,16 +143,20 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite }) {
                 </h3>
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400 line-clamp-1">
                   <MapPin className="h-3 w-3 shrink-0" />
-                  {spot.address || `${spot.latitude?.toFixed(2)}, ${spot.longitude?.toFixed(2)}`}
+                  {(spot.address && spot.address !== 'Not specified')
+                    ? spot.address
+                    : (spot.latitude != null && spot.longitude != null
+                      ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
+                      : '—')}
                 </p>
-                {spot.description && (
+                {spot.description && spot.description !== 'Not specified' && (
                   <p className="mt-0.5 text-xs text-slate-400 line-clamp-1">
                     {spot.description}
                   </p>
                 )}
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">
-                    {spot.bestTime}
+                    {spot.bestTime && spot.bestTime !== 'Not specified' ? spot.bestTime : ''}
                     {spot.score != null && spot.score > 0 && (
                       <span className="ml-1 text-emerald-400">· {spot.score}</span>
                     )}
