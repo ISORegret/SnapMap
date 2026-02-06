@@ -37,6 +37,9 @@ export async function fetchCommunitySpots() {
 
 export async function insertCommunitySpot(spot) {
   if (!hasSupabase) return { spot: null, error: 'Supabase not configured (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)' };
+  const imageList = spot.images ?? [];
+  const firstUri = imageList.length && imageList[0]?.uri ? String(imageList[0].uri).trim() : '';
+  const imageUrl = firstUri || 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
   const row = {
     name: spot.name,
     description: spot.description ?? '',
@@ -46,14 +49,14 @@ export async function insertCommunitySpot(spot) {
     latitude: spot.latitude,
     longitude: spot.longitude,
     best_time: spot.bestTime ?? '',
+    crowd_level: spot.crowdLevel ?? '',
     score: spot.score ?? 0,
     tags: spot.tags ?? [],
-    images: spot.images ?? [],
+    images: imageList,
+    image_url: imageUrl,
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
   };
-  // Only send crowd_level if your Supabase table has this column (run 002_add_crowd_level.sql)
-  // row.crowd_level = spot.crowdLevel ?? '';
   const { data, error } = await supabase.from('spots').insert(row).select().single();
   if (error) {
     console.warn('SnapMap: insert spot failed', error);
