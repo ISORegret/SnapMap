@@ -46,13 +46,14 @@ export async function insertCommunitySpot(spot) {
     latitude: spot.latitude,
     longitude: spot.longitude,
     best_time: spot.bestTime ?? '',
-    crowd_level: spot.crowdLevel ?? '',
     score: spot.score ?? 0,
     tags: spot.tags ?? [],
     images: spot.images ?? [],
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
   };
+  // Only send crowd_level if your Supabase table has this column (run 002_add_crowd_level.sql)
+  // row.crowd_level = spot.crowdLevel ?? '';
   const { data, error } = await supabase.from('spots').insert(row).select().single();
   if (error) {
     console.warn('SnapMap: insert spot failed', error);
