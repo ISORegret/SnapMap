@@ -48,16 +48,19 @@ export default function App() {
     ...userSpots.filter((u) => !communitySpots.some((c) => c.id === u.id)),
   ];
 
+  const [addError, setAddError] = useState(null);
+
   const addSpot = useCallback(
     async (spot) => {
-      const inserted = await insertCommunitySpot(spot);
-      if (inserted) {
+      setAddError(null);
+      const result = await insertCommunitySpot(spot);
+      if (result.spot) {
         setUserSpots((prev) => {
-          const next = [inserted, ...prev];
+          const next = [result.spot, ...prev];
           saveUserSpots(next);
           return next;
         });
-        setCommunitySpots((prev) => [inserted, ...prev]);
+        setCommunitySpots((prev) => [result.spot, ...prev]);
         navigate('/');
         return;
       }
@@ -68,6 +71,7 @@ export default function App() {
         saveUserSpots(next);
         return next;
       });
+      if (result.error) setAddError(result.error);
       navigate('/');
     },
     [navigate]
@@ -154,6 +158,8 @@ export default function App() {
                 allSpots={allSpots}
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
+                addError={addError}
+                onDismissAddError={() => setAddError(null)}
               />
             }
           />

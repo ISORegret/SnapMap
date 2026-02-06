@@ -36,7 +36,7 @@ export async function fetchCommunitySpots() {
 }
 
 export async function insertCommunitySpot(spot) {
-  if (!hasSupabase) return null;
+  if (!hasSupabase) return { spot: null, error: 'Supabase not configured (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)' };
   const row = {
     name: spot.name,
     description: spot.description ?? '',
@@ -56,9 +56,9 @@ export async function insertCommunitySpot(spot) {
   const { data, error } = await supabase.from('spots').insert(row).select().single();
   if (error) {
     console.warn('SnapMap: insert spot failed', error);
-    return null;
+    return { spot: null, error: error.message || String(error) };
   }
-  return rowToSpot(data);
+  return { spot: rowToSpot(data), error: null };
 }
 
 export async function deleteCommunitySpot(id) {

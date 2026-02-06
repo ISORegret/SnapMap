@@ -24,3 +24,21 @@ Shared spots are stored in Supabase so anyone can post and others can see them.
 ## Without Supabase
 
 If you don’t set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, the app still works: spots are saved only on the device (localStorage). No backend is required.
+
+## Phone vs web not syncing / no rows in Supabase
+
+- **Phone (Android APK)**  
+  The APK only has Supabase if `.env` was in the project root **when you ran the build**. Rebuild the app on your machine (with `.env` present), then reinstall the APK:
+  ```bash
+  npm run build:apk
+  ```
+  Install the new APK from `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+- **Web (GitHub Pages)**  
+  The deployed app is built in GitHub Actions. Add repo secrets: **Settings** → **Secrets and variables** → **Actions** → `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Then push to `main` so the workflow runs and redeploys.
+
+- **Check the Add page**  
+  Under "Add a spot" it should say *"Spots will be shared with everyone (saved to cloud)."* If it says *"Data stays on your device"*, Supabase env vars are not set for that build.
+
+- **Sync failed message**  
+  After adding a spot, if you see *"Saved on device only. Couldn't sync to cloud: …"* on the feed, the message shows the reason (e.g. missing env, network, or Supabase error).
