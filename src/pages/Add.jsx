@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ImagePlus } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/spotImages';
+import { hasSupabase } from '../api/supabase';
 
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
@@ -104,7 +105,9 @@ export default function Add({ onAdd }) {
           Add a spot
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          Data stays on your device.
+          {hasSupabase
+            ? 'Spots will be shared with everyone (saved to cloud).'
+            : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
