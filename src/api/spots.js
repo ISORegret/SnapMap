@@ -40,8 +40,10 @@ export async function fetchCommunitySpots() {
 export async function insertCommunitySpot(spot) {
   if (!hasSupabase) return { spot: null, error: 'Supabase not configured (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)' };
   const imageList = spot.images ?? [];
-  const firstUri = imageList.length && imageList[0]?.uri ? String(imageList[0].uri).trim() : '';
+  const firstImage = imageList.length ? imageList[0] : null;
+  const firstUri = firstImage?.uri ? String(firstImage.uri).trim() : '';
   const imageUri = (firstUri && firstUri.length > 0) ? firstUri : DEFAULT_IMAGE_URI;
+  const photoBy = firstImage?.photoBy ? String(firstImage.photoBy).trim() : 'You';
   const row = {
     name: spot.name,
     description: spot.description ?? '',
@@ -56,6 +58,7 @@ export async function insertCommunitySpot(spot) {
     tags: spot.tags ?? [],
     images: imageList,
     image_uri: imageUri ?? DEFAULT_IMAGE_URI,
+    photo_by: photoBy || 'You',
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
   };
