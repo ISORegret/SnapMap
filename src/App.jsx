@@ -14,6 +14,7 @@ import {
   createCollection as createCollectionInStore,
   deleteCollection as deleteCollectionInStore,
 } from './data/spotStore';
+import { fetchCommunitySpots, insertCommunitySpot, deleteCommunitySpot } from './api/spots';
 import Feed from './pages/Feed';
 import MapPage from './pages/Map';
 import Add from './pages/Add';
@@ -23,6 +24,7 @@ import InstallPrompt from './components/InstallPrompt';
 
 export default function App() {
   const [userSpots, setUserSpots] = useState([]);
+  const [communitySpots, setCommunitySpots] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [collections, setCollections] = useState([]);
   const [ready, setReady] = useState(false);
@@ -35,16 +37,41 @@ export default function App() {
     setReady(true);
   }, []);
 
-  const allSpots = [...CURATED_SPOTS, ...userSpots];
+  useEffect(() => {
+    if (!ready) return;
+    fetchCommunitySpots().then(setCommunitySpots);
+  }, [ready]);
 
-  const addSpot = useCallback((spot) => {
-    const id = `user-${Date.now()}`;
-    const newSpot = { ...spot, id };
-    const next = [newSpot, ...userSpots];
-    setUserSpots(next);
-    saveUserSpots(next);
-    navigate('/');
-  }, [userSpots, navigate]);
+  const allSpots = [
+    ...CURATED_SPOTS,
+    ...communitySpots,
+    ...userSpots.filter((u) => !communitySpots.some((c) => c.id === u.id)),
+  ];
+
+  const addSpot = useCallback(
+    async (spot) => {
+      const inserted = await insertCommunitySpot(spot);
+      if (inserted) {
+        setUserSpots((prev) => {
+          const next = [inserted, ...prev];
+          saveUserSpots(next);
+          return next;
+        });
+        setCommunitySpots((prev) => [inserted, ...prev]);
+        navigate('/');
+        return;
+      }
+      const id = `user-${Date.now()}`;
+      const newSpot = { ...spot, id };
+      setUserSpots((prev) => {
+        const next = [newSpot, ...prev];
+        saveUserSpots(next);
+        return next;
+      });
+      navigate('/');
+    },
+    [navigate]
+  );
 
   const updateSpot = useCallback((spotId, updates) => {
     const spot = userSpots.find((s) => s.id === spotId);
@@ -56,9 +83,11 @@ export default function App() {
   }, [userSpots]);
 
   const deleteSpot = useCallback((spotId) => {
+    deleteCommunitySpot(spotId);
     const nextSpots = userSpots.filter((s) => s.id !== spotId);
     setUserSpots(nextSpots);
     saveUserSpots(nextSpots);
+    setCommunitySpots((prev) => prev.filter((s) => s.id !== spotId));
     const nextFavs = favoriteIds.filter((id) => id !== spotId);
     setFavoriteIds(nextFavs);
     saveFavorites(nextFavs);

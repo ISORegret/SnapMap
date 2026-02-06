@@ -29,6 +29,7 @@ export default function Add({ onAdd }) {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [photoError, setPhotoError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
@@ -58,9 +59,9 @@ export default function Add({ onAdd }) {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || submitting) return;
     const parseCoord = (value, fallback) => {
       const n = parseFloat(value);
       return Number.isFinite(n) ? n : fallback;
@@ -73,22 +74,27 @@ export default function Add({ onAdd }) {
       .filter((img) => img?.uri && String(img.uri).trim())
       .map((img) => ({ uri: img.uri.trim(), photoBy: (img.photoBy || 'You').trim() }));
     const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
-    onAdd({
-      name: name.trim(),
-      description: description.trim() || '',
-      address: addressOrLocation,
-      parking: parking.trim() || '',
-      howToAccess: howToAccess.trim() || '',
-      latitude,
-      longitude,
-      bestTime: bestTime.trim() || 'Not specified',
-      crowdLevel: crowdLevel === 'quiet' || crowdLevel === 'moderate' || crowdLevel === 'busy' ? crowdLevel : '',
-      score: 0,
-      tags: tags.trim() ? tags.split(',').map((t) => t.trim()) : [],
-      images: finalImages,
-      linkUrl: linkUrl.trim() || '',
-      linkLabel: linkLabel.trim() || 'More info',
-    });
+    setSubmitting(true);
+    try {
+      await onAdd({
+        name: name.trim(),
+        description: description.trim() || '',
+        address: addressOrLocation,
+        parking: parking.trim() || '',
+        howToAccess: howToAccess.trim() || '',
+        latitude,
+        longitude,
+        bestTime: bestTime.trim() || 'Not specified',
+        crowdLevel: crowdLevel === 'quiet' || crowdLevel === 'moderate' || crowdLevel === 'busy' ? crowdLevel : '',
+        score: 0,
+        tags: tags.trim() ? tags.split(',').map((t) => t.trim()) : [],
+        images: finalImages,
+        linkUrl: linkUrl.trim() || '',
+        linkLabel: linkLabel.trim() || 'More info',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -287,9 +293,10 @@ export default function Add({ onAdd }) {
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#0c0c0f]"
+          disabled={submitting}
+          className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#0c0c0f] disabled:opacity-60 disabled:pointer-events-none"
         >
-          Add spot
+          {submitting ? 'Adding…' : 'Add spot'}
         </button>
       </form>
     </div>
