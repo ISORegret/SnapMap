@@ -1,5 +1,7 @@
 import { supabase, hasSupabase } from './supabase';
 
+const DEFAULT_IMAGE_URI = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
+
 function rowToSpot(row) {
   if (!row) return null;
   return {
@@ -39,7 +41,7 @@ export async function insertCommunitySpot(spot) {
   if (!hasSupabase) return { spot: null, error: 'Supabase not configured (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)' };
   const imageList = spot.images ?? [];
   const firstUri = imageList.length && imageList[0]?.uri ? String(imageList[0].uri).trim() : '';
-  const imageUrl = firstUri || 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
+  const imageUri = (firstUri && firstUri.length > 0) ? firstUri : DEFAULT_IMAGE_URI;
   const row = {
     name: spot.name,
     description: spot.description ?? '',
@@ -53,7 +55,7 @@ export async function insertCommunitySpot(spot) {
     score: spot.score ?? 0,
     tags: spot.tags ?? [],
     images: imageList,
-    image_url: imageUrl,
+    image_uri: imageUri ?? DEFAULT_IMAGE_URI,
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
   };
