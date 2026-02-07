@@ -258,7 +258,16 @@ export default function SpotDetail({
       const primaryImage = getSpotPrimaryImage(spot);
       const imgEl = shareCardRef.current.querySelector('img');
       if (imgEl && primaryImage && (primaryImage.startsWith('http:') || primaryImage.startsWith('https:'))) {
-        const imageDataUrl = await fetch(primaryImage, { mode: 'cors' })
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const useProxy = supabaseUrl && primaryImage.includes('supabase.co');
+        const fetchUrl = useProxy
+          ? `${supabaseUrl}/functions/v1/image-proxy?url=${encodeURIComponent(primaryImage)}`
+          : primaryImage;
+        const fetchOpts = useProxy && supabaseKey
+          ? { mode: 'cors', headers: { Authorization: `Bearer ${supabaseKey}` } }
+          : { mode: 'cors' };
+        const imageDataUrl = await fetch(fetchUrl, fetchOpts)
           .then((r) => r.blob())
           .then(
             (blob) =>
