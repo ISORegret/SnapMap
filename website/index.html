@@ -480,7 +480,8 @@
     </div>
   </div>
 
-  <!-- Optional: set before main script for live count + increment on click. Example: window.SNAPMAP_SUPABASE = { url: 'https://xxx.supabase.co', anonKey: 'eyJ...' }; -->
+  <!-- Load config.js (copy from config.example.js, add your Supabase url + anonKey) for download count + increment on click -->
+  <script src="./config.js"></script>
   <script>
     (function () {
       var supabase = typeof window.SNAPMAP_SUPABASE !== 'undefined' && window.SNAPMAP_SUPABASE && window.SNAPMAP_SUPABASE.url && window.SNAPMAP_SUPABASE.anonKey ? window.SNAPMAP_SUPABASE : null;
@@ -516,9 +517,11 @@
               method: 'POST',
               headers: { apikey: supabase.anonKey, Authorization: 'Bearer ' + supabase.anonKey, 'Content-Type': 'application/json', Accept: 'application/json' },
               body: '{}'
-            }).then(function () {
+            }).then(function (r) { return r.ok ? r.json() : null; }).then(function (newVal) {
               var el = document.getElementById('download-count');
-              if (el) {
+              if (el && typeof newVal === 'number' && newVal >= 0) {
+                el.textContent = newVal.toLocaleString() + (newVal === 1 ? ' download' : ' downloads');
+              } else if (el) {
                 var prev = parseInt(el.textContent, 10);
                 if (!isNaN(prev)) el.textContent = (prev + 1).toLocaleString() + ' downloads';
               }
