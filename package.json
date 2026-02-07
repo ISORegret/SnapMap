@@ -21,10 +21,12 @@
     "@supabase/supabase-js": "^2.95.3",
     "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
+    "react-leaflet-markercluster": "^5.0.0-rc.0",
     "react-router-dom": "^6.22.0",
     "suncalc": "^1.9.0"
   },
