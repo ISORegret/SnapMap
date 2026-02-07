@@ -49,6 +49,9 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         <h1 className="relative text-2xl font-bold tracking-tight text-gradient">
           SnapMap
         </h1>
+        <p className="relative mt-1 text-xs font-medium text-slate-500" aria-hidden="true">
+          App v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+        </p>
         <p className="relative mt-0.5 text-sm font-medium text-emerald-400">
           The best places for photography and cars
         </p>
