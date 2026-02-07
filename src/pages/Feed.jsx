@@ -31,7 +31,7 @@ const FILTER_OPTIONS = [
   ...CATEGORIES.filter((c) => c.id !== 'all'),
 ];
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, addError, onDismissAddError }) {
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -43,20 +43,6 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, addError, 
 
   return (
     <div className="min-h-[calc(100vh-56px)] pb-6">
-      {addError && (
-        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 flex items-center justify-between gap-2">
-          <p className="text-xs text-amber-200 flex-1 min-w-0">
-            Saved on device only. Couldn&apos;t sync to cloud: {addError}
-          </p>
-          <button
-            type="button"
-            onClick={onDismissAddError}
-            className="shrink-0 rounded px-2 py-1 text-amber-300 hover:bg-amber-500/20 text-xs"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
       {/* App title + tagline */}
       <header className="relative border-b border-emerald-500/10 bg-gradient-to-b from-emerald-950/30 to-transparent px-4 pt-6 pb-5 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(52,211,153,0.08),transparent)] pointer-events-none" />
@@ -134,6 +120,25 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, addError, 
                   alt=""
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 />
+                {spot.uploadError && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
+                    <p className="text-[10px] font-medium leading-tight text-amber-200 line-clamp-3">
+                      Couldn&apos;t sync: {spot.uploadError}
+                    </p>
+                    {onDismissSpotError && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onDismissSpotError(spot.id);
+                        }}
+                        className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={(e) => {

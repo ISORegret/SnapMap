@@ -12,7 +12,7 @@ function matchesSearch(spot, q) {
   return name.includes(lower) || address.includes(lower) || desc.includes(lower);
 }
 
-function SpotCard({ spot, onUnsave, compact }) {
+function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
   return (
     <Link
       to={`/spot/${spot.id}`}
@@ -24,6 +24,25 @@ function SpotCard({ spot, onUnsave, compact }) {
           alt=""
           className="h-full w-full object-cover transition group-hover:scale-105"
         />
+        {spot.uploadError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
+            <p className="text-[10px] font-medium leading-tight text-amber-200 line-clamp-3">
+              Couldn&apos;t sync: {spot.uploadError}
+            </p>
+            {onDismissSpotError && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onDismissSpotError(spot.id);
+                }}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        )}
         <button
           type="button"
           onClick={(e) => {
@@ -65,6 +84,7 @@ export default function Saved({
   createCollection,
   deleteCollection,
   removeFromCollection,
+  onDismissSpotError,
 }) {
   const [newListName, setNewListName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,7 +172,7 @@ export default function Saved({
               <ul className="space-y-3">
                 {savedSpotsFiltered.map((spot) => (
                   <li key={spot.id}>
-                    <SpotCard spot={spot} onUnsave={toggleFavorite} compact={false} />
+                    <SpotCard spot={spot} onUnsave={toggleFavorite} onDismissSpotError={onDismissSpotError} compact={false} />
                   </li>
                 ))}
               </ul>
@@ -188,6 +208,7 @@ export default function Saved({
                         <SpotCard
                           spot={spot}
                           onUnsave={() => removeFromCollection(coll.id, spot.id)}
+                          onDismissSpotError={onDismissSpotError}
                           compact
                         />
                       </li>

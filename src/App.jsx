@@ -48,11 +48,8 @@ export default function App() {
     ...userSpots.filter((u) => !communitySpots.some((c) => c.id === u.id)),
   ];
 
-  const [addError, setAddError] = useState(null);
-
   const addSpot = useCallback(
     async (spot) => {
-      setAddError(null);
       const result = await insertCommunitySpot(spot);
       if (result.spot) {
         setUserSpots((prev) => {
@@ -65,13 +62,12 @@ export default function App() {
         return;
       }
       const id = `user-${Date.now()}`;
-      const newSpot = { ...spot, id };
+      const newSpot = { ...spot, id, uploadError: result.error || undefined };
       setUserSpots((prev) => {
         const next = [newSpot, ...prev];
         saveUserSpots(next);
         return next;
       });
-      if (result.error) setAddError(result.error);
       navigate('/');
     },
     [navigate]
@@ -158,8 +154,7 @@ export default function App() {
                 allSpots={allSpots}
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
-                addError={addError}
-                onDismissAddError={() => setAddError(null)}
+                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
               />
             }
           />
@@ -176,6 +171,7 @@ export default function App() {
                 createCollection={createCollection}
                 deleteCollection={deleteCollection}
                 removeFromCollection={removeFromCollection}
+                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
               />
             }
           />
@@ -197,23 +193,28 @@ export default function App() {
           />
         </Routes>
       </main>
-      <nav className="sticky bottom-0 z-20 flex items-center justify-around gap-1 border-t border-emerald-500/10 bg-[#080c0a]/95 px-2 py-2 backdrop-blur-xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        <NavLink to="/" className={navLinkClass}>
-          <LayoutGrid className="h-5 w-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You</span>
-        </NavLink>
-        <NavLink to="/map" className={navLinkClass}>
-          <Map className="h-5 w-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Map</span>
-        </NavLink>
-        <NavLink to="/add" className={addLinkClass}>
-          <Plus className="h-5 w-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Add</span>
-        </NavLink>
-        <NavLink to="/saved" className={navLinkClass}>
-          <Heart className="h-5 w-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
-        </NavLink>
+      <nav className="sticky bottom-0 z-20 flex flex-col border-t border-emerald-500/10 bg-[#080c0a]/95 backdrop-blur-xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-around gap-1 px-2 py-2">
+          <NavLink to="/" className={navLinkClass}>
+            <LayoutGrid className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You</span>
+          </NavLink>
+          <NavLink to="/map" className={navLinkClass}>
+            <Map className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Map</span>
+          </NavLink>
+          <NavLink to="/add" className={addLinkClass}>
+            <Plus className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Add</span>
+          </NavLink>
+          <NavLink to="/saved" className={navLinkClass}>
+            <Heart className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
+          </NavLink>
+        </div>
+        <p className="text-center text-[10px] text-slate-500 pb-1" aria-hidden="true">
+          v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+        </p>
       </nav>
     </div>
   );

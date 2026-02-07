@@ -6,6 +6,14 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+def versionPropsFile = file('version.properties')
+def versionNameFromPackage = "1.0"
+if (versionPropsFile.exists()) {
+    def versionProps = new Properties()
+    versionProps.load(new FileInputStream(versionPropsFile))
+    versionNameFromPackage = versionProps['VERSION_NAME'] ?: "1.0"
+}
+
 android {
     namespace = "com.snapmap.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -14,7 +22,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName versionNameFromPackage
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -39,6 +47,15 @@ android {
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def versionName = variant.versionName ?: "1.0"
+            def versionCode = variant.versionCode
+            def date = new Date().format("yyyyMMdd-HHmm")
+            def builtType = variant.buildType.name
+            output.outputFileName = "snapmap-${builtType}-${versionName}-${date}.apk"
         }
     }
 }
