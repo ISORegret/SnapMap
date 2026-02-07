@@ -163,6 +163,7 @@ export default function SpotDetail({
   toggleFavorite,
   updateSpot,
   onDeleteSpot,
+  onDismissSpotError,
   collections = [],
   addToCollection,
   removeFromCollection,
@@ -448,6 +449,20 @@ export default function SpotDetail({
 
     return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6 animate-fade-in">
+      {(spot.syncError || spot.uploadError) && (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg bg-amber-950/95 px-3 py-2 text-sm text-amber-200 backdrop-blur-sm">
+          <span>{spot.syncError ? "Edit didn't sync to cloud." : `Couldn't sync: ${spot.uploadError}`}</span>
+          {onDismissSpotError && (
+            <button
+              type="button"
+              onClick={() => onDismissSpotError(spot.id)}
+              className="shrink-0 rounded px-2 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/30"
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
       {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}
       <div
         ref={shareCardRef}

@@ -144,7 +144,7 @@ export default function Add({ onAdd, onUpdate }) {
         createdBy: createdBy.trim() || '',
       };
       if (editSpot && onUpdate) {
-        onUpdate(editSpot.id, payload);
+        await onUpdate(editSpot.id, payload);
         navigate(`/spot/${editSpot.id}`, { replace: true });
       } else {
         await onAdd(payload);

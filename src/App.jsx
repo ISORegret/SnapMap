@@ -93,13 +93,17 @@ export default function App() {
     if (ready) requestPosition();
   }, [ready, requestPosition]);
 
+  // Refetch community spots when tab becomes visible so other device's edits show up
   useEffect(() => {
     if (!isOnline) return;
-    const onVisible = () => {
+    const refetch = () => {
       setCommunitySpotsLoading(true);
       fetchCommunitySpots()
         .then(setCommunitySpots)
         .finally(() => setCommunitySpotsLoading(false));
+    };
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetch();
     };
     if (typeof document !== 'undefined' && document.addEventListener) {
       document.addEventListener('visibilitychange', onVisible);
@@ -107,15 +111,43 @@ export default function App() {
     }
   }, [isOnline]);
 
+  // Periodic refetch while app is visible so edits from another device appear without switching tabs
+  const REFETCH_INTERVAL_MS = 45 * 1000;
+  useEffect(() => {
+    if (!isOnline) return;
+    let intervalId = null;
+    const schedule = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      intervalId = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchCommunitySpots().then(setCommunitySpots);
+      }, REFETCH_INTERVAL_MS);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') schedule();
+      else if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+    if (document.visibilityState === 'visible') schedule();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isOnline]);
+
   useEffect(() => {
     if (!isOnline) return;
     checkUpdateAvailable(appVersion).then(setUpdateAvailable);
   }, [isOnline, appVersion]);
 
+  // Prefer userSpots over communitySpots when same id (so local edits persist after reopen)
   const allSpots = [
     ...CURATED_SPOTS,
-    ...communitySpots,
-    ...userSpots.filter((u) => !communitySpots.some((c) => c.id === u.id)),
+    ...communitySpots.filter((c) => !userSpots.some((u) => u.id === c.id)),
+    ...userSpots,
   ];
 
   const addSpot = useCallback(
@@ -145,28 +177,41 @@ export default function App() {
     [navigate]
   );
 
-  const updateSpot = useCallback((spotId, updates) => {
-    const inUser = userSpots.find((s) => s.id === spotId);
-    const isCloudId = spotId && !String(spotId).startsWith('user-');
+  const updateSpot = useCallback(
+    async (spotId, updates) => {
+      const inUser = userSpots.find((s) => s.id === spotId);
+      const isCloudId = spotId && !String(spotId).startsWith('user-');
 
-    if (inUser) {
-      const updated = { ...inUser, ...updates };
-      setUserSpots((prev) => {
-        const next = prev.map((s) => (s.id === spotId ? updated : s));
-        saveUserSpots(next);
-        return next;
-      });
-      if (isCloudId) {
-        updateCommunitySpot(spotId, updates).then((ok) => {
-          if (ok) setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+      if (inUser) {
+        const updated = { ...inUser, ...updates };
+        setUserSpots((prev) => {
+          const next = prev.map((s) => (s.id === spotId ? updated : s));
+          saveUserSpots(next);
+          return next;
         });
+        if (isCloudId) {
+          const ok = await updateCommunitySpot(spotId, updates);
+          if (ok) {
+            setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+          } else {
+            setUserSpots((prev) => {
+              const next = prev.map((s) =>
+                s.id === spotId ? { ...s, ...updates, syncError: true } : s
+              );
+              saveUserSpots(next);
+              return next;
+            });
+          }
+        }
+      } else if (isCloudId) {
+        const ok = await updateCommunitySpot(spotId, updates);
+        if (ok) {
+          setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+        }
       }
-    } else if (isCloudId) {
-      updateCommunitySpot(spotId, updates).then((ok) => {
-        if (ok) setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
-      });
-    }
-  }, [userSpots]);
+    },
+    [userSpots]
+  );
 
   const deleteSpot = useCallback((spotId) => {
     deleteCommunitySpot(spotId);
@@ -302,7 +347,7 @@ export default function App() {
                 allSpots={allSpots}
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
-                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
+                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
                 onRefresh={() => {
                   setCommunitySpotsLoading(true);
                   return fetchCommunitySpots().then(setCommunitySpots).finally(() => setCommunitySpotsLoading(false));
@@ -331,7 +376,7 @@ export default function App() {
                 createCollection={createCollection}
                 deleteCollection={deleteCollection}
                 removeFromCollection={removeFromCollection}
-                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
+                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
                 theme={theme}
                 setTheme={setTheme}
                 units={units}
@@ -349,6 +394,7 @@ export default function App() {
                 toggleFavorite={toggleFavorite}
                 updateSpot={updateSpot}
                 onDeleteSpot={deleteSpot}
+                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
                 collections={collections}
                 addToCollection={addToCollection}
                 removeFromCollection={removeFromCollection}

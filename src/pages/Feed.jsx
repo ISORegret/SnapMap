@@ -707,10 +707,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     </span>
                   );
                 })()}
-                {spot.uploadError && (
+                {(spot.uploadError || spot.syncError) && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
                     <p className="text-[10px] font-medium leading-tight text-amber-200 line-clamp-3">
-                      Couldn&apos;t sync: {spot.uploadError}
+                      {spot.syncError ? "Edit didn't sync to cloud." : `Couldn't sync: ${spot.uploadError}`}
                     </p>
                     {onDismissSpotError && (
                       <button
