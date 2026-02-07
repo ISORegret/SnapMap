@@ -1,11 +1,15 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil, MapPinned, Star } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
 import { insertSpotReport, fetchSpotNotes, insertSpotNote } from '../api/spots';
+import { getCheckInCount, hasCheckedIn, addCheckIn } from '../api/checkIns';
+import { getSpotRating, getUserRating, setSpotRating } from '../api/ratings';
+import { getDeviceId } from '../data/spotStore';
+import { hasSupabase } from '../api/supabase';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -188,8 +192,38 @@ export default function SpotDetail({
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
   const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [checkInCount, setCheckInCount] = useState(0);
+  const [userHasCheckedIn, setUserHasCheckedIn] = useState(false);
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [rating, setRating] = useState({ average: 0, count: 0 });
+  const [userRating, setUserRating] = useState(null);
+  const [ratingLoading, setRatingLoading] = useState(false);
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
+
+  useEffect(() => {
+    if (!spot?.id || !hasSupabase) return;
+    let cancelled = false;
+    Promise.all([getCheckInCount(spot.id), hasCheckedIn(spot.id, getDeviceId())]).then(([count, has]) => {
+      if (!cancelled) {
+        setCheckInCount(count);
+        setUserHasCheckedIn(has);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [spot?.id]);
+
+  useEffect(() => {
+    if (!spot?.id || !hasSupabase) return;
+    let cancelled = false;
+    Promise.all([getSpotRating(spot.id), getUserRating(spot.id, getDeviceId())]).then(([r, ur]) => {
+      if (!cancelled) {
+        setRating(r);
+        setUserRating(ur);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [spot?.id]);
 
   const sunTimes = useMemo(() => {
     if (!spot?.latitude || !spot?.longitude) return null;
@@ -547,9 +581,85 @@ export default function SpotDetail({
           </p>
         )}
         {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
-          <p className="mt-1 text-xs text-slate-500">Added by @{String(spot.createdBy).trim()}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Added by{' '}
+            <Link
+              to={`/user/${encodeURIComponent(String(spot.createdBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
+              className="text-emerald-400 hover:underline"
+            >
+              @{String(spot.createdBy).trim()}
+            </Link>
+          </p>
         ) : (
           <p className="mt-1 text-xs text-slate-500">Added by Anonymous</p>
+        )}
+        {hasSupabase && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-sm text-slate-500">
+              <MapPinned className="h-4 w-4 shrink-0 text-emerald-500/80" />
+              {checkInCount === 0
+                ? 'No check-ins yet'
+                : checkInCount === 1
+                  ? '1 person has been here'
+                  : `${checkInCount} people have been here`}
+            </span>
+            {!userHasCheckedIn ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  setCheckInLoading(true);
+                  const result = await addCheckIn(spot.id, getDeviceId());
+                  setCheckInLoading(false);
+                  if (result.ok) {
+                    setUserHasCheckedIn(true);
+                    setCheckInCount((c) => c + 1);
+                  }
+                }}
+                disabled={checkInLoading}
+                className="shrink-0 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-emerald-500/30 disabled:opacity-50"
+              >
+                {checkInLoading ? '…' : 'I was here'}
+              </button>
+            ) : (
+              <span className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-slate-400">You&apos;ve been here</span>
+            )}
+          </div>
+        )}
+        {hasSupabase && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-slate-500">Rating:</span>
+            <div className="flex items-center gap-0.5" role="group" aria-label="Rate this spot">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={async () => {
+                    setRatingLoading(true);
+                    const ok = await setSpotRating(spot.id, getDeviceId(), star);
+                    setRatingLoading(false);
+                    if (ok) {
+                      setUserRating(star);
+                      const r = await getSpotRating(spot.id);
+                      setRating(r);
+                    }
+                  }}
+                  disabled={ratingLoading}
+                  className="rounded p-0.5 text-amber-400 transition hover:scale-110 disabled:opacity-50"
+                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                >
+                  <Star
+                    className="h-5 w-5"
+                    fill={userRating != null && star <= userRating ? 'currentColor' : 'transparent'}
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </button>
+              ))}
+            </div>
+            <span className="text-sm text-slate-500">
+              {rating.count === 0 ? 'No ratings yet' : `${rating.average.toFixed(1)} (${rating.count})`}
+            </span>
+          </div>
         )}
         {(() => {
           const hasCoords = spot.latitude != null && spot.longitude != null;

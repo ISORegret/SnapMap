@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, LayersControl } from 'react-leaflet';
+const { BaseLayer } = LayersControl;
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
@@ -326,10 +327,32 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         style={{ height: '100%', minHeight: 200 }}
         scrollWheelZoom
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <LayersControl position="topright">
+          <BaseLayer checked name="Map">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          </BaseLayer>
+          <BaseLayer name="Satellite">
+            <TileLayer
+              attribution="&copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          </BaseLayer>
+          <BaseLayer name="Terrain">
+            <TileLayer
+              attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+            />
+          </BaseLayer>
+          <BaseLayer name="Dark">
+            <TileLayer
+              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+          </BaseLayer>
+        </LayersControl>
         <FitBounds spots={filteredSpots} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         {flyToSpot && <FlyToCenter center={flyToSpot} zoom={15} />}

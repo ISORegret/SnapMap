@@ -118,14 +118,21 @@ export default function Add({ onAdd, onUpdate }) {
     setFieldErrors(errors);
     if (errors.name || errors.latitude || errors.longitude) return;
 
+    const validImages = images
+      .filter((img) => img?.uri && String(img.uri).trim())
+      .map((img) => ({ uri: img.uri.trim(), photoBy: (img.photoBy || 'You').trim() }));
+    const hasRealPhoto = validImages.some((img) => img.uri && img.uri !== DEFAULT_IMAGE);
+    if (!editSpot && !hasRealPhoto) {
+      setPhotoError('Add at least one photo of the spot.');
+      return;
+    }
+    setPhotoError('');
+    const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
+
     const latitude = validLat ? latNum : (editSpot?.latitude ?? 37.8);
     const longitude = validLng ? lngNum : (editSpot?.longitude ?? -122.4);
     const addressOrLocation = address.trim()
       || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-    const validImages = images
-      .filter((img) => img?.uri && String(img.uri).trim())
-      .map((img) => ({ uri: img.uri.trim(), photoBy: (img.photoBy || 'You').trim() }));
-    const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
     setSubmitting(true);
     try {
       const payload = {
@@ -363,8 +370,12 @@ export default function Add({ onAdd, onUpdate }) {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-500">Photos (optional)</label>
-          <p className="mt-0.5 text-[11px] text-slate-500">Add one or more shots; others can add theirs to the same spot later. No photo? We&apos;ll use a default image.</p>
+          <label className="block text-xs font-medium text-slate-500">Photos {editSpot ? '(optional)' : '*'}</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            {editSpot
+              ? 'Add one or more shots; others can add theirs to the same spot later.'
+              : 'Add at least one photo of the spot. Others can add more later.'}
+          </p>
           <input
             ref={fileInputRef}
             type="file"

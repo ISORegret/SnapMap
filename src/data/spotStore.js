@@ -2,6 +2,7 @@ const USER_SPOTS_KEY = 'snapmap-user-spots';
 const FAVORITES_KEY = 'snapmap-favorites';
 const COLLECTIONS_KEY = 'snapmap-collections';
 const SYNC_CODE_KEY = 'snapmap-favorites-sync-code';
+const DEVICE_ID_KEY = 'snapmap-device-id';
 
 export function loadUserSpots() {
   try {
@@ -51,6 +52,19 @@ export function saveSyncCode(code) {
     if (code) localStorage.setItem(SYNC_CODE_KEY, String(code).trim());
     else localStorage.removeItem(SYNC_CODE_KEY);
   } catch {}
+}
+
+export function getDeviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).slice(2, 14) + '_' + Date.now().toString(36);
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'dev_anon_' + Date.now();
+  }
 }
 
 // Collections: named lists of spot ids

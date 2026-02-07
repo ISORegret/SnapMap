@@ -18,6 +18,7 @@ import {
 } from './data/spotStore';
 import { fetchCommunitySpots, insertCommunitySpot, updateCommunitySpot, deleteCommunitySpot } from './api/spots';
 import { fetchFavorites as fetchFavoritesApi, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from './api/favorites';
+import { getProfileById, createProfile } from './api/profiles';
 import { supabase, hasSupabase } from './api/supabase';
 import { getCurrentPosition } from './utils/geo';
 import Feed from './pages/Feed';
@@ -25,7 +26,10 @@ import MapPage from './pages/Map';
 import Add from './pages/Add';
 import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
+import Profile from './pages/Profile';
+import SignIn from './pages/SignIn';
 import InstallPrompt from './components/InstallPrompt';
+import Tutorial from './components/Tutorial';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
 
@@ -36,6 +40,7 @@ export default function App() {
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [collections, setCollections] = useState([]);
   const [syncCode, setSyncCodeState] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const [ready, setReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [theme, setThemeState] = useState(() =>
@@ -86,6 +91,27 @@ export default function App() {
     setSyncCodeState(loadSyncCode());
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!hasSupabase || !supabase) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser?.id || !hasSupabase) return;
+    getProfileById(currentUser.id).then((p) => {
+      if (!p) {
+        const u = (currentUser.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 32) || 'user';
+        createProfile({ id: currentUser.id, username: u, displayName: u });
+      }
+    });
+  }, [currentUser?.id, currentUser?.email]);
 
   useEffect(() => {
     if (!ready) return;
@@ -252,7 +278,12 @@ export default function App() {
 
   const addSpot = useCallback(
     async (spot) => {
-      const result = await insertCommunitySpot(spot);
+      let payload = { ...spot };
+      if (currentUser) {
+        const profile = await getProfileById(currentUser.id);
+        if (profile?.username) payload = { ...payload, createdBy: profile.username };
+      }
+      const result = await insertCommunitySpot(payload);
       if (result.spot) {
         setUserSpots((prev) => {
           const next = [result.spot, ...prev];
@@ -265,7 +296,7 @@ export default function App() {
         return;
       }
       const id = `user-${Date.now()}`;
-      const newSpot = { ...spot, id, uploadError: result.error || undefined };
+      const newSpot = { ...payload, id, uploadError: result.error || undefined };
       setUserSpots((prev) => {
         const next = [newSpot, ...prev];
         saveUserSpots(next);
@@ -274,7 +305,7 @@ export default function App() {
       hapticLight();
       navigate('/');
     },
-    [navigate]
+    [currentUser, navigate]
   );
 
   const updateSpot = useCallback(
@@ -452,6 +483,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <InstallPrompt />
+      <Tutorial />
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">
           <WifiOff className="h-4 w-4 shrink-0" />
@@ -480,11 +512,15 @@ export default function App() {
                 setTheme={setTheme}
                 units={units}
                 setUnits={setUnits}
+                currentUser={currentUser}
+                onSignOut={() => supabase?.auth?.signOut()}
               />
             }
           />
           <Route path="/map" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} />} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
           <Route
             path="/saved"
             element={

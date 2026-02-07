@@ -5,6 +5,7 @@ import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm, kmToMi } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
+import { hasSupabase } from '../api/supabase';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -113,7 +114,7 @@ function FeedSkeletonCard() {
   );
 }
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false, userPosition: userPositionProp = null, requestPosition: requestPositionProp, theme = 'dark', setTheme, units = 'mi', setUnits }) {
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false, userPosition: userPositionProp = null, requestPosition: requestPositionProp, theme = 'dark', setTheme, units = 'mi', setUnits, currentUser = null, onSignOut }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -355,6 +356,34 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     <Heart className="h-4 w-4" />
                     Saved
                   </a>
+                  {hasSupabase && (
+                    currentUser ? (
+                      <>
+                        <a
+                          href={`#/user/${(currentUser.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_')}`}
+                          onClick={() => setSettingsOpen(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                        >
+                          Profile
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => { onSignOut?.(); setSettingsOpen(false); }}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                        >
+                          Sign out
+                        </button>
+                      </>
+                    ) : (
+                      <a
+                        href="#/signin"
+                        onClick={() => setSettingsOpen(false)}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                      >
+                        Sign in
+                      </a>
+                    )
+                  )}
                 </div>
               </>
             )}
