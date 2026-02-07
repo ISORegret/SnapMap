@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, ChevronRight, Download, ArrowLeft } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -250,6 +250,23 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     fetchDownloadCount().then(setDownloadCount);
   }, []);
 
+  const goBack = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleBack = (e) => {
+      goBack();
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    };
+    document.addEventListener('backbutton', handleBack);
+    return () => document.removeEventListener('backbutton', handleBack);
+  }, [goBack]);
+
   return (
     <div
       className="absolute inset-0 w-full flex flex-col"
@@ -471,10 +488,18 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         </div>
       )}
 
-      {/* Search address */}
-      <div className="absolute left-3 right-14 top-3 z-[1000]">
-        <form onSubmit={handleMapSearch} className="flex gap-2">
-          <div className="relative flex-1">
+      {/* Back button + Search address */}
+      <div className="absolute left-3 right-14 top-3 z-[1000] flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={goBack}
+          className="shrink-0 rounded-xl border border-white/10 bg-black/70 p-2.5 text-slate-300 backdrop-blur transition hover:bg-black/80 hover:text-emerald-400 hover:border-emerald-500/30"
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <form onSubmit={handleMapSearch} className="flex min-w-0 flex-1 gap-2">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="search"
@@ -494,7 +519,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           </button>
         </form>
         {mapSearchError && (
-          <p className="mt-1.5 text-xs text-amber-400">{mapSearchError}</p>
+          <p className="w-full text-xs text-amber-400 mt-0.5">{mapSearchError}</p>
         )}
       </div>
 
