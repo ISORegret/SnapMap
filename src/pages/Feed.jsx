@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
+import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_KM } from '../utils/geo';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -36,11 +37,12 @@ const SORT_OPTIONS = [
   { id: 'score', label: 'Score' },
   { id: 'name', label: 'Name' },
   { id: 'bestTime', label: 'Best time' },
+  { id: 'nearMe', label: 'Near me' },
 ];
 
 const BEST_TIME_ORDER = ['Morning', 'Golden hour', 'Blue hour', 'Sunset', 'Night', 'Anytime'];
 
-function applySort(spots, sortId) {
+function applySort(spots, sortId, userPosition) {
   const list = [...spots];
   if (sortId === 'newest') {
     list.sort((a, b) => {
@@ -60,8 +62,21 @@ function applySort(spots, sortId) {
       const bIdx = bi === -1 ? BEST_TIME_ORDER.length : bi;
       return aIdx - bIdx;
     });
+  } else if (sortId === 'nearMe' && userPosition) {
+    list.sort((a, b) => {
+      const da = haversineKm(userPosition.lat, userPosition.lng, a.latitude, a.longitude);
+      const db = haversineKm(userPosition.lat, userPosition.lng, b.latitude, b.longitude);
+      return da - db;
+    });
   }
   return list;
+}
+
+function applyDistanceFilter(spots, userPosition, distanceKm) {
+  if (!userPosition || !distanceKm) return spots;
+  return spots.filter(
+    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= distanceKm
+  );
 }
 
 function matchesTag(spot, tag) {
@@ -96,9 +111,35 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [sort, setSort] = useState('newest');
+  const [userPosition, setUserPosition] = useState(null);
+  const [distanceFilterKm, setDistanceFilterKm] = useState(null);
+  const [positionLoading, setPositionLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const touchStartY = useRef(0);
+
+  const requestPosition = useCallback(async () => {
+    if (userPosition) return userPosition;
+    setPositionLoading(true);
+    const pos = await getCurrentPosition();
+    setPositionLoading(false);
+    if (pos) setUserPosition(pos);
+    return pos;
+  }, [userPosition]);
+
+  const setDistanceFilter = useCallback(async (km) => {
+    if (km === null) {
+      setDistanceFilterKm(null);
+      return;
+    }
+    const pos = await requestPosition();
+    if (pos) setDistanceFilterKm(km);
+  }, [requestPosition]);
+
+  const setSortNearMe = useCallback(async () => {
+    const pos = await requestPosition();
+    if (pos) setSort('nearMe');
+  }, [requestPosition]);
 
   const handleRefresh = useCallback(() => {
     if (!onRefresh || isRefreshing) return;
@@ -127,12 +168,16 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   }, [pullY, handleRefresh]);
 
   const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
+  const byDistance = useMemo(
+    () => applyDistanceFilter(filteredSpots, userPosition, distanceFilterKm),
+    [filteredSpots, userPosition, distanceFilterKm]
+  );
   const byTag = useMemo(
-    () => (tagFilter ? filteredSpots.filter((s) => matchesTag(s, tagFilter)) : filteredSpots),
-    [filteredSpots, tagFilter]
+    () => (tagFilter ? byDistance.filter((s) => matchesTag(s, tagFilter)) : byDistance),
+    [byDistance, tagFilter]
   );
   const bySearch = useMemo(() => byTag.filter((s) => matchesSearch(s, searchQuery)), [byTag, searchQuery]);
-  const displaySpots = useMemo(() => applySort(bySearch, sort), [bySearch, sort]);
+  const displaySpots = useMemo(() => applySort(bySearch, sort, userPosition), [bySearch, sort, userPosition]);
 
   return (
     <div
@@ -205,6 +250,47 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </div>
       </div>
 
+      {/* Distance: All, Within 10/25/50 km (uses location) */}
+      <div className="border-b border-white/[0.06] px-4 py-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Distance
+        </p>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setDistanceFilterKm(null)}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
+              distanceFilterKm === null
+                ? 'bg-emerald-500 text-white'
+                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            All
+          </button>
+          {DISTANCE_OPTIONS_KM.map((km) => (
+            <button
+              key={km}
+              type="button"
+              onClick={() => setDistanceFilter(km)}
+              disabled={positionLoading}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
+                distanceFilterKm === km
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300 disabled:opacity-50'
+              }`}
+            >
+              Within {km} km
+            </button>
+          ))}
+          {!userPosition && (distanceFilterKm != null || positionLoading) && (
+            <span className="shrink-0 flex items-center gap-1 text-xs text-slate-500">
+              <MapPinOff className="h-3.5 w-3.5" />
+              Allow location for distance
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Search */}
       <div className="border-b border-white/[0.06] px-4 py-3">
         <div className="relative">
@@ -227,14 +313,15 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             <button
               key={opt.id}
               type="button"
-              onClick={() => setSort(opt.id)}
+              onClick={() => (opt.id === 'nearMe' ? setSortNearMe() : setSort(opt.id))}
+              disabled={opt.id === 'nearMe' && positionLoading}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                 sort === opt.id
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300 disabled:opacity-50'
               }`}
             >
-              {opt.label}
+              {opt.id === 'nearMe' && positionLoading && !userPosition ? '…' : opt.label}
             </button>
           ))}
         </div>

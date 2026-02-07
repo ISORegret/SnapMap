@@ -210,7 +210,7 @@ export default function App() {
             }
           />
           <Route path="/map" element={<MapPage allSpots={allSpots} />} />
-          <Route path="/add" element={<Add onAdd={addSpot} />} />
+          <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
           <Route
             path="/saved"
             element={

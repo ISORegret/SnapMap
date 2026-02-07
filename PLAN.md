@@ -159,6 +159,23 @@ Features that take roughly half a day to a day each — good next steps after qu
 
 ---
 
+## 3c. Recommended next features
+
+Prioritized ideas that fit the current stack and add clear value (many 3b items are already done).
+
+| Priority | Feature | Why |
+|----------|---------|-----|
+| **High** | **Edit spot** | Let users edit name, description, best time, parking, etc. for spots they added (or own in Supabase). Reuse Add form or a slim edit form; call `updateCommunitySpot` / spotStore update. |
+| **High** | **Distance filter** | "Within 10 / 25 / 50 km" on Feed or Map using device location. Requires geolocation + haversine (or simple distance). Great for "spots near me". |
+| **Medium** | **Offline basics** | Service worker caches map tiles + key API responses so Feed/Map/Saved work with no connection. Vite PWA plugin or custom SW. |
+| **Medium** | **Spot form validation** | Required name, valid lat/lng range, "at least one image or use default" message, inline errors on Add (and Edit) so bad data is caught before submit. |
+| **Medium** | **Parking / access on detail** | Show parking and how-to-access on SpotDetail when present (you already collect them on Add). |
+| **Nice** | **"Near me" sort** | Sort Feed by distance from current location (with permission). Complements distance filter. |
+| **Nice** | **Spot deep link** | Shareable URL that opens a specific spot (e.g. `yoursite.com/#/spot/:id`). You have Share spot link; ensure route and ID resolve for others. |
+| **Nice** | **Pull-to-refresh on Map** | Same pattern as Feed: pull down to refetch community spots so the map is up to date. |
+
+---
+
 ## 4. Tech stack (match PepTalk)
 
 | Layer | Choice |

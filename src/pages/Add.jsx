@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ImagePlus } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
@@ -7,9 +7,11 @@ import { hasSupabase } from '../api/supabase';
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 
-export default function Add({ onAdd }) {
+export default function Add({ onAdd, onUpdate }) {
   const location = useLocation();
-  const fromMap = location.state?.lat != null && location.state?.lng != null;
+  const navigate = useNavigate();
+  const editSpot = location.state?.editSpot;
+  const fromMap = !editSpot && location.state?.lat != null && location.state?.lng != null;
   const fileInputRef = useRef(null);
 
   const [name, setName] = useState('');
@@ -32,6 +34,24 @@ export default function Add({ onAdd }) {
   const [createdBy, setCreatedBy] = useState('');
   const [photoError, setPhotoError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editSpot) return;
+    setName(editSpot.name ?? '');
+    setDescription(editSpot.description ?? '');
+    setAddress(editSpot.address ?? '');
+    setParking(editSpot.parking ?? '');
+    setHowToAccess(editSpot.howToAccess ?? '');
+    setLat(editSpot.latitude != null ? String(editSpot.latitude) : '37.8021');
+    setLng(editSpot.longitude != null ? String(editSpot.longitude) : '-122.4488');
+    setBestTime(editSpot.bestTime ?? '');
+    setCrowdLevel(editSpot.crowdLevel ?? '');
+    setImages(Array.isArray(editSpot.images) && editSpot.images.length ? editSpot.images : []);
+    setTags(Array.isArray(editSpot.tags) ? editSpot.tags.join(', ') : (editSpot.tags ?? ''));
+    setLinkUrl(editSpot.linkUrl ?? '');
+    setLinkLabel(editSpot.linkLabel ?? 'More info');
+    setCreatedBy(editSpot.createdBy ?? '');
+  }, [editSpot]);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
@@ -78,7 +98,7 @@ export default function Add({ onAdd }) {
     const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
     setSubmitting(true);
     try {
-      await onAdd({
+      const payload = {
         name: name.trim(),
         description: description.trim() || '',
         address: addressOrLocation,
@@ -88,13 +108,19 @@ export default function Add({ onAdd }) {
         longitude,
         bestTime: bestTime.trim() || 'Not specified',
         crowdLevel: crowdLevel === 'quiet' || crowdLevel === 'moderate' || crowdLevel === 'busy' ? crowdLevel : '',
-        score: 0,
+        score: editSpot ? (editSpot.score ?? 0) : 0,
         tags: tags.trim() ? tags.split(',').map((t) => t.trim()) : [],
         images: finalImages,
         linkUrl: linkUrl.trim() || '',
         linkLabel: linkLabel.trim() || 'More info',
         createdBy: createdBy.trim() || '',
-      });
+      };
+      if (editSpot && onUpdate) {
+        onUpdate(editSpot.id, payload);
+        navigate(`/spot/${editSpot.id}`, { replace: true });
+      } else {
+        await onAdd(payload);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -104,12 +130,14 @@ export default function Add({ onAdd }) {
     <div className="mx-auto max-w-md bg-[#0c0c0f] px-4 pb-20 pt-5">
       <header className="border-b border-white/[0.06] pb-5">
         <h1 className="text-xl font-semibold tracking-tight text-white">
-          Add a spot
+          {editSpot ? 'Edit spot' : 'Add a spot'}
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          {hasSupabase
-            ? 'Spots will be shared with everyone (saved to cloud).'
-            : 'Data stays on your device. Add Supabase in .env to share spots.'}
+          {editSpot
+            ? 'Update name, description, photos, and more.'
+            : hasSupabase
+              ? 'Spots will be shared with everyone (saved to cloud).'
+              : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -312,7 +340,7 @@ export default function Add({ onAdd }) {
           disabled={submitting}
           className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#0c0c0f] disabled:opacity-60 disabled:pointer-events-none"
         >
-          {submitting ? 'Adding…' : 'Add spot'}
+          {submitting ? (editSpot ? 'Saving…' : 'Adding…') : editSpot ? 'Save changes' : 'Add spot'}
         </button>
       </form>
     </div>

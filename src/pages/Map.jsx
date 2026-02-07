@@ -6,6 +6,7 @@ if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
 import { MapPin } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
+import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_KM } from '../utils/geo';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -33,6 +34,13 @@ function applyFilter(spots, filter) {
   if (filter === 'all') return spots;
   if (filter === 'hasParking') return spots.filter(hasParking);
   return spots.filter((s) => matchesCategory(s, filter));
+}
+
+function applyDistanceFilter(spots, userPosition, distanceKm) {
+  if (!userPosition || !distanceKm) return spots;
+  return spots.filter(
+    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= distanceKm
+  );
 }
 
 const FILTER_OPTIONS = [
@@ -105,8 +113,33 @@ export default function Map({ allSpots }) {
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [userPosition, setUserPosition] = useState(null);
+  const [distanceFilterKm, setDistanceFilterKm] = useState(null);
+  const [positionLoading, setPositionLoading] = useState(false);
 
-  const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
+  const requestPosition = useCallback(async () => {
+    if (userPosition) return userPosition;
+    setPositionLoading(true);
+    const pos = await getCurrentPosition();
+    setPositionLoading(false);
+    if (pos) setUserPosition(pos);
+    return pos;
+  }, [userPosition]);
+
+  const setDistanceFilter = useCallback(async (km) => {
+    if (km === null) {
+      setDistanceFilterKm(null);
+      return;
+    }
+    const pos = await requestPosition();
+    if (pos) setDistanceFilterKm(km);
+  }, [requestPosition]);
+
+  const byFilter = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
+  const filteredSpots = useMemo(
+    () => applyDistanceFilter(byFilter, userPosition, distanceFilterKm),
+    [byFilter, userPosition, distanceFilterKm]
+  );
 
   const onMapClick = useCallback(({ lat, lng }) => {
     setPendingPin({ lat, lng });
@@ -167,20 +200,46 @@ export default function Map({ allSpots }) {
         />
       </MapContainer>
 
-      {/* Single filter row */}
-      <div className="absolute left-3 right-3 top-3 z-[1000] flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
-        {FILTER_OPTIONS.map((opt) => (
+      {/* Filter + Distance rows */}
+      <div className="absolute left-3 right-3 top-3 z-[1000] flex flex-col gap-2">
+        <div className="flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setFilter(opt.id)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                filter === opt.id ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
           <button
-            key={opt.id}
             type="button"
-            onClick={() => setFilter(opt.id)}
+            onClick={() => setDistanceFilterKm(null)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-              filter === opt.id ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              distanceFilterKm === null ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
             }`}
           >
-            {opt.label}
+            All
           </button>
-        ))}
+          {DISTANCE_OPTIONS_KM.map((km) => (
+            <button
+              key={km}
+              type="button"
+              onClick={() => setDistanceFilter(km)}
+              disabled={positionLoading}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                distanceFilterKm === km ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20 disabled:opacity-50'
+              }`}
+            >
+              Within {km} km
+            </button>
+          ))}
+        </div>
       </div>
       <div className="absolute bottom-14 left-3 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
         Tap map to pin · Save spot here

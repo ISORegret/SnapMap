@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
@@ -260,25 +260,57 @@ export default function SpotDetail({
       if (imgEl && primaryImage && (primaryImage.startsWith('http:') || primaryImage.startsWith('https:'))) {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const useProxy = supabaseUrl && primaryImage.includes('supabase.co');
-        const fetchUrl = useProxy
-          ? `${supabaseUrl}/functions/v1/image-proxy?url=${encodeURIComponent(primaryImage)}`
-          : primaryImage;
-        const fetchOpts = useProxy && supabaseKey
+        const proxyUrl =
+          supabaseUrl && supabaseKey
+            ? `${supabaseUrl}/functions/v1/image-proxy?url=${encodeURIComponent(primaryImage)}`
+            : null;
+        const tryFetch = (url, opts) =>
+          fetch(url, opts)
+            .then((r) => {
+              if (!r.ok) throw new Error(r.status);
+              return r.blob();
+            })
+            .then(
+              (blob) =>
+                new Promise((res, rej) => {
+                  const reader = new FileReader();
+                  reader.onload = () => res(reader.result);
+                  reader.onerror = rej;
+                  reader.readAsDataURL(blob);
+                })
+            );
+        const proxyOpts = proxyUrl && supabaseKey
           ? { mode: 'cors', headers: { Authorization: `Bearer ${supabaseKey}` } }
-          : { mode: 'cors' };
-        const imageDataUrl = await fetch(fetchUrl, fetchOpts)
-          .then((r) => r.blob())
-          .then(
-            (blob) =>
-              new Promise((res, rej) => {
-                const reader = new FileReader();
-                reader.onload = () => res(reader.result);
-                reader.onerror = rej;
-                reader.readAsDataURL(blob);
-              })
-          )
-          .catch(() => null);
+          : null;
+        const tryProxy = () => proxyUrl && proxyOpts ? tryFetch(proxyUrl, proxyOpts) : null;
+        const tryDirect = () => tryFetch(primaryImage, { mode: 'cors' });
+        let imageDataUrl = null;
+        if (primaryImage.includes('supabase.co') && proxyUrl) {
+          try {
+            imageDataUrl = await tryProxy();
+          } catch {
+            // ignore
+          }
+          if (!imageDataUrl) {
+            try {
+              imageDataUrl = await tryDirect();
+            } catch {
+              // leave null
+            }
+          }
+        } else {
+          try {
+            imageDataUrl = await tryDirect();
+          } catch {
+            if (proxyUrl) {
+              try {
+                imageDataUrl = await tryProxy();
+              } catch {
+                // leave null
+              }
+            }
+          }
+        }
         if (imageDataUrl) {
           imgEl.src = imageDataUrl;
           await new Promise((resolve, reject) => {
@@ -286,13 +318,23 @@ export default function SpotDetail({
             imgEl.onerror = reject;
             if (imgEl.complete && imgEl.naturalWidth) resolve();
           });
+          await new Promise((r) => setTimeout(r, 150));
         }
       }
-      const dataUrl = await toPng(shareCardRef.current, {
+      const card = shareCardRef.current;
+      const prevOpacity = card.style.opacity;
+      const prevZIndex = card.style.zIndex;
+      card.style.opacity = '1';
+      card.style.zIndex = '99999';
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+      const dataUrl = await toPng(card, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#0c0c0f',
       });
+      card.style.opacity = prevOpacity;
+      card.style.zIndex = prevZIndex;
       const base64 = dataUrl.split(',')[1];
       if (!base64) throw new Error('Failed to create image');
 
@@ -752,24 +794,36 @@ export default function SpotDetail({
           </div>
         )}
 
-        {/* Delete listing (user spots only) */}
-        {isUserSpot(spot.id) && onDeleteSpot && (
+        {/* Edit / Delete (user spots only) */}
+        {isUserSpot(spot.id) && (
           <div className="mt-6 pt-4 border-t border-white/10">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Your listing
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Delete this spot? This cannot be undone.')) {
-                  onDeleteSpot(spot.id);
-                }
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete listing
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/add', { state: { editSpot: spot } })}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit spot
+              </button>
+              {onDeleteSpot && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Delete this spot? This cannot be undone.')) {
+                      onDeleteSpot(spot.id);
+                    }
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
         )}
 
