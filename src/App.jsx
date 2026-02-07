@@ -275,7 +275,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-28">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-44">
         <Routes>
           <Route
             path="/"
