@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Safe area: graphic in center ~70% so it never clips when masked to circle/squircle -->
+  <defs>
+    <linearGradient id="pinGrad" x1="50" y1="26" x2="50" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <!-- Map pin teardrop: centered in 22–78 x 22–78 -->
+  <path d="M50 24 C34 24 24 36 24 50 C24 64 50 76 50 76 C50 76 76 64 76 50 C76 36 66 24 50 24 Z" fill="url(#pinGrad)" stroke="#059669" stroke-width="1.2"/>
+  <!-- Aperture in pin head: dark circle + hexagon (6 blades) -->
+  <circle cx="50" cy="40" r="12" fill="#0a0a0f"/>
+  <polygon points="50,32 56,35 56,45 50,48 44,45 44,35" fill="#0a0a0f"/>
+  <circle cx="50" cy="40" r="3" fill="#0a0a0f"/>
+</svg>

@@ -1,7 +1,7 @@
 {
   "name": "snapmap",
   "private": true,
-  "version": "1.0.16",
+  "version": "1.0.18",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,8 @@
     "sync-version": "node scripts/sync-version.js",
     "cap:sync": "npx cap sync android",
     "cap:open:android": "npx cap open android",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-android-icons": "node scripts/generate-android-icons.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",
@@ -33,6 +34,7 @@
     "suncalc": "^1.9.0"
   },
   "devDependencies": {
+    "sharp": "^0.33.5",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",

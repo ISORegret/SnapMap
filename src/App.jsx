@@ -190,8 +190,8 @@ export default function App() {
           <div className="animate-splash-pulse flex flex-col items-center gap-8">
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-emerald-500/20 blur-2xl" />
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/25 to-emerald-600/15 shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]">
-                <Map className="h-14 w-14 text-emerald-400 drop-shadow-lg" strokeWidth={1.5} />
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-emerald-500/30 bg-[#0c0c0f] shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]">
+                <img src="/snapmap-icon.svg" alt="" className="h-20 w-20 object-contain" aria-hidden />
               </div>
             </div>
             <div className="text-center">

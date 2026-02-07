@@ -271,9 +271,12 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       {/* App title + tagline */}
       <header className="relative border-b border-emerald-500/10 bg-gradient-to-b from-emerald-950/30 to-transparent px-4 pt-6 pb-5 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(52,211,153,0.08),transparent)] pointer-events-none" />
-        <h1 className="relative text-2xl font-bold tracking-tight text-gradient">
-          SnapMap
-        </h1>
+        <div className="relative flex items-center justify-center gap-3">
+          <img src="/snapmap-icon.svg" alt="" className="h-10 w-10 shrink-0 object-contain" aria-hidden />
+          <h1 className="text-2xl font-bold tracking-tight text-gradient">
+            SnapMap
+          </h1>
+        </div>
         <p className="relative mt-1 text-xs font-medium text-slate-500" aria-hidden="true">
           App v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
         </p>
