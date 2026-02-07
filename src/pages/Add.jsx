@@ -214,40 +214,43 @@ export default function Add({ onAdd, onUpdate }) {
             Location set from map pin — add a name and save.
           </p>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-500">Latitude</label>
-            <input
-              type="text"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="37.8021"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500">Longitude</label>
-            <input
-              type="text"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              placeholder="-122.4488"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
+        <div className="rounded-xl border border-white/10 bg-[#151a18]/50 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Location</p>
+          <button
+            type="button"
+            onClick={useMyLocation}
+            disabled={locationLoading}
+            className="mb-3 flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-500 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60"
+          >
+            <MapPin className="h-5 w-5 shrink-0" />
+            {locationLoading ? 'Getting location…' : 'Use my location'}
+          </button>
+          {locationError && (
+            <p className="mb-3 text-xs text-amber-400">{locationError}</p>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500">Latitude</label>
+              <input
+                type="text"
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="37.8021"
+                className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500">Longitude</label>
+              <input
+                type="text"
+                value={lng}
+                onChange={(e) => setLng(e.target.value)}
+                placeholder="-122.4488"
+                className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={useMyLocation}
-          disabled={locationLoading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
-        >
-          <MapPin className="h-4 w-4 shrink-0" />
-          {locationLoading ? 'Getting location…' : 'Use my location'}
-        </button>
-        {locationError && (
-          <p className="text-xs text-amber-400">{locationError}</p>
-        )}
         <div>
           <label className="block text-xs font-medium text-slate-500">Added by (optional)</label>
           <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>

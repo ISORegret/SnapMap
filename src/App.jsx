@@ -167,17 +167,61 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#080c0a] px-6 animate-fade-in" role="status" aria-label="Loading">
-        <div className="animate-splash-pulse flex flex-col items-center gap-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500/20 shadow-glow">
-            <Map className="h-10 w-10 text-emerald-400" />
+      <div
+        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 animate-fade-in"
+        role="status"
+        aria-label="Loading"
+      >
+        {/* Background gradient + radial glow */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#051009] via-[#080c0a] to-[#050a08]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_20%,rgba(52,211,153,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(16,185,129,0.08),transparent_50%)]" />
+        {/* Subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Logo container with glow and pulse */}
+          <div className="animate-splash-pulse flex flex-col items-center gap-8">
+            <div className="relative">
+              <div className="absolute -inset-4 rounded-full bg-emerald-500/20 blur-2xl" />
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/25 to-emerald-600/15 shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]">
+                <Map className="h-14 w-14 text-emerald-400 drop-shadow-lg" strokeWidth={1.5} />
+              </div>
+            </div>
+            <div className="text-center">
+              <h1 className="text-4xl font-bold tracking-tight text-gradient drop-shadow-sm md:text-5xl">
+                SnapMap
+              </h1>
+              <p className="mt-3 text-base text-slate-400 md:text-lg">
+                The best places for photography and cars
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Exact geo · Best times · Plan less, travel more
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gradient">SnapMap</h1>
-          <p className="text-sm text-slate-500">The best places for photography and cars</p>
-        </div>
-        <div className="mt-10 flex items-center gap-2 text-slate-500">
-          <div className="h-4 w-4 animate-spin-slow rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-          <span className="text-sm">Loading…</span>
+          {/* Loading indicator */}
+          <div className="mt-14 flex flex-col items-center gap-4">
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-2 w-2 rounded-full bg-emerald-500/60 animate-bounce"
+                  style={{ animationDelay: `${i * 150}ms`, animationDuration: '0.6s' }}
+                />
+              ))}
+            </div>
+            <p className="text-sm font-medium text-slate-500">Loading…</p>
+            <div className="h-1 w-32 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full w-1/3 animate-splash-progress rounded-full bg-emerald-500" />
+            </div>
+          </div>
         </div>
       </div>
     );

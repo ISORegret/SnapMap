@@ -43,12 +43,18 @@ export default {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
         },
+        'splash-progress': {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(200%)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.35s ease-out forwards',
         'splash-pulse': 'splash-pulse 2s ease-in-out infinite',
         'spin-slow': 'spin-slow 1s linear infinite',
+        'splash-progress': 'splash-progress 1.2s ease-in-out infinite',
       },
     },
   },
