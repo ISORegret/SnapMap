@@ -2,8 +2,12 @@
 /**
  * Syncs package.json version to:
  * - android/app/version.properties (APK versionName)
+ * - public/version.json (for in-app "Update available" check)
  * - website/index.html (replaces {{VERSION}})
  * Run before build:android / build:apk so web and APK match.
+ *
+ * Version rule: after 1.0.20 the next is 1.2.0, then 1.2.1, 1.2.2, …
+ * (Move decimal: 1.0.20 → 1.2.0, then count.)
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -17,6 +21,10 @@ const version = pkg.version || '1.0.0';
 const propsPath = path.join(root, 'android', 'app', 'version.properties');
 writeFileSync(propsPath, `VERSION_NAME=${version}\n`, 'utf8');
 console.log(`Synced version ${version} to android/app/version.properties`);
+
+const versionJsonPath = path.join(root, 'public', 'version.json');
+writeFileSync(versionJsonPath, JSON.stringify({ version }, null, 2) + '\n', 'utf8');
+console.log(`Synced version ${version} to public/version.json (for update check)`);
 
 const websiteIndex = path.join(root, 'website', 'index.html');
 if (existsSync(websiteIndex)) {

@@ -22,6 +22,7 @@ import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
 import InstallPrompt from './components/InstallPrompt';
 import { hapticLight } from './utils/haptics';
+import { checkUpdateAvailable } from './utils/version';
 
 export default function App() {
   const [userSpots, setUserSpots] = useState([]);
@@ -34,7 +35,9 @@ export default function App() {
   const [theme, setThemeState] = useState(() =>
     typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_theme') || 'dark') : 'dark'
   );
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const navigate = useNavigate();
+  const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
 
   const setTheme = useCallback((next) => {
     const value = next === 'light' ? 'light' : 'dark';
@@ -68,6 +71,11 @@ export default function App() {
       .then(setCommunitySpots)
       .finally(() => setCommunitySpotsLoading(false));
   }, [ready]);
+
+  useEffect(() => {
+    if (!isOnline) return;
+    checkUpdateAvailable(appVersion).then(setUpdateAvailable);
+  }, [isOnline, appVersion]);
 
   const allSpots = [
     ...CURATED_SPOTS,
@@ -260,6 +268,7 @@ export default function App() {
                   return fetchCommunitySpots().then(setCommunitySpots).finally(() => setCommunitySpotsLoading(false));
                 }}
                 spotsLoading={communitySpotsLoading}
+                updateAvailable={updateAvailable}
               />
             }
           />
@@ -320,7 +329,10 @@ export default function App() {
           </NavLink>
         </div>
         <p className="text-center text-[10px] text-slate-500 pb-1" aria-hidden="true">
-          v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+          v{appVersion}
+          {updateAvailable && (
+            <span className="block text-[9px] text-emerald-400 mt-0.5">Update available</span>
+          )}
         </p>
       </nav>
     </div>

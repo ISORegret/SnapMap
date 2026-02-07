@@ -47,6 +47,15 @@ The photography spotting logo (map pin + camera aperture, emerald on dark) is in
 
 ---
 
+## Versioning and "Update available"
+
+Version is in **package.json** (e.g. `1.0.18`). **sync-version.js** copies it to `android/app/version.properties` and **public/version.json**. The app shows **v{version}** in the nav and on the Feed header; if the website’s **version.json** has a newer version, it shows **"Update available"** in small text so users know to download the latest APK or refresh the web app.
+
+- **Version rule:** After **1.0.20** the next release is **1.2.0**, then 1.2.1, 1.2.2, … (move the decimal, then count).
+- **Native app:** Set **VITE_APP_URL** in `.env` to your website URL so the app can fetch `version.json` from the site and show "Update available" when you publish a new build.
+
+---
+
 ## Share APK (separate launch site later)
 
 Build a signed APK in Android Studio (**Build → Generate Signed Bundle / APK** → APK → release), then upload it to a GitHub Release or host it on a separate launch website. You can add a dedicated site for that later.

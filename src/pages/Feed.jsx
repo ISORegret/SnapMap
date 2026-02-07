@@ -107,7 +107,7 @@ function FeedSkeletonCard() {
   );
 }
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading }) {
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -279,6 +279,9 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </div>
         <p className="relative mt-1 text-xs font-medium text-slate-500" aria-hidden="true">
           App v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+          {updateAvailable && (
+            <span className="block text-[10px] text-emerald-400 mt-0.5">Update available</span>
+          )}
         </p>
         <p className="relative mt-0.5 text-sm font-medium text-emerald-400">
           The best places for photography and cars
