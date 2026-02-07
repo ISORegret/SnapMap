@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid, Settings, Sun, Moon } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid, Settings, Sun, Moon, Download, Map } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm, kmToMi } from '../utils/geo';
+import { fetchDownloadCount } from '../utils/stats';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -39,6 +40,11 @@ const SORT_OPTIONS = [
   { id: 'bestTime', label: 'Best time' },
   { id: 'nearMe', label: 'Near me' },
 ];
+
+const NEAR_YOU_COUNT = 8;
+const INITIAL_SPOTS_VISIBLE = 24;
+const LOAD_MORE_PAGE = 24;
+const CATEGORIES_QUICK = CATEGORIES.filter((c) => c.id !== 'all');
 
 const BEST_TIME_ORDER = ['Morning', 'Golden hour', 'Blue hour', 'Sunset', 'Night', 'Anytime'];
 
@@ -107,7 +113,7 @@ function FeedSkeletonCard() {
   );
 }
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false, userPosition: userPositionProp = null, requestPosition: requestPositionProp, theme = 'dark', setTheme }) {
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false, userPosition: userPositionProp = null, requestPosition: requestPositionProp, theme = 'dark', setTheme, units = 'mi', setUnits }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -119,8 +125,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [locationPromptPending, setLocationPromptPending] = useState(null); // { type: 'distance', mi } | { type: 'sort' } | null
   const [openPopover, setOpenPopover] = useState(null); // null | 'filter' | 'distance' | 'sort'
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [downloadCount, setDownloadCount] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_SPOTS_VISIBLE);
   const touchStartY = useRef(0);
 
   const requestPosition = useCallback(async () => {
@@ -178,6 +186,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
     if (requestPositionProp) requestPositionProp();
   }, [requestPositionProp]);
 
+  useEffect(() => {
+    fetchDownloadCount().then(setDownloadCount);
+  }, []);
+
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
   const sortLabel = SORT_OPTIONS.find((o) => o.id === sort)?.label ?? 'Newest';
@@ -219,6 +231,27 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   );
   const bySearch = useMemo(() => byTag.filter((s) => matchesSearch(s, searchQuery)), [byTag, searchQuery]);
   const displaySpots = useMemo(() => applySort(bySearch, sort, userPosition), [bySearch, sort, userPosition]);
+
+  // Near you: top N nearest (from all spots when location available)
+  const nearYouSpots = useMemo(() => {
+    if (!userPosition || allSpots.length === 0) return [];
+    const withDist = allSpots
+      .filter((s) => s.latitude != null && s.longitude != null)
+      .map((s) => ({ spot: s, km: haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) }));
+    withDist.sort((a, b) => a.km - b.km);
+    return withDist.slice(0, NEAR_YOU_COUNT).map((x) => x.spot);
+  }, [allSpots, userPosition]);
+
+  // Reset visible count when filters/sort/search change
+  useEffect(() => {
+    setVisibleCount(INITIAL_SPOTS_VISIBLE);
+  }, [filter, distanceFilterMi, sort, searchQuery, tagFilter]);
+
+  const visibleSpots = useMemo(() => displaySpots.slice(0, visibleCount), [displaySpots, visibleCount]);
+  const hasMore = displaySpots.length > visibleCount;
+  const loadMore = useCallback(() => {
+    setVisibleCount((c) => Math.min(c + LOAD_MORE_PAGE, displaySpots.length));
+  }, [displaySpots.length]);
 
   return (
     <div
@@ -290,6 +323,12 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
                 <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                  {downloadCount != null && (
+                    <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400" aria-hidden>
+                      <Download className="h-4 w-4 shrink-0" />
+                      {downloadCount.toLocaleString()}+ downloads
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
@@ -298,6 +337,16 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                   </button>
+                  {setUnits && (
+                    <button
+                      type="button"
+                      onClick={() => { setUnits(units === 'mi' ? 'km' : 'mi'); setSettingsOpen(false); }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Distance: {units === 'mi' ? 'Miles' : 'km'}
+                    </button>
+                  )}
                   <a
                     href="#/saved"
                     onClick={() => setSettingsOpen(false)}
@@ -501,6 +550,93 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         )}
       </div>
 
+      {/* Quick nav: View on map */}
+      <div className="border-b border-white/[0.06] px-4 py-2">
+        <Link
+          to="/map"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:border-emerald-500/50"
+        >
+          <Map className="h-4 w-4" />
+          View on map
+        </Link>
+      </div>
+
+      {/* Near you — horizontal strip when location available; or prompt when location off */}
+      {nearYouSpots.length > 0 ? (
+        <section className="border-b border-white/[0.06] px-4 py-4" aria-label="Spots near you">
+          <div className="flex items-center justify-between gap-2 pb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Near you
+            </h2>
+            <span className="text-[11px] text-slate-500">{nearYouSpots.length} spots</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-1 -mx-1 scrollbar-thin">
+            {nearYouSpots.map((spot) => (
+              <Link
+                key={spot.id}
+                to={`/spot/${spot.id}`}
+                className="group flex shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] w-[140px] transition hover:border-emerald-500/30 hover:bg-[#1a211e]"
+              >
+                <div className="relative h-24 w-full overflow-hidden bg-slate-800">
+                  <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+                  {userPosition && spot.latitude != null && spot.longitude != null && (
+                    <span className="absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-white bg-black/60 backdrop-blur-sm">
+                      {units === 'km'
+                        ? (haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude)).toFixed(1) + ' km'
+                        : (kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1) + ' mi'}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 p-2">
+                  <p className="truncate text-sm font-medium text-white group-hover:text-emerald-300">{spot.name}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : userPosition == null && allSpots.length > 0 ? (
+        <section className="border-b border-white/[0.06] px-4 py-3">
+          <button
+            type="button"
+            onClick={() => { setLocationPromptPending({ type: 'sort' }); setShowLocationPrompt(true); }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-emerald-400"
+          >
+            <MapPin className="h-4 w-4" />
+            See spots near you — allow location
+          </button>
+        </section>
+      ) : null}
+
+      {/* Browse by category — quick jump */}
+      {CATEGORIES_QUICK.length > 0 && (
+        <section className="border-b border-white/[0.06] px-4 py-3" aria-label="Browse by category">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Browse by category</h2>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES_QUICK.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { setFilter(opt.id); setVisibleCount(INITIAL_SPOTS_VISIBLE); }}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  filter === opt.id ? 'bg-emerald-500/30 text-emerald-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setFilter('all'); setVisibleCount(INITIAL_SPOTS_VISIBLE); }}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                filter === 'all' ? 'bg-emerald-500/30 text-emerald-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
+              }`}
+            >
+              All
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Section label */}
       <div className="px-4 pt-4 pb-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -529,7 +665,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </p>
       </div>
 
-      {/* Spot cards — image-first, title, description, tags, location */}
+      {/* Spot cards — image-first, paginated with Load more */}
       <ul className="space-y-3 px-4 pt-2">
         {spotsLoading && displaySpots.length === 0 ? (
           Array.from({ length: 5 }, (_, i) => <FeedSkeletonCard key={`skeleton-${i}`} />)
@@ -550,7 +686,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             </p>
           </li>
         ) : (
-        displaySpots.map((spot, index) => (
+        visibleSpots.map((spot, index) => (
           <li key={spot.id} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}>
             <Link
               to={`/spot/${spot.id}`}
@@ -621,7 +757,9 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                 </p>
                 {userPosition && spot.latitude != null && spot.longitude != null && (
                   <p className="mt-0.5 text-[11px] text-emerald-400">
-                    {(kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1)} mi away
+                    {units === 'km'
+                      ? (haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude)).toFixed(1) + ' km away'
+                      : (kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1) + ' mi away'}
                   </p>
                 )}
                 {spot.description && spot.description !== 'Not specified' && (
@@ -688,6 +826,17 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         ))
         )}
       </ul>
+      {hasMore && (
+        <div className="px-4 py-4 text-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-emerald-400"
+          >
+            Load more ({displaySpots.length - visibleCount} more)
+          </button>
+        </div>
+      )}
       {displaySpots.length === 0 && !spotsLoading && (
         <p className="px-4 py-8 text-center text-sm text-slate-400">
           {searchQuery.trim()
