@@ -136,6 +136,25 @@ Prioritized for a **PepTalk-style** build (Vite + React, PWA, then native), with
 
 ---
 
+## 3b. Medium effort (backlog)
+
+Features that take roughly half a day to a day each — good next steps after quick wins.
+
+| Item | Description |
+|------|--------------|
+| **Sunrise/sunset at spot** | Use suncalc (or similar) to show "best light" window on SpotDetail (e.g. golden hour, blue hour for that lat/lng and date). |
+| **Share spot / Copy coordinates** | Button on SpotDetail to copy `lat,lng` to clipboard or share a maps link. |
+| **Weather link** | "Check weather" link that opens a weather site for the spot's area (e.g. URL with coords or nearest city). |
+| **Distance filter** | Filter Feed/Map by "within X km" of current location (requires geolocation + distance calc). |
+| **Offline basics** | Service worker caches map tiles and saved spots so list/map work with no connection. |
+| **Edit spot** | Allow editing name, description, best time, etc. for user-added spots (and sync updates to Supabase where applicable). |
+| **Delete spot** | Allow removing a user-added or community spot with confirmation; sync delete to Supabase for owned data. |
+| **Sort Feed** | Sort by "newest", "name", "distance" (if location available), or "saved first". |
+| **Map cluster markers** | When zoomed out, cluster nearby markers (e.g. Leaflet.markercluster) to reduce clutter. |
+| **Spot form validation** | Clear validation and inline errors on Add form (required name, valid coords, image feedback). |
+
+---
+
 ## 4. Tech stack (match PepTalk)
 
 | Layer | Choice |
