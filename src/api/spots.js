@@ -21,6 +21,7 @@ function rowToSpot(row) {
     linkUrl: row.link_url ?? '',
     linkLabel: row.link_label ?? 'More info',
     createdAt: row.created_at,
+    createdBy: row.created_by ?? '',
   };
 }
 
@@ -61,6 +62,7 @@ export async function insertCommunitySpot(spot) {
     photo_by: photoBy || 'You',
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
+    created_by: ((spot.createdBy ?? '').trim().slice(0, 100)) || '',
   };
   row.image_uri = String(imageUriValue || DEFAULT_IMAGE_URI);
   const { data, error } = await supabase.from('spots').insert(row).select().single();
@@ -106,4 +108,41 @@ export async function insertSpotReport(spotId, reportType = 'wrong_location', no
     return { ok: false, error: error.message };
   }
   return { ok: true };
+}
+
+export async function fetchSpotNotes(spotId) {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('spot_notes')
+    .select('id, body, created_at')
+    .eq('spot_id', spotId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.warn('SnapMap: fetch spot notes failed', error);
+    return [];
+  }
+  return (data || []).map((row) => ({
+    id: row.id,
+    body: row.body ?? '',
+    createdAt: row.created_at,
+  }));
+}
+
+export async function insertSpotNote(spotId, body) {
+  if (!hasSupabase) return { note: null, error: 'Supabase not configured' };
+  const trimmed = (body || '').trim().slice(0, 1000);
+  if (!trimmed) return { note: null, error: 'Empty note' };
+  const { data, error } = await supabase
+    .from('spot_notes')
+    .insert({ spot_id: spotId, body: trimmed })
+    .select()
+    .single();
+  if (error) {
+    console.warn('SnapMap: insert spot note failed', error);
+    return { note: null, error: error.message };
+  }
+  return {
+    note: { id: data.id, body: data.body, createdAt: data.created_at },
+    error: null,
+  };
 }

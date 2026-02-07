@@ -4,7 +4,7 @@ import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, 
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
-import { insertSpotReport } from '../api/spots';
+import { insertSpotReport, fetchSpotNotes, insertSpotNote } from '../api/spots';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -180,6 +180,9 @@ export default function SpotDetail({
   const [reportType, setReportType] = useState('wrong_location');
   const [reportNote, setReportNote] = useState('');
   const [reportSent, setReportSent] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [noteText, setNoteText] = useState('');
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
 
@@ -275,6 +278,27 @@ export default function SpotDetail({
   };
 
   const canReport = spot.id && !String(spot.id).startsWith('user-');
+  const canAddNotes = spot.id && !String(spot.id).startsWith('user-');
+
+  useEffect(() => {
+    if (!canAddNotes) return;
+    fetchSpotNotes(spot.id).then(setNotes);
+  }, [spot.id, canAddNotes]);
+
+  const addNote = async () => {
+    if (!canAddNotes || !noteText.trim() || noteSubmitting) return;
+    setNoteSubmitting(true);
+    try {
+      const { note, error } = await insertSpotNote(spot.id, noteText.trim());
+      if (note) {
+        setNotes((prev) => [...prev, note]);
+        setNoteText('');
+      }
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
+
   const sendReport = async () => {
     if (!canReport) return;
     const { ok } = await insertSpotReport(spot.id, reportType, reportNote);
@@ -381,15 +405,20 @@ export default function SpotDetail({
       )}
       <div className="px-4 pt-4">
         <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
+        {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
+          <p className="mt-1 text-xs text-slate-500">Added by @{String(spot.createdBy).trim()}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">Added by Anonymous</p>
+        )}
         {(() => {
           const hasCoords = spot.latitude != null && spot.longitude != null;
-          const locationText = (spot.address && spot.address !== 'Not specified')
+          const locText = (spot.address && spot.address !== 'Not specified')
             ? spot.address
             : (hasCoords ? `${Number(spot.latitude).toFixed(5)}, ${Number(spot.longitude).toFixed(5)}` : null);
-          return locationText ? (
+          return locText ? (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
               <MapPin className="h-4 w-4 shrink-0" />
-              {locationText}
+              {locText}
             </p>
           ) : null;
         })()}
@@ -512,6 +541,47 @@ export default function SpotDetail({
             </a>
           </div>
         </div>
+
+        {/* Community notes (cloud spots only) */}
+        {canAddNotes && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Community notes
+            </p>
+            <ul className="mb-3 space-y-2 rounded-xl border border-white/10 bg-[#18181b] p-3">
+              {notes.length === 0 ? (
+                <li className="text-xs text-slate-500">No notes yet. Add one below.</li>
+              ) : (
+                notes.map((n) => (
+                  <li key={n.id} className="border-b border-white/5 pb-2 last:border-0 last:pb-0 text-sm text-slate-300">
+                    {n.body}
+                    <span className="ml-1 text-[10px] text-slate-500">
+                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Add a note…"
+                className="flex-1 rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && addNote()}
+              />
+              <button
+                type="button"
+                onClick={addNote}
+                disabled={!noteText.trim() || noteSubmitting}
+                className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
+              >
+                {noteSubmitting ? '…' : 'Add'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Share / Copy */}
         <div className="mt-4">

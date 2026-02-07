@@ -1,11 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 
 import 'leaflet/dist/leaflet.css';
+import 'react-leaflet-markercluster/styles';
 
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
@@ -117,33 +119,35 @@ export default function Map({ allSpots }) {
             zIndexOffset={1000}
           />
         )}
-        {filteredSpots.map((spot) => (
-          <Marker
-            key={spot.id}
-            position={[spot.latitude, spot.longitude]}
-            icon={icon}
-            eventHandlers={{
-              click: () => setSelectedSpotId(spot.id),
-            }}
-          >
-            <Popup
-              onClose={() => setSelectedSpotId(null)}
-              className="snapmap-popup"
+        <MarkerClusterGroup showCoverageOnHover={false} zoomToBoundsOnClick>
+          {filteredSpots.map((spot) => (
+            <Marker
+              key={spot.id}
+              position={[spot.latitude, spot.longitude]}
+              icon={icon}
+              eventHandlers={{
+                click: () => setSelectedSpotId(spot.id),
+              }}
             >
-              <div className="min-w-[140px] text-slate-200">
-                <Link
-                  to={`/spot/${spot.id}`}
-                  className="font-semibold text-emerald-400 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {spot.name}
-                </Link>
-                <br />
-                <small className="text-slate-400">{spot.bestTime || '—'}</small>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              <Popup
+                onClose={() => setSelectedSpotId(null)}
+                className="snapmap-popup"
+              >
+                <div className="min-w-[140px] text-slate-200">
+                  <Link
+                    to={`/spot/${spot.id}`}
+                    className="font-semibold text-emerald-400 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {spot.name}
+                  </Link>
+                  <br />
+                  <small className="text-slate-400">{spot.bestTime || '—'}</small>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {/* Single filter row */}

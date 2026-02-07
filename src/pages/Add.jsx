@@ -29,6 +29,7 @@ export default function Add({ onAdd }) {
   const [tags, setTags] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
+  const [createdBy, setCreatedBy] = useState('');
   const [photoError, setPhotoError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,6 +93,7 @@ export default function Add({ onAdd }) {
         images: finalImages,
         linkUrl: linkUrl.trim() || '',
         linkLabel: linkLabel.trim() || 'More info',
+        createdBy: createdBy.trim() || '',
       });
     } finally {
       setSubmitting(false);
@@ -189,6 +191,17 @@ export default function Add({ onAdd }) {
               className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500">Added by (optional)</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
+          <input
+            type="text"
+            value={createdBy}
+            onChange={(e) => setCreatedBy(e.target.value)}
+            placeholder="e.g. yourname"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500">Best time (optional)</label>

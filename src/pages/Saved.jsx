@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy } from 'lucide-react';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
 function matchesSearch(spot, q) {
@@ -76,6 +76,37 @@ function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
   );
 }
 
+function exportCSV(spots) {
+  const headers = ['name', 'address', 'latitude', 'longitude', 'best_time', 'description'];
+  const row = (s) =>
+    [
+      (s.name || '').replace(/"/g, '""'),
+      (s.address || '').replace(/"/g, '""'),
+      s.latitude ?? '',
+      s.longitude ?? '',
+      (s.bestTime || '').replace(/"/g, '""'),
+      (s.description || '').replace(/"/g, '""'),
+    ].map((c) => `"${c}"`).join(',');
+  return headers.join(',') + '\n' + spots.map(row).join('\n');
+}
+
+function exportJSON(spots) {
+  return JSON.stringify(
+    spots.map((s) => ({
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      bestTime: s.bestTime,
+      description: s.description,
+      tags: s.tags,
+    })),
+    null,
+    2
+  );
+}
+
 export default function Saved({
   allSpots,
   favoriteIds,
@@ -85,10 +116,24 @@ export default function Saved({
   deleteCollection,
   removeFromCollection,
   onDismissSpotError,
+  theme = 'dark',
+  setTheme,
 }) {
+  const [searchParams] = useSearchParams();
+  const idsParam = searchParams.get('ids');
+  const sharedIds = useMemo(
+    () => (idsParam ? idsParam.split(',').map((id) => id.trim()).filter(Boolean) : null),
+    [idsParam]
+  );
   const [newListName, setNewListName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const savedSpots = allSpots.filter((s) => favoriteIds.includes(s.id));
+  const [exportCopied, setExportCopied] = useState(false);
+  const savedSpots = useMemo(() => {
+    if (sharedIds?.length) {
+      return allSpots.filter((s) => sharedIds.includes(s.id));
+    }
+    return allSpots.filter((s) => favoriteIds.includes(s.id));
+  }, [allSpots, favoriteIds, sharedIds]);
   const savedSpotsFiltered = useMemo(
     () => savedSpots.filter((s) => matchesSearch(s, searchQuery)),
     [savedSpots, searchQuery]
@@ -110,47 +155,138 @@ export default function Saved({
   return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6">
       <header className="border-b border-white/[0.06] bg-[#0c0c0f] px-4 py-5">
-        <h1 className="text-xl font-semibold tracking-tight text-white">Saved</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Favorites + your lists — heart to save, or add spots to a list from the spot page.
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-white">
+              {sharedIds?.length ? 'Shared list' : 'Saved'}
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {sharedIds?.length
+                ? `${savedSpots.length} spot${savedSpots.length !== 1 ? 's' : ''} in this list.`
+                : 'Favorites + your lists — heart to save, or add spots to a list from the spot page.'}
+            </p>
+          </div>
+          {setTheme && (
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="shrink-0 rounded-full p-2 text-slate-500 transition hover:bg-white/10 hover:text-emerald-400"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          )}
+        </div>
       </header>
 
-      {/* Search */}
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search saved spots…"
-            className="w-full rounded-xl border border-white/10 bg-[#18181b] py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          />
+      {!sharedIds?.length && (
+        <>
+          {/* Search */}
+          <div className="border-b border-white/[0.06] px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search saved spots…"
+                className="w-full rounded-xl border border-white/10 bg-[#18181b] py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* New list */}
+          <div className="border-b border-white/[0.06] px-4 py-3">
+            <form onSubmit={handleCreateList} className="flex gap-2">
+              <input
+                type="text"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                placeholder="New list name"
+                className="flex-1 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
+              >
+                <FolderPlus className="h-4 w-4" />
+                Add list
+              </button>
+            </form>
+          </div>
+
+          {/* Export My spots */}
+          {savedSpots.length > 0 && (
+            <div className="border-b border-white/[0.06] px-4 py-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Export</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const blob = new Blob([exportCSV(savedSpots)], { type: 'text/csv' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'snapmap-saved-spots.csv';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                >
+                  <Download className="h-4 w-4" />
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const blob = new Blob([exportJSON(savedSpots)], { type: 'application/json' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'snapmap-saved-spots.json';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                >
+                  <Download className="h-4 w-4" />
+                  JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hashBase = typeof window !== 'undefined' && window.location.hash ? window.location.hash.split('?')[0] : '#/saved';
+                    const base = window.location.origin + (window.location.pathname || '') + hashBase;
+                    const url = base + '?ids=' + favoriteIds.join(',');
+                    navigator.clipboard.writeText(url).then(() => {
+                      setExportCopied(true);
+                      setTimeout(() => setExportCopied(false), 2000);
+                    });
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                >
+                  <Copy className="h-4 w-4" />
+                  {exportCopied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {sharedIds?.length ? (
+        <div className="px-4 pt-4">
+          {savedSpotsFiltered.length === 0 ? (
+            <p className="text-sm text-slate-500">No spots in this shared list.</p>
+          ) : (
+            <ul className="space-y-3">
+              {savedSpotsFiltered.map((spot) => (
+                <li key={spot.id}>
+                  <SpotCard spot={spot} onUnsave={() => {}} onDismissSpotError={onDismissSpotError} compact={false} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      </div>
-
-      {/* New list */}
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <form onSubmit={handleCreateList} className="flex gap-2">
-          <input
-            type="text"
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
-            placeholder="New list name"
-            className="flex-1 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          />
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
-          >
-            <FolderPlus className="h-4 w-4" />
-            Add list
-          </button>
-        </form>
-      </div>
-
-      {!hasAny ? (
+      ) : !hasAny ? (
         <div className="px-4 py-16 text-center">
           <p className="text-slate-500">No saved spots yet.</p>
           <p className="mt-1 text-sm text-slate-500">

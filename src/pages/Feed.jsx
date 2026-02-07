@@ -359,6 +359,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     {spot.score != null && spot.score > 0 && (
                       <span className="ml-1 text-emerald-400">· {spot.score}</span>
                     )}
+                    {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
+                      <span className="ml-1 text-slate-600">· Added by @{String(spot.createdBy).trim()}</span>
+                    ) : (
+                      <span className="ml-1 text-slate-600">· Anonymous</span>
+                    )}
                   </span>
                   <div className="flex items-center gap-1">
                     {spot.latitude != null && spot.longitude != null && (

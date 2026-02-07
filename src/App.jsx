@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Map, Plus, Heart, WifiOff } from 'lucide-react';
+import { LayoutGrid, Map, Plus, Heart, WifiOff, Sun, Moon } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
@@ -29,7 +29,17 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   const [ready, setReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [theme, setThemeState] = useState(() =>
+    typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_theme') || 'dark') : 'dark'
+  );
   const navigate = useNavigate();
+
+  const setTheme = useCallback((next) => {
+    const value = next === 'light' ? 'light' : 'dark';
+    setThemeState(value);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('snapmap_theme', value);
+    document.documentElement.setAttribute('data-theme', value);
+  }, []);
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -164,7 +174,7 @@ export default function App() {
     }`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#080c0a]">
+    <div className="flex min-h-screen flex-col app-shell" style={{ backgroundColor: 'var(--bg-page)' }}>
       <InstallPrompt />
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">
@@ -200,6 +210,8 @@ export default function App() {
                 deleteCollection={deleteCollection}
                 removeFromCollection={removeFromCollection}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
+                theme={theme}
+                setTheme={setTheme}
               />
             }
           />
@@ -221,7 +233,7 @@ export default function App() {
           />
         </Routes>
       </main>
-      <nav className="sticky bottom-0 z-20 flex flex-col border-t border-emerald-500/10 bg-[#080c0a]/95 backdrop-blur-xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+      <nav className="sticky bottom-0 z-20 flex flex-col border-t border-emerald-500/10 backdrop-blur-xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--bg-nav)' }}>
         <div className="flex items-center justify-around gap-1 px-2 py-2">
           <NavLink to="/" className={navLinkClass}>
             <LayoutGrid className="h-5 w-5" />

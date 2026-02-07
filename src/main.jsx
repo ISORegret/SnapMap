@@ -5,6 +5,9 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import './index.css';
 
+const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('snapmap_theme') : null;
+document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+
 registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
