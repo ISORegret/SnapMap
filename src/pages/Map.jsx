@@ -1,13 +1,14 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-markercluster';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+if (typeof window !== 'undefined') window.L = L;
+import 'leaflet.markercluster';
 import { MapPin } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 
 import 'leaflet/dist/leaflet.css';
-import 'react-leaflet-markercluster/styles';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
@@ -59,6 +60,46 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
+function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
+  const map = useMap();
+  const groupRef = useRef(null);
+
+  useEffect(() => {
+    if (!map || typeof L.MarkerClusterGroup !== 'function') return;
+    const group = new L.MarkerClusterGroup({ showCoverageOnHover: false, zoomToBoundsOnClick: true });
+    groupRef.current = group;
+
+    spots.forEach((spot) => {
+      const marker = L.marker([spot.latitude, spot.longitude], { icon })
+        .bindPopup(
+          `<div class="min-w-[140px] text-slate-200">
+            <a href="#/spot/${spot.id}" class="font-semibold text-emerald-400 hover:underline">${escapeHtml(spot.name)}</a>
+            <br><small class="text-slate-400">${escapeHtml(spot.bestTime || '—')}</small>
+          </div>`,
+          { className: 'snapmap-popup' }
+        );
+      marker.on('popupopen', () => setSelectedSpotId(spot.id));
+      marker.on('popupclose', () => setSelectedSpotId(null));
+      group.addLayer(marker);
+    });
+
+    map.addLayer(group);
+    return () => {
+      map.removeLayer(group);
+      groupRef.current = null;
+    };
+  }, [map, spots, icon, setSelectedSpotId]);
+
+  return null;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
 export default function Map({ allSpots }) {
   const navigate = useNavigate();
   const [selectedSpotId, setSelectedSpotId] = useState(null);
@@ -80,8 +121,8 @@ export default function Map({ allSpots }) {
 
   return (
     <div
-      className="absolute inset-0 w-full"
-      style={{ bottom: NAV_HEIGHT_PX }}
+      className="absolute inset-0 w-full min-h-[300px]"
+      style={{ bottom: NAV_HEIGHT_PX, minHeight: 300 }}
     >
       {filteredSpots.length === 0 && (
         <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0c0f0e]/90 px-6 backdrop-blur-sm">
@@ -101,7 +142,7 @@ export default function Map({ allSpots }) {
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
-        className="h-full w-full"
+        className="h-full w-full min-h-[300px]"
         style={{ height: '100%', minHeight: 300 }}
         scrollWheelZoom
       >
@@ -119,35 +160,11 @@ export default function Map({ allSpots }) {
             zIndexOffset={1000}
           />
         )}
-        <MarkerClusterGroup showCoverageOnHover={false} zoomToBoundsOnClick>
-          {filteredSpots.map((spot) => (
-            <Marker
-              key={spot.id}
-              position={[spot.latitude, spot.longitude]}
-              icon={icon}
-              eventHandlers={{
-                click: () => setSelectedSpotId(spot.id),
-              }}
-            >
-              <Popup
-                onClose={() => setSelectedSpotId(null)}
-                className="snapmap-popup"
-              >
-                <div className="min-w-[140px] text-slate-200">
-                  <Link
-                    to={`/spot/${spot.id}`}
-                    className="font-semibold text-emerald-400 hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {spot.name}
-                  </Link>
-                  <br />
-                  <small className="text-slate-400">{spot.bestTime || '—'}</small>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MarkerClusterGroup>
+        <SpotMarkersCluster
+          spots={filteredSpots}
+          icon={icon}
+          setSelectedSpotId={setSelectedSpotId}
+        />
       </MapContainer>
 
       {/* Single filter row */}
