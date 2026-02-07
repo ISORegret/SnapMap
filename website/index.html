@@ -364,12 +364,12 @@
       <button type="button" class="modal-close" id="modal-close" aria-label="Close">&times;</button>
       <h3 id="modal-title">Add SnapMap to your home screen</h3>
       <ol>
-        <li>Open this page in <strong>Safari</strong> (if you're not already).</li>
+        <li>Tap the button below to open the app in Safari.</li>
         <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
         <li>Tap <strong>Add to Home Screen</strong>.</li>
         <li>Tap <strong>Add</strong>.</li>
       </ol>
-      <a href="#" class="btn btn-primary" id="modal-gotit">Got it</a>
+      <a href="https://isoregret.github.io/SnapMap/#/" class="btn btn-primary" id="modal-gotit">Open app to install</a>
     </div>
   </div>
 
@@ -383,7 +383,7 @@
       function closeModal() { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
       iosBtn.addEventListener('click', function (e) { e.preventDefault(); openModal(); });
       closeBtn.addEventListener('click', closeModal);
-      gotIt.addEventListener('click', function (e) { e.preventDefault(); closeModal(); });
+      gotIt.addEventListener('click', function () { closeModal(); });
       modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
     })();
   </script>
