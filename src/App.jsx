@@ -191,7 +191,7 @@ export default function App() {
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-emerald-500/20 blur-2xl" />
               <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-emerald-500/30 bg-[#0c0c0f] shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]">
-                <img src="/snapmap-icon.svg" alt="" className="h-20 w-20 object-contain" aria-hidden />
+                <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-20 w-20 object-contain" aria-hidden />
               </div>
             </div>
             <div className="text-center">
