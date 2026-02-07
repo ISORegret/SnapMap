@@ -21,7 +21,9 @@ console.log(`Synced version ${version} to android/app/version.properties`);
 const websiteIndex = path.join(root, 'website', 'index.html');
 if (existsSync(websiteIndex)) {
   let html = readFileSync(websiteIndex, 'utf8');
+  // Replace {{VERSION}} or existing "App vX.Y.Z" so footer always matches package.json (APK version)
   html = html.replace(/\{\{VERSION\}\}/g, version);
+  html = html.replace(/(App v)[\d.]+/g, `$1${version}`);
   writeFileSync(websiteIndex, html, 'utf8');
-  console.log(`Synced version ${version} to website/index.html`);
+  console.log(`Synced version ${version} to website/index.html (footer = APK version)`);
 }
