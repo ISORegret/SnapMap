@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid, Settings, Sun, Moon } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
-import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
+import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm, kmToMi } from '../utils/geo';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -107,29 +107,30 @@ function FeedSkeletonCard() {
   );
 }
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false }) {
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading, updateAvailable = false, userPosition: userPositionProp = null, requestPosition: requestPositionProp, theme = 'dark', setTheme }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [sort, setSort] = useState('newest');
-  const [userPosition, setUserPosition] = useState(null);
+  const userPosition = userPositionProp;
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptPending, setLocationPromptPending] = useState(null); // { type: 'distance', mi } | { type: 'sort' } | null
   const [openPopover, setOpenPopover] = useState(null); // null | 'filter' | 'distance' | 'sort'
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const touchStartY = useRef(0);
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
+    if (!requestPositionProp) return null;
     setPositionLoading(true);
-    const pos = await getCurrentPosition();
+    const pos = await requestPositionProp();
     setPositionLoading(false);
-    if (pos) setUserPosition(pos);
-    return pos;
-  }, [userPosition]);
+    return pos ?? null;
+  }, [userPosition, requestPositionProp]);
 
   const setDistanceFilter = useCallback(async (mi) => {
     if (mi === null) {
@@ -149,15 +150,14 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
     setShowLocationPrompt(false);
     setLocationPromptPending(null);
     setPositionLoading(true);
-    const pos = await getCurrentPosition();
+    const pos = requestPositionProp ? await requestPositionProp() : await getCurrentPosition();
     setPositionLoading(false);
     if (pos) {
-      setUserPosition(pos);
       if (pending?.type === 'distance' && pending.mi != null) setDistanceFilterMi(pending.mi);
       if (pending?.type === 'sort') setSort('nearMe');
       setOpenPopover(null);
     }
-  }, [locationPromptPending]);
+  }, [locationPromptPending, requestPositionProp]);
 
   const onLocationPromptDismiss = useCallback(() => {
     setShowLocationPrompt(false);
@@ -173,6 +173,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
     setSort('nearMe');
     setOpenPopover(null);
   }, [userPosition]);
+
+  useEffect(() => {
+    if (requestPositionProp) requestPositionProp();
+  }, [requestPositionProp]);
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
@@ -271,6 +275,42 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       {/* App title + tagline */}
       <header className="relative border-b border-emerald-500/10 bg-gradient-to-b from-emerald-950/30 to-transparent px-4 pt-6 pb-5 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(52,211,153,0.08),transparent)] pointer-events-none" />
+        {setTheme && (
+          <div className="absolute right-3 top-4 z-10">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((o) => !o)}
+              className="rounded-full p-2 text-slate-500 transition hover:bg-white/10 hover:text-emerald-400"
+              aria-label="Settings"
+              aria-expanded={settingsOpen}
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+            {settingsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
+                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                  >
+                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <a
+                    href="#/saved"
+                    onClick={() => setSettingsOpen(false)}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                  >
+                    <Heart className="h-4 w-4" />
+                    Saved
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div className="relative flex items-center justify-center gap-3">
           <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-10 w-10 shrink-0 object-contain" aria-hidden />
           <h1 className="text-2xl font-bold tracking-tight text-gradient">
@@ -579,6 +619,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
                       : '—')}
                 </p>
+                {userPosition && spot.latitude != null && spot.longitude != null && (
+                  <p className="mt-0.5 text-[11px] text-emerald-400">
+                    {(kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1)} mi away
+                  </p>
+                )}
                 {spot.description && spot.description !== 'Not specified' && (
                   <p className="mt-0.5 text-xs text-slate-400 line-clamp-1">
                     {spot.description}

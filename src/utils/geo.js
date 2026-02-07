@@ -36,3 +36,8 @@ export const DISTANCE_OPTIONS_MI = [10, 25, 50];
 export function milesToKm(mi) {
   return mi * 1.60934;
 }
+
+/** Convert km to miles for display. */
+export function kmToMi(km) {
+  return km * 0.621371;
+}

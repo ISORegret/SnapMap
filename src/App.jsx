@@ -15,6 +15,7 @@ import {
   deleteCollection as deleteCollectionInStore,
 } from './data/spotStore';
 import { fetchCommunitySpots, insertCommunitySpot, updateCommunitySpot, deleteCommunitySpot } from './api/spots';
+import { getCurrentPosition } from './utils/geo';
 import Feed from './pages/Feed';
 import MapPage from './pages/Map';
 import Add from './pages/Add';
@@ -36,8 +37,15 @@ export default function App() {
     typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_theme') || 'dark') : 'dark'
   );
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [userPosition, setUserPosition] = useState(null);
   const navigate = useNavigate();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+
+  const requestPosition = useCallback(async () => {
+    const pos = await getCurrentPosition();
+    if (pos) setUserPosition(pos);
+    return pos;
+  }, []);
 
   const setTheme = useCallback((next) => {
     const value = next === 'light' ? 'light' : 'dark';
@@ -269,10 +277,14 @@ export default function App() {
                 }}
                 spotsLoading={communitySpotsLoading}
                 updateAvailable={updateAvailable}
+                userPosition={userPosition}
+                requestPosition={requestPosition}
+                theme={theme}
+                setTheme={setTheme}
               />
             }
           />
-          <Route path="/map" element={<MapPage allSpots={allSpots} />} />
+          <Route path="/map" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} />} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
           <Route
             path="/saved"
@@ -304,6 +316,7 @@ export default function App() {
                 collections={collections}
                 addToCollection={addToCollection}
                 removeFromCollection={removeFromCollection}
+                userPosition={userPosition}
               />
             }
           />

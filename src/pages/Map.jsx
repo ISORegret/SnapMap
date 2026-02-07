@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 
@@ -109,12 +109,13 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
-export default function Map({ allSpots }) {
+export default function Map({ allSpots, theme = 'dark', setTheme }) {
   const navigate = useNavigate();
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -259,6 +260,44 @@ export default function Map({ allSpots }) {
           setSelectedSpotId={setSelectedSpotId}
         />
       </MapContainer>
+
+      {/* Settings in corner */}
+      {setTheme && (
+        <div className="absolute right-3 top-3 z-[1001]">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen((o) => !o)}
+            className="rounded-full bg-black/70 p-2 text-slate-400 backdrop-blur transition hover:bg-black/80 hover:text-emerald-400"
+            aria-label="Settings"
+            aria-expanded={settingsOpen}
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+          {settingsOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                >
+                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </button>
+                <a
+                  href="#/saved"
+                  onClick={() => setSettingsOpen(false)}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                >
+                  <Heart className="h-4 w-4" />
+                  Saved
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Filter + Distance rows */}
       <div className="absolute left-3 right-3 top-3 z-[1000] flex flex-col gap-2">

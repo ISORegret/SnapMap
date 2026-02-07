@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, 
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
+import { haversineKm, kmToMi } from '../utils/geo';
 import { insertSpotReport, fetchSpotNotes, insertSpotNote } from '../api/spots';
 
 function formatTime(d) {
@@ -165,6 +166,7 @@ export default function SpotDetail({
   collections = [],
   addToCollection,
   removeFromCollection,
+  userPosition = null,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -521,6 +523,11 @@ export default function SpotDetail({
       )}
       <div className="px-4 pt-4">
         <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
+        {userPosition && spot.latitude != null && spot.longitude != null && (
+          <p className="mt-1 text-sm text-emerald-400">
+            {(kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1)} mi away
+          </p>
+        )}
         {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
           <p className="mt-1 text-xs text-slate-500">Added by @{String(spot.createdBy).trim()}</p>
         ) : (
