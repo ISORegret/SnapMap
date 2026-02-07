@@ -73,8 +73,20 @@ export async function insertCommunitySpot(spot) {
   return { spot: rowToSpot(data), error: null };
 }
 
+// Minimal UUID check: spot id from Supabase is uuid; local-only spots use 'user-*'
+function isLikelyUuid(id) {
+  if (id == null || typeof id !== 'string') return false;
+  if (String(id).startsWith('user-')) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id).trim());
+}
+
 export async function updateCommunitySpot(id, updates) {
   if (!hasSupabase) return false;
+  const spotId = id != null ? String(id).trim() : '';
+  if (!spotId || !isLikelyUuid(spotId)) {
+    console.warn('SnapMap: update spot skipped — id is not a cloud UUID', { id: spotId || id });
+    return false;
+  }
   const payload = {};
   // Immutable (enforced by DB trigger): name, latitude, longitude, created_by, created_at — do not send.
   if (updates.description != null) payload.description = updates.description;
@@ -89,9 +101,18 @@ export async function updateCommunitySpot(id, updates) {
   if (updates.linkUrl != null) payload.link_url = updates.linkUrl;
   if (updates.linkLabel != null) payload.link_label = updates.linkLabel;
   if (Object.keys(payload).length === 0) return true;
-  const { error } = await supabase.from('spots').update(payload).eq('id', id);
+  const { data, error } = await supabase
+    .from('spots')
+    .update(payload)
+    .eq('id', spotId)
+    .select('id')
+    .single();
   if (error) {
-    console.warn('SnapMap: update spot failed', error);
+    console.warn('SnapMap: update spot failed', { id: spotId, error: error.message, code: error.code });
+    return false;
+  }
+  if (!data) {
+    console.warn('SnapMap: update spot — no row updated', { id: spotId });
     return false;
   }
   return true;
