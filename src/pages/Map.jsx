@@ -6,7 +6,7 @@ if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
 import { MapPin } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
-import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_KM } from '../utils/geo';
+import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -36,10 +36,11 @@ function applyFilter(spots, filter) {
   return spots.filter((s) => matchesCategory(s, filter));
 }
 
-function applyDistanceFilter(spots, userPosition, distanceKm) {
-  if (!userPosition || !distanceKm) return spots;
+function applyDistanceFilter(spots, userPosition, distanceMi) {
+  if (!userPosition || distanceMi == null) return spots;
+  const km = milesToKm(distanceMi);
   return spots.filter(
-    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= distanceKm
+    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= km
   );
 }
 
@@ -114,7 +115,7 @@ export default function Map({ allSpots }) {
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(null);
-  const [distanceFilterKm, setDistanceFilterKm] = useState(null);
+  const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
 
   const requestPosition = useCallback(async () => {
@@ -126,19 +127,19 @@ export default function Map({ allSpots }) {
     return pos;
   }, [userPosition]);
 
-  const setDistanceFilter = useCallback(async (km) => {
-    if (km === null) {
-      setDistanceFilterKm(null);
+  const setDistanceFilter = useCallback(async (mi) => {
+    if (mi === null) {
+      setDistanceFilterMi(null);
       return;
     }
     const pos = await requestPosition();
-    if (pos) setDistanceFilterKm(km);
+    if (pos) setDistanceFilterMi(mi);
   }, [requestPosition]);
 
   const byFilter = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
   const filteredSpots = useMemo(
-    () => applyDistanceFilter(byFilter, userPosition, distanceFilterKm),
-    [byFilter, userPosition, distanceFilterKm]
+    () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
+    [byFilter, userPosition, distanceFilterMi]
   );
 
   const onMapClick = useCallback(({ lat, lng }) => {
@@ -219,24 +220,24 @@ export default function Map({ allSpots }) {
         <div className="flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
           <button
             type="button"
-            onClick={() => setDistanceFilterKm(null)}
+            onClick={() => setDistanceFilterMi(null)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-              distanceFilterKm === null ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              distanceFilterMi === null ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
             }`}
           >
             All
           </button>
-          {DISTANCE_OPTIONS_KM.map((km) => (
+          {DISTANCE_OPTIONS_MI.map((mi) => (
             <button
-              key={km}
+              key={mi}
               type="button"
-              onClick={() => setDistanceFilter(km)}
+              onClick={() => setDistanceFilter(mi)}
               disabled={positionLoading}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                distanceFilterKm === km ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20 disabled:opacity-50'
+                distanceFilterMi === mi ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20 disabled:opacity-50'
               }`}
             >
-              Within {km} km
+              Within {mi} mi
             </button>
           ))}
         </div>

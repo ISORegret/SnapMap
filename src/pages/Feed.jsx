@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
-import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_KM } from '../utils/geo';
+import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -72,10 +72,11 @@ function applySort(spots, sortId, userPosition) {
   return list;
 }
 
-function applyDistanceFilter(spots, userPosition, distanceKm) {
-  if (!userPosition || !distanceKm) return spots;
+function applyDistanceFilter(spots, userPosition, distanceMi) {
+  if (!userPosition || distanceMi == null) return spots;
+  const km = milesToKm(distanceMi);
   return spots.filter(
-    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= distanceKm
+    (s) => haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude) <= km
   );
 }
 
@@ -112,8 +113,9 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [tagFilter, setTagFilter] = useState('');
   const [sort, setSort] = useState('newest');
   const [userPosition, setUserPosition] = useState(null);
-  const [distanceFilterKm, setDistanceFilterKm] = useState(null);
+  const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
+  const [openPopover, setOpenPopover] = useState(null); // null | 'filter' | 'distance' | 'sort'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const touchStartY = useRef(0);
@@ -127,19 +129,24 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
     return pos;
   }, [userPosition]);
 
-  const setDistanceFilter = useCallback(async (km) => {
-    if (km === null) {
-      setDistanceFilterKm(null);
+  const setDistanceFilter = useCallback(async (mi) => {
+    if (mi === null) {
+      setDistanceFilterMi(null);
       return;
     }
     const pos = await requestPosition();
-    if (pos) setDistanceFilterKm(km);
+    if (pos) setDistanceFilterMi(mi);
   }, [requestPosition]);
 
   const setSortNearMe = useCallback(async () => {
     const pos = await requestPosition();
     if (pos) setSort('nearMe');
+    setOpenPopover(null);
   }, [requestPosition]);
+
+  const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
+  const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
+  const sortLabel = SORT_OPTIONS.find((o) => o.id === sort)?.label ?? 'Newest';
 
   const handleRefresh = useCallback(() => {
     if (!onRefresh || isRefreshing) return;
@@ -169,8 +176,8 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
 
   const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
   const byDistance = useMemo(
-    () => applyDistanceFilter(filteredSpots, userPosition, distanceFilterKm),
-    [filteredSpots, userPosition, distanceFilterKm]
+    () => applyDistanceFilter(filteredSpots, userPosition, distanceFilterMi),
+    [filteredSpots, userPosition, distanceFilterMi]
   );
   const byTag = useMemo(
     () => (tagFilter ? byDistance.filter((s) => matchesTag(s, tagFilter)) : byDistance),
@@ -227,70 +234,6 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </p>
       </header>
 
-      {/* Single filter row: All, Has parking, categories */}
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Filter
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setFilter(opt.id)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                filter === opt.id
-                  ? 'bg-emerald-500 text-white shadow-glow-sm'
-                  : 'bg-white/5 text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border border border-transparent hover:border-emerald-500/20'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Distance: All, Within 10/25/50 km (uses location) */}
-      <div className="border-b border-white/[0.06] px-4 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Distance
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setDistanceFilterKm(null)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
-              distanceFilterKm === null
-                ? 'bg-emerald-500 text-white'
-                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
-            }`}
-          >
-            All
-          </button>
-          {DISTANCE_OPTIONS_KM.map((km) => (
-            <button
-              key={km}
-              type="button"
-              onClick={() => setDistanceFilter(km)}
-              disabled={positionLoading}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
-                distanceFilterKm === km
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300 disabled:opacity-50'
-              }`}
-            >
-              Within {km} km
-            </button>
-          ))}
-          {!userPosition && (distanceFilterKm != null || positionLoading) && (
-            <span className="shrink-0 flex items-center gap-1 text-xs text-slate-500">
-              <MapPinOff className="h-3.5 w-3.5" />
-              Allow location for distance
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Search */}
       <div className="border-b border-white/[0.06] px-4 py-3">
         <div className="relative">
@@ -305,26 +248,137 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </div>
       </div>
 
-      {/* Sort */}
-      <div className="border-b border-white/[0.06] px-4 py-2">
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Sort</p>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => (opt.id === 'nearMe' ? setSortNearMe() : setSort(opt.id))}
-              disabled={opt.id === 'nearMe' && positionLoading}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                sort === opt.id
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300 disabled:opacity-50'
-              }`}
-            >
-              {opt.id === 'nearMe' && positionLoading && !userPosition ? '…' : opt.label}
-            </button>
-          ))}
+      {/* Filter, Distance, Sort — popover selectors */}
+      <div className="relative border-b border-white/[0.06] px-4 py-2">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setOpenPopover(openPopover === 'filter' ? null : 'filter')}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+              openPopover === 'filter'
+                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <span className="truncate">{filterLabel}</span>
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'filter' ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenPopover(openPopover === 'distance' ? null : 'distance')}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+              openPopover === 'distance'
+                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <span className="truncate">{distanceLabel}</span>
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'distance' ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenPopover(openPopover === 'sort' ? null : 'sort')}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+              openPopover === 'sort'
+                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <span className="truncate">{sortLabel}</span>
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'sort' ? 'rotate-180' : ''}`} />
+          </button>
         </div>
+
+        {openPopover && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpenPopover(null)}
+              aria-hidden
+            />
+            <div className="absolute left-4 right-4 top-full z-50 mt-1 max-h-56 overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+              {openPopover === 'filter' &&
+                FILTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setFilter(opt.id);
+                      setOpenPopover(null);
+                    }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+                      filter === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    {opt.label}
+                    {filter === opt.id && <span className="text-emerald-400">✓</span>}
+                  </button>
+                ))}
+              {openPopover === 'distance' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDistanceFilterMi(null);
+                      setOpenPopover(null);
+                    }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+                      distanceFilterMi === null ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    All
+                    {distanceFilterMi === null && <span className="text-emerald-400">✓</span>}
+                  </button>
+                  {DISTANCE_OPTIONS_MI.map((mi) => (
+                    <button
+                      key={mi}
+                      type="button"
+                      onClick={async () => {
+                        await setDistanceFilter(mi);
+                        setOpenPopover(null);
+                      }}
+                      disabled={positionLoading}
+                      className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
+                        distanceFilterMi === mi ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      }`}
+                    >
+                      Within {mi} mi
+                      {distanceFilterMi === mi && <span className="text-emerald-400">✓</span>}
+                    </button>
+                  ))}
+                  {!userPosition && (distanceFilterMi != null || positionLoading) && (
+                    <p className="flex items-center gap-1.5 px-4 py-2 text-xs text-slate-500">
+                      <MapPinOff className="h-3.5 w-3.5" />
+                      Allow location for distance
+                    </p>
+                  )}
+                </>
+              )}
+              {openPopover === 'sort' &&
+                SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={async () => {
+                      if (opt.id === 'nearMe') await setSortNearMe();
+                      else {
+                        setSort(opt.id);
+                        setOpenPopover(null);
+                      }
+                    }}
+                    disabled={opt.id === 'nearMe' && positionLoading}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
+                      sort === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    {opt.id === 'nearMe' && positionLoading && !userPosition ? '…' : opt.label}
+                    {sort === opt.id && opt.id !== 'nearMe' && <span className="text-emerald-400">✓</span>}
+                    {sort === opt.id && opt.id === 'nearMe' && userPosition && <span className="text-emerald-400">✓</span>}
+                  </button>
+                ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Section label */}

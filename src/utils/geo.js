@@ -29,4 +29,10 @@ export function getCurrentPosition() {
   });
 }
 
-export const DISTANCE_OPTIONS_KM = [10, 25, 50];
+/** Distance filter options in miles (imperial). */
+export const DISTANCE_OPTIONS_MI = [10, 25, 50];
+
+/** Convert miles to km for haversine comparison. */
+export function milesToKm(mi) {
+  return mi * 1.60934;
+}

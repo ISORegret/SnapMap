@@ -148,7 +148,7 @@ function WeatherAtSpot({ latitude, longitude }) {
       <div className="text-right">
         <span className="text-lg font-semibold text-white">{temp}{unit}</span>
         {weather.wind_speed != null && (
-          <p className="text-[10px] text-slate-500">Wind {weather.wind_speed} km/h</p>
+          <p className="text-[10px] text-slate-500">Wind {Math.round(weather.wind_speed * 0.621371)} mph</p>
         )}
       </div>
     </div>
