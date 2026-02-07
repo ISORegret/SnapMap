@@ -16,7 +16,6 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
 
-const NAV_HEIGHT_PX = 64;
 const LIST_PANEL_HEIGHT_PX = 200;
 
 // Fix default marker icon in react-leaflet (webpack/vite)
@@ -268,10 +267,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
   }, [goBack]);
 
   return (
-    <div
-      className="absolute inset-0 w-full flex flex-col"
-      style={{ bottom: NAV_HEIGHT_PX }}
-    >
+    <div className="absolute inset-0 w-full flex flex-col">
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">

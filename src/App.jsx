@@ -270,7 +270,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-[72px]">
         <Routes>
           <Route
             path="/"
@@ -336,8 +336,8 @@ export default function App() {
           />
         </Routes>
       </main>
-      {/* Floating / compact nav: pill with inset and shadow */}
-      <div className="sticky bottom-0 z-20 flex flex-col items-center px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+      {/* Floating / compact nav: fixed at viewport bottom so it stays put when scrolling */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--bg-page)' }}>
         <nav
           className="flex w-full max-w-md items-center justify-around gap-1 rounded-full border border-white/10 px-2 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
           style={{ backgroundColor: 'var(--bg-nav)' }}
@@ -360,7 +360,7 @@ export default function App() {
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
           </NavLink>
         </nav>
-        <p className="mt-1.5 text-center text-[10px] text-slate-500" aria-hidden="true">
+        <p className="mt-1 text-center text-[10px] text-slate-500" aria-hidden="true">
           v{appVersion}
           {updateAvailable && (
             <span className="block text-[9px] text-emerald-400 mt-0.5">Update available</span>
