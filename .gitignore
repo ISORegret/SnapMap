@@ -23,7 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Env — never commit; contains secrets (e.g. VITE_SUPABASE_ANON_KEY)
+# Env — NEVER commit; contains secrets (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 .env
 .env.local
 .env.*.local

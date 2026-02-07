@@ -23,7 +23,7 @@ This folder is **separate from PepTalk** so the two projects stay independent.
   3. In Android Studio: pick an emulator or connected device and run (green Play).  
   After code changes, run `npm run build:android` again (with `.env` present so Supabase is baked in), then run from Android Studio.
 
-- **Get an APK (installable file):** From the **project root** (where `package.json` and `.env` are), run `npm run build:apk`. **Supabase** keys are read from `.env` at build time — have `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` before building. The APK is at **`android/app/build/outputs/apk/debug/app-debug.apk`** — install that file on your phone (not an old copy from `website/`). Copy it to your phone and open it to install (enable “Install from unknown sources” if prompted), or run from Android Studio with a device connected.
+- **Get an APK (installable file):** From the **project root** (where `package.json` and `.env` are), run `npm run build:apk`. **Supabase** keys are read from `.env` at build time — copy `.env.example` to `.env`, fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, and **never commit `.env`** (it is in `.gitignore`). The APK is at **`android/app/build/outputs/apk/debug/app-debug.apk`** — install that file on your phone (not an old copy from `website/`). Copy it to your phone and open it to install (enable “Install from unknown sources” if prompted), or run from Android Studio with a device connected.
 
 ---
 
