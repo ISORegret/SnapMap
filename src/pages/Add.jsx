@@ -38,6 +38,7 @@ export default function Add({ onAdd, onUpdate }) {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({ name: '', latitude: '', longitude: '' });
+  const [saveFeedback, setSaveFeedback] = useState(null); // 'success' | 'error' | null
 
   useEffect(() => {
     if (!editSpot) return;
@@ -56,6 +57,7 @@ export default function Add({ onAdd, onUpdate }) {
     setLinkLabel(editSpot.linkLabel ?? 'More info');
     setCreatedBy(editSpot.createdBy ?? '');
     setFieldErrors({ name: '', latitude: '', longitude: '' });
+    setSaveFeedback(null);
   }, [editSpot]);
 
   const handlePhotoChange = (e) => {
@@ -144,8 +146,12 @@ export default function Add({ onAdd, onUpdate }) {
         createdBy: createdBy.trim() || '',
       };
       if (editSpot && onUpdate) {
-        await onUpdate(editSpot.id, payload);
-        navigate(`/spot/${editSpot.id}`, { replace: true });
+        setSaveFeedback(null);
+        const ok = await onUpdate(editSpot.id, payload);
+        setSaveFeedback(ok ? 'success' : 'error');
+        if (ok) {
+          setTimeout(() => navigate(`/spot/${editSpot.id}`, { replace: true }), 1500);
+        }
       } else {
         await onAdd(payload);
       }
@@ -409,6 +415,16 @@ export default function Add({ onAdd, onUpdate }) {
         >
           {submitting ? (editSpot ? 'Saving…' : 'Adding…') : editSpot ? 'Save changes' : 'Add spot'}
         </button>
+        {editSpot && saveFeedback === 'success' && (
+          <p className="mt-2 text-center text-sm text-emerald-400" role="status">
+            Successfully saved.
+          </p>
+        )}
+        {editSpot && saveFeedback === 'error' && (
+          <p className="mt-2 text-center text-sm text-amber-400" role="alert">
+            Failed to save. Check connection and try again.
+          </p>
+        )}
       </form>
     </div>
   );

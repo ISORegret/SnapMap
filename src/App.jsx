@@ -193,22 +193,28 @@ export default function App() {
           const ok = await updateCommunitySpot(spotId, updates);
           if (ok) {
             setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
-          } else {
-            setUserSpots((prev) => {
-              const next = prev.map((s) =>
-                s.id === spotId ? { ...s, ...updates, syncError: true } : s
-              );
-              saveUserSpots(next);
-              return next;
-            });
+            return true;
           }
+          setUserSpots((prev) => {
+            const next = prev.map((s) =>
+              s.id === spotId ? { ...s, ...updates, syncError: true } : s
+            );
+            saveUserSpots(next);
+            return next;
+          });
+          return false;
         }
-      } else if (isCloudId) {
+        return true; // local-only spot, local save succeeded
+      }
+      if (isCloudId) {
         const ok = await updateCommunitySpot(spotId, updates);
         if (ok) {
           setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+          return true;
         }
+        return false;
       }
+      return true; // no cloud id, nothing to sync
     },
     [userSpots]
   );
