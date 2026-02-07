@@ -37,6 +37,7 @@ export default function Add({ onAdd, onUpdate }) {
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({ name: '', latitude: '', longitude: '' });
 
   useEffect(() => {
     if (!editSpot) return;
@@ -54,6 +55,7 @@ export default function Add({ onAdd, onUpdate }) {
     setLinkUrl(editSpot.linkUrl ?? '');
     setLinkLabel(editSpot.linkLabel ?? 'More info');
     setCreatedBy(editSpot.createdBy ?? '');
+    setFieldErrors({ name: '', latitude: '', longitude: '' });
   }, [editSpot]);
 
   const handlePhotoChange = (e) => {
@@ -99,13 +101,23 @@ export default function Add({ onAdd, onUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || submitting) return;
-    const parseCoord = (value, fallback) => {
-      const n = parseFloat(value);
-      return Number.isFinite(n) ? n : fallback;
-    };
-    const latitude = parseCoord(lat, 37.8);
-    const longitude = parseCoord(lng, -122.4);
+    if (submitting) return;
+
+    const errors = { name: '', latitude: '', longitude: '' };
+    if (!name.trim()) errors.name = 'Name is required.';
+    const latNum = parseFloat(String(lat).trim());
+    const lngNum = parseFloat(String(lng).trim());
+    const validLat = Number.isFinite(latNum) && latNum >= -90 && latNum <= 90;
+    const validLng = Number.isFinite(lngNum) && lngNum >= -180 && lngNum <= 180;
+    if (!editSpot) {
+      if (!validLat) errors.latitude = 'Enter a valid latitude (-90 to 90).';
+      if (!validLng) errors.longitude = 'Enter a valid longitude (-180 to 180).';
+    }
+    setFieldErrors(errors);
+    if (errors.name || errors.latitude || errors.longitude) return;
+
+    const latitude = validLat ? latNum : (editSpot?.latitude ?? 37.8);
+    const longitude = validLng ? lngNum : (editSpot?.longitude ?? -122.4);
     const addressOrLocation = address.trim()
       || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
     const validImages = images
@@ -150,7 +162,7 @@ export default function Add({ onAdd, onUpdate }) {
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
           {editSpot
-            ? 'Update name, description, photos, and more.'
+            ? "Update description, photos, and more. Name and location can't be changed after creation."
             : hasSupabase
               ? 'Spots will be shared with everyone (saved to cloud).'
               : 'Data stays on your device. Add Supabase in .env to share spots.'}
@@ -162,11 +174,19 @@ export default function Add({ onAdd, onUpdate }) {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }));
+            }}
             placeholder="Spot name"
             required
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+              fieldErrors.name ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-emerald-500 focus:ring-emerald-500'
+            }`}
           />
+          {fieldErrors.name && (
+            <p className="mt-1 text-xs text-amber-400">{fieldErrors.name}</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500">Short description (optional)</label>
@@ -234,20 +254,36 @@ export default function Add({ onAdd, onUpdate }) {
               <input
                 type="text"
                 value={lat}
-                onChange={(e) => setLat(e.target.value)}
+                onChange={(e) => {
+                  setLat(e.target.value);
+                  if (fieldErrors.latitude) setFieldErrors((prev) => ({ ...prev, latitude: '' }));
+                }}
                 placeholder="37.8021"
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                  fieldErrors.latitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-emerald-500 focus:ring-emerald-500'
+                }`}
               />
+              {fieldErrors.latitude && (
+                <p className="mt-1 text-xs text-amber-400">{fieldErrors.latitude}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500">Longitude</label>
               <input
                 type="text"
                 value={lng}
-                onChange={(e) => setLng(e.target.value)}
+                onChange={(e) => {
+                  setLng(e.target.value);
+                  if (fieldErrors.longitude) setFieldErrors((prev) => ({ ...prev, longitude: '' }));
+                }}
                 placeholder="-122.4488"
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                  fieldErrors.longitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-emerald-500 focus:ring-emerald-500'
+                }`}
               />
+              {fieldErrors.longitude && (
+                <p className="mt-1 text-xs text-amber-400">{fieldErrors.longitude}</p>
+              )}
             </div>
           </div>
         </div>
@@ -321,8 +357,8 @@ export default function Add({ onAdd, onUpdate }) {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-500">Photos</label>
-          <p className="mt-0.5 text-[11px] text-slate-500">Add one or more shots; others can add theirs to the same spot later.</p>
+          <label className="block text-xs font-medium text-slate-500">Photos (optional)</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">Add one or more shots; others can add theirs to the same spot later. No photo? We&apos;ll use a default image.</p>
           <input
             ref={fileInputRef}
             type="file"

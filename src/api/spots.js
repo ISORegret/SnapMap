@@ -76,13 +76,11 @@ export async function insertCommunitySpot(spot) {
 export async function updateCommunitySpot(id, updates) {
   if (!hasSupabase) return false;
   const payload = {};
-  if (updates.name != null) payload.name = updates.name;
+  // Immutable (enforced by DB trigger): name, latitude, longitude, created_by, created_at — do not send.
   if (updates.description != null) payload.description = updates.description;
   if (updates.address != null) payload.address = updates.address;
   if (updates.parking != null) payload.parking = updates.parking;
   if (updates.howToAccess != null) payload.how_to_access = updates.howToAccess;
-  if (updates.latitude != null) payload.latitude = updates.latitude;
-  if (updates.longitude != null) payload.longitude = updates.longitude;
   if (updates.bestTime != null) payload.best_time = updates.bestTime;
   if (updates.crowdLevel != null) payload.crowd_level = updates.crowdLevel;
   if (updates.score != null) payload.score = updates.score;
@@ -90,7 +88,6 @@ export async function updateCommunitySpot(id, updates) {
   if (updates.images != null) payload.images = updates.images;
   if (updates.linkUrl != null) payload.link_url = updates.linkUrl;
   if (updates.linkLabel != null) payload.link_label = updates.linkLabel;
-  if (updates.createdBy != null) payload.created_by = updates.createdBy;
   if (Object.keys(payload).length === 0) return true;
   const { error } = await supabase.from('spots').update(payload).eq('id', id);
   if (error) {
