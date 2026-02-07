@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil, MapPinned, Star } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil, Star } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
@@ -596,7 +596,7 @@ export default function SpotDetail({
         {hasSupabase && (
           <div className="mt-3 flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-sm text-slate-500">
-              <MapPinned className="h-4 w-4 shrink-0 text-emerald-500/80" />
+              <MapPin className="h-4 w-4 shrink-0 text-emerald-500/80" />
               {checkInCount === 0
                 ? 'No check-ins yet'
                 : checkInCount === 1
