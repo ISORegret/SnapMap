@@ -14,7 +14,7 @@ import {
   createCollection as createCollectionInStore,
   deleteCollection as deleteCollectionInStore,
 } from './data/spotStore';
-import { fetchCommunitySpots, insertCommunitySpot, deleteCommunitySpot } from './api/spots';
+import { fetchCommunitySpots, insertCommunitySpot, updateCommunitySpot, deleteCommunitySpot } from './api/spots';
 import Feed from './pages/Feed';
 import MapPage from './pages/Map';
 import Add from './pages/Add';
@@ -74,12 +74,21 @@ export default function App() {
   );
 
   const updateSpot = useCallback((spotId, updates) => {
-    const spot = userSpots.find((s) => s.id === spotId);
-    if (!spot) return;
-    const updated = { ...spot, ...updates };
-    const next = userSpots.map((s) => (s.id === spotId ? updated : s));
-    setUserSpots(next);
-    saveUserSpots(next);
+    const inUser = userSpots.find((s) => s.id === spotId);
+    if (inUser) {
+      const updated = { ...inUser, ...updates };
+      setUserSpots((prev) => {
+        const next = prev.map((s) => (s.id === spotId ? updated : s));
+        saveUserSpots(next);
+        return next;
+      });
+    }
+    const isCloudId = spotId && !String(spotId).startsWith('user-');
+    if (isCloudId) {
+      updateCommunitySpot(spotId, updates).then((ok) => {
+        if (ok) setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+      });
+    }
   }, [userSpots]);
 
   const deleteSpot = useCallback((spotId) => {

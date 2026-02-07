@@ -71,6 +71,19 @@ export async function insertCommunitySpot(spot) {
   return { spot: rowToSpot(data), error: null };
 }
 
+export async function updateCommunitySpot(id, updates) {
+  if (!hasSupabase) return false;
+  const payload = {};
+  if (updates.images != null) payload.images = updates.images;
+  if (Object.keys(payload).length === 0) return true;
+  const { error } = await supabase.from('spots').update(payload).eq('id', id);
+  if (error) {
+    console.warn('SnapMap: update spot failed', error);
+    return false;
+  }
+  return true;
+}
+
 export async function deleteCommunitySpot(id) {
   if (!hasSupabase) return false;
   const { error } = await supabase.from('spots').delete().eq('id', id);

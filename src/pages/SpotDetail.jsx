@@ -225,10 +225,11 @@ export default function SpotDetail({
   const crowdLevel = spot.crowdLevel && CROWD_LABELS[spot.crowdLevel] ? spot.crowdLevel : null;
   const spotImages = getSpotImages(spot);
 
+  const canAddPhoto = isUserSpot(spot.id) || (spot.id && !String(spot.id).startsWith('user-'));
   const handleAddPhoto = (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || !file.type.startsWith('image/') || !isUserSpot(spot.id)) return;
+    if (!file || !file.type.startsWith('image/') || !canAddPhoto) return;
     setAddPhotoLoading(true);
     resizeImageToDataUrl(file, 1200)
       .then((dataUrl) => {
@@ -264,7 +265,7 @@ export default function SpotDetail({
         </button>
       </header>
       <SpotImageGallery images={spotImages} spotName={spot.name} />
-      {isUserSpot(spot.id) && (
+      {canAddPhoto && (
         <div className="px-4 pt-2">
           <input
             ref={addPhotoInputRef}
