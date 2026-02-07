@@ -275,7 +275,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-[72px]">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-28">
         <Routes>
           <Route
             path="/"
@@ -341,8 +341,8 @@ export default function App() {
           />
         </Routes>
       </main>
-      {/* Floating / compact nav: fixed at viewport bottom so it stays put when scrolling */}
-      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 12, backgroundColor: 'var(--bg-page)' }}>
+      {/* Floating / compact nav: pill only, no black bar; content scrolls behind it */}
+      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 12 }}>
         <nav
           className="flex w-full max-w-md items-center justify-around gap-1 rounded-full border border-white/10 px-2 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
           style={{ backgroundColor: 'var(--bg-nav)' }}
