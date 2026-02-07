@@ -10,10 +10,34 @@ document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light'
 
 registerSW({ immediate: true });
 
+class AppErrorBoundary extends React.Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error('SnapMap render error', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, fontFamily: 'system-ui', color: '#e2e8f0', background: '#0f172a', minHeight: '100vh' }}>
+          <h1 style={{ fontSize: 18, marginBottom: 8 }}>SnapMap failed to load</h1>
+          <pre style={{ fontSize: 12, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{String(this.state.error?.message || this.state.error)}</pre>
+          <p style={{ marginTop: 16, fontSize: 14 }}>Check the browser Console (F12) for details.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
+    <AppErrorBoundary>
+      <HashRouter>
+        <App />
+      </HashRouter>
+    </AppErrorBoundary>
   </React.StrictMode>
 );
