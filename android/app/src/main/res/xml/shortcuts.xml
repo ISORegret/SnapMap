@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_label"
+        android:shortcutLongLabel="@string/shortcut_add_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.snapmap.app"
+            android:targetClass="com.snapmap.app.MainActivity"
+            android:data="https://snapmap.app/#/add" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="map"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_map_label"
+        android:shortcutLongLabel="@string/shortcut_map_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.snapmap.app"
+            android:targetClass="com.snapmap.app.MainActivity"
+            android:data="https://snapmap.app/#/map" />
+    </shortcut>
+</shortcuts>

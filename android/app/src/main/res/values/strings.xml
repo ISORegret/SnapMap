@@ -4,4 +4,8 @@
     <string name="title_activity_main">SnapMap</string>
     <string name="package_name">com.snapmap.app</string>
     <string name="custom_url_scheme">com.snapmap.app</string>
+    <string name="shortcut_add_label">Add spot</string>
+    <string name="shortcut_add_long_label">Add a new spot</string>
+    <string name="shortcut_map_label">Map</string>
+    <string name="shortcut_map_long_label">Open map</string>
 </resources>

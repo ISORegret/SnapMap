@@ -21,10 +21,12 @@ import Add from './pages/Add';
 import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
 import InstallPrompt from './components/InstallPrompt';
+import { hapticLight } from './utils/haptics';
 
 export default function App() {
   const [userSpots, setUserSpots] = useState([]);
   const [communitySpots, setCommunitySpots] = useState([]);
+  const [communitySpotsLoading, setCommunitySpotsLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [collections, setCollections] = useState([]);
   const [ready, setReady] = useState(false);
@@ -61,7 +63,10 @@ export default function App() {
 
   useEffect(() => {
     if (!ready) return;
-    fetchCommunitySpots().then(setCommunitySpots);
+    setCommunitySpotsLoading(true);
+    fetchCommunitySpots()
+      .then(setCommunitySpots)
+      .finally(() => setCommunitySpotsLoading(false));
   }, [ready]);
 
   const allSpots = [
@@ -80,6 +85,7 @@ export default function App() {
           return next;
         });
         setCommunitySpots((prev) => [result.spot, ...prev]);
+        hapticLight();
         navigate('/');
         return;
       }
@@ -90,6 +96,7 @@ export default function App() {
         saveUserSpots(next);
         return next;
       });
+      hapticLight();
       navigate('/');
     },
     [navigate]
@@ -132,11 +139,13 @@ export default function App() {
   }, [userSpots, favoriteIds, collections, navigate]);
 
   const toggleFavorite = useCallback((spotId) => {
-    const next = favoriteIds.includes(spotId)
-      ? favoriteIds.filter((id) => id !== spotId)
-      : [...favoriteIds, spotId];
+    const isAdding = !favoriteIds.includes(spotId);
+    const next = isAdding
+      ? [...favoriteIds, spotId]
+      : favoriteIds.filter((id) => id !== spotId);
     setFavoriteIds(next);
     saveFavorites(next);
+    if (isAdding) hapticLight();
   }, [favoriteIds]);
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
@@ -192,7 +201,11 @@ export default function App() {
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
-                onRefresh={() => fetchCommunitySpots().then(setCommunitySpots)}
+                onRefresh={() => {
+                  setCommunitySpotsLoading(true);
+                  return fetchCommunitySpots().then(setCommunitySpots).finally(() => setCommunitySpotsLoading(false));
+                }}
+                spotsLoading={communitySpotsLoading}
               />
             }
           />

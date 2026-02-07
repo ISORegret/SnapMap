@@ -78,7 +78,20 @@ function openInMaps(spot) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh }) {
+function FeedSkeletonCard() {
+  return (
+    <li className="flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] p-3">
+      <div className="h-16 w-20 shrink-0 animate-pulse rounded-lg bg-white/10" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+        <div className="h-3 w-full max-w-[140px] animate-pulse rounded bg-white/10" />
+        <div className="h-3 w-16 animate-pulse rounded bg-white/10" />
+      </div>
+    </li>
+  );
+}
+
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh, spotsLoading }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -257,7 +270,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
 
       {/* Spot cards — image-first, title, description, tags, location */}
       <ul className="space-y-3 px-4 pt-2">
-        {displaySpots.map((spot) => (
+        {spotsLoading && displaySpots.length === 0 ? (
+          Array.from({ length: 5 }, (_, i) => <FeedSkeletonCard key={`skeleton-${i}`} />)
+        ) : (
+        displaySpots.map((spot) => (
           <li key={spot.id}>
             <Link
               to={`/spot/${spot.id}`}
@@ -387,9 +403,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               </div>
             </Link>
           </li>
-        ))}
+        ))
+        )}
       </ul>
-      {displaySpots.length === 0 && (
+      {displaySpots.length === 0 && !spotsLoading && (
         <p className="px-4 py-8 text-center text-sm text-slate-400">
           {searchQuery.trim()
             ? `No spots match "${searchQuery.trim()}". Try another search or filter.`
