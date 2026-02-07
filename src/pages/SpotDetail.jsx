@@ -167,6 +167,7 @@ export default function SpotDetail({
   addToCollection,
   removeFromCollection,
   userPosition = null,
+  units = 'mi',
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -525,7 +526,9 @@ export default function SpotDetail({
         <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
         {userPosition && spot.latitude != null && spot.longitude != null && (
           <p className="mt-1 text-sm text-emerald-400">
-            {(kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1)} mi away
+            {units === 'km'
+              ? (haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude)).toFixed(1) + ' km away'
+              : (kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1) + ' mi away'}
           </p>
         )}
         {(spot.createdBy != null && String(spot.createdBy).trim()) ? (

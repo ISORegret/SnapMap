@@ -358,8 +358,9 @@
         <p class="privacy"><strong>Spots are cloud saved.</strong> Add a spot on your phone or the web — it syncs for everyone. No account, no selling data.</p>
         <div class="btns">
           <div>
-            <a href="./SnapMap.apk" class="btn btn-primary">Download APK</a>
+            <a href="./SnapMap.apk" class="btn btn-primary" id="download-apk-btn">Download APK</a>
             <p class="version-under-btn">v1.1.2</p>
+            <p class="download-count version-under-btn" id="download-count" style="margin-top: 0.25rem;">—</p>
           </div>
           <a href="#" class="btn btn-ghost" id="ios-btn">Add to Home Screen (iOS)</a>
         </div>
@@ -383,8 +384,59 @@
     </div>
   </div>
 
+  <!-- Optional: set before main script for live count + increment on click. Example: window.SNAPMAP_SUPABASE = { url: 'https://xxx.supabase.co', anonKey: 'eyJ...' }; -->
   <script>
     (function () {
+      var supabase = typeof window.SNAPMAP_SUPABASE !== 'undefined' && window.SNAPMAP_SUPABASE && window.SNAPMAP_SUPABASE.url && window.SNAPMAP_SUPABASE.anonKey ? window.SNAPMAP_SUPABASE : null;
+      var base = supabase ? supabase.url.replace(/\/$/, '') : '';
+
+      function loadDownloadCount() {
+        var el = document.getElementById('download-count');
+        if (!el) return;
+        if (base) {
+          fetch(base + '/rest/v1/app_stats?key=eq.downloads', {
+            headers: { apikey: supabase.anonKey, Authorization: 'Bearer ' + supabase.anonKey, Accept: 'application/json' },
+            cache: 'no-store'
+          }).then(function (r) { return r.ok ? r.json() : null; }).then(function (arr) {
+            var n = arr && arr[0] && typeof arr[0].value === 'number' && arr[0].value >= 0 ? arr[0].value : null;
+            el.textContent = n != null ? (n.toLocaleString() + (n === 1 ? ' download' : ' downloads')) : '—';
+          }).catch(function () { el.textContent = '—'; });
+        } else {
+          fetch('./stats.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            var n = d && typeof d.downloads === 'number' && d.downloads >= 0 ? d.downloads : null;
+            el.textContent = n != null ? (n.toLocaleString() + (n === 1 ? ' download' : ' downloads')) : '—';
+          }).catch(function () { el.textContent = '—'; });
+        }
+      }
+
+      var downloadBtn = document.getElementById('download-apk-btn');
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', function (e) {
+          var href = downloadBtn.getAttribute('href');
+          if (!href) return;
+          e.preventDefault();
+          if (base) {
+            fetch(base + '/rest/v1/rpc/increment_download_count', {
+              method: 'POST',
+              headers: { apikey: supabase.anonKey, Authorization: 'Bearer ' + supabase.anonKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: '{}'
+            }).then(function () {
+              var el = document.getElementById('download-count');
+              if (el) {
+                var prev = parseInt(el.textContent, 10);
+                if (!isNaN(prev)) el.textContent = (prev + 1).toLocaleString() + ' downloads';
+              }
+            }).catch(function () {}).finally(function () {
+              window.location.href = href;
+            });
+          } else {
+            window.location.href = href;
+          }
+        });
+      }
+
+      loadDownloadCount();
+
       var iosBtn = document.getElementById('ios-btn');
       var modal = document.getElementById('ios-modal');
       var closeBtn = document.getElementById('modal-close');

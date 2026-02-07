@@ -36,6 +36,9 @@ export default function App() {
   const [theme, setThemeState] = useState(() =>
     typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_theme') || 'dark') : 'dark'
   );
+  const [units, setUnitsState] = useState(() =>
+    typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_units') || 'mi') : 'mi'
+  );
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [userPosition, setUserPosition] = useState(null);
   const navigate = useNavigate();
@@ -52,6 +55,12 @@ export default function App() {
     setThemeState(value);
     if (typeof localStorage !== 'undefined') localStorage.setItem('snapmap_theme', value);
     document.documentElement.setAttribute('data-theme', value);
+  }, []);
+
+  const setUnits = useCallback((next) => {
+    const value = next === 'km' ? 'km' : 'mi';
+    setUnitsState(value);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('snapmap_units', value);
   }, []);
 
   useEffect(() => {
@@ -281,10 +290,12 @@ export default function App() {
                 requestPosition={requestPosition}
                 theme={theme}
                 setTheme={setTheme}
+                units={units}
+                setUnits={setUnits}
               />
             }
           />
-          <Route path="/map" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} />} />
+          <Route path="/map" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} />} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
           <Route
             path="/saved"
@@ -300,6 +311,8 @@ export default function App() {
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
                 theme={theme}
                 setTheme={setTheme}
+                units={units}
+                setUnits={setUnits}
               />
             }
           />
@@ -317,13 +330,19 @@ export default function App() {
                 addToCollection={addToCollection}
                 removeFromCollection={removeFromCollection}
                 userPosition={userPosition}
+                units={units}
               />
             }
           />
         </Routes>
       </main>
-      <nav className="sticky bottom-0 z-20 flex flex-col border-t border-emerald-500/10 backdrop-blur-xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--bg-nav)' }}>
-        <div className="flex items-center justify-around gap-1 px-2 py-2">
+      {/* Floating / compact nav: pill with inset and shadow */}
+      <div className="sticky bottom-0 z-20 flex flex-col items-center px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <nav
+          className="flex w-full max-w-md items-center justify-around gap-1 rounded-full border border-white/10 px-2 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
+          style={{ backgroundColor: 'var(--bg-nav)' }}
+          aria-label="Main"
+        >
           <NavLink to="/" className={navLinkClass}>
             <LayoutGrid className="h-5 w-5" />
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You ({allSpots.length})</span>
@@ -340,14 +359,14 @@ export default function App() {
             <Heart className="h-5 w-5" />
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
           </NavLink>
-        </div>
-        <p className="text-center text-[10px] text-slate-500 pb-1" aria-hidden="true">
+        </nav>
+        <p className="mt-1.5 text-center text-[10px] text-slate-500" aria-hidden="true">
           v{appVersion}
           {updateAvailable && (
             <span className="block text-[9px] text-emerald-400 mt-0.5">Update available</span>
           )}
         </p>
-      </nav>
+      </div>
     </div>
   );
 }
