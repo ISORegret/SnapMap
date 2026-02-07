@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 
@@ -31,9 +31,46 @@ const FILTER_OPTIONS = [
   ...CATEGORIES.filter((c) => c.id !== 'all'),
 ];
 
-export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError }) {
+function openInMaps(spot) {
+  const lat = spot.latitude;
+  const lng = spot.longitude;
+  if (lat == null || lng == null) return;
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + ',' + lng)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const touchStartY = useRef(0);
+
+  const handleRefresh = useCallback(() => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    Promise.resolve(onRefresh()).finally(() => setIsRefreshing(false));
+  }, [onRefresh, isRefreshing]);
+
+  const onTouchStart = useCallback((e) => {
+    if (typeof window === 'undefined' || window.scrollY > 10) return;
+    touchStartY.current = e.touches[0].clientY;
+    setPullY(0);
+  }, []);
+
+  const onTouchMove = useCallback((e) => {
+    if (touchStartY.current === 0) return;
+    const y = e.touches[0].clientY;
+    const delta = y - touchStartY.current;
+    if (delta > 0) setPullY(Math.min(delta, 80));
+    else setPullY(0);
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    if (pullY >= 50) handleRefresh();
+    touchStartY.current = 0;
+    setPullY(0);
+  }, [pullY, handleRefresh]);
 
   const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
   const displaySpots = useMemo(
@@ -42,7 +79,22 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   );
 
   return (
-    <div className="min-h-[calc(100vh-56px)] pb-6">
+    <div
+      className="min-h-[calc(100vh-56px)] pb-6"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {pullY > 0 && (
+        <div className="flex justify-center py-2 text-emerald-400">
+          {pullY >= 50 ? (
+            <span className="text-xs font-medium">Release to refresh</span>
+          ) : (
+            <RefreshCw className="h-4 w-4 animate-pulse" />
+          )}
+        </div>
+      )}
       {/* App title + tagline */}
       <header className="relative border-b border-emerald-500/10 bg-gradient-to-b from-emerald-950/30 to-transparent px-4 pt-6 pb-5 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(52,211,153,0.08),transparent)] pointer-events-none" />
@@ -55,6 +107,20 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         <p className="relative mt-0.5 text-sm font-medium text-emerald-400">
           The best places for photography and cars
         </p>
+        <div className="relative mt-2 flex items-center justify-center gap-2">
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-white/10 hover:text-emerald-400 disabled:opacity-50"
+              aria-label="Refresh spots"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+          )}
+        </div>
         <p className="relative mx-auto mt-3 max-w-md text-sm text-slate-400 leading-relaxed">
           Exact geo-positions, best times, and directions. Save spots to your list, open in Maps, and plan less — travel more.
         </p>
@@ -192,7 +258,24 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       <span className="ml-1 text-emerald-400">· {spot.score}</span>
                     )}
                   </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  <div className="flex items-center gap-1">
+                    {spot.latitude != null && spot.longitude != null && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openInMaps(spot);
+                        }}
+                        className="rounded p-1 text-slate-500 transition hover:bg-white/10 hover:text-emerald-400"
+                        aria-label="Open in Maps"
+                        title="Open in Maps"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  </div>
                 </div>
               </div>
             </Link>

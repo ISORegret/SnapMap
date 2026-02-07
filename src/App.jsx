@@ -164,6 +164,7 @@ export default function App() {
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined })}
+                onRefresh={() => fetchCommunitySpots().then(setCommunitySpots)}
               />
             }
           />
@@ -206,7 +207,7 @@ export default function App() {
         <div className="flex items-center justify-around gap-1 px-2 py-2">
           <NavLink to="/" className={navLinkClass}>
             <LayoutGrid className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You ({allSpots.length})</span>
           </NavLink>
           <NavLink to="/map" className={navLinkClass}>
             <Map className="h-5 w-5" />

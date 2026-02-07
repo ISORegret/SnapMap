@@ -81,6 +81,21 @@ export default function Map({ allSpots }) {
       className="absolute inset-0 w-full"
       style={{ bottom: NAV_HEIGHT_PX }}
     >
+      {filteredSpots.length === 0 && (
+        <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0c0f0e]/90 px-6 backdrop-blur-sm">
+          <p className="text-center text-sm font-medium text-slate-300">
+            No spots yet. Add your first spot to see it on the map.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/add')}
+            className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-600"
+          >
+            <MapPin className="h-4 w-4" />
+            Add a spot
+          </button>
+        </div>
+      )}
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
