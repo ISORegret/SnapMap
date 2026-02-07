@@ -1,7 +1,7 @@
 {
   "name": "snapmap",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,9 @@
     "@capacitor/android": "^8.0.2",
     "@capacitor/cli": "^8.0.2",
     "@capacitor/core": "^8.0.2",
+    "@capacitor/filesystem": "^8.1.0",
     "@capacitor/haptics": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
     "@supabase/supabase-js": "^2.95.3",
     "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
