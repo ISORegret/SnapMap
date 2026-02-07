@@ -188,13 +188,18 @@
       padding: 0.5rem;
       text-align: center;
     }
-    .screen-placeholder {
+    .screen-placeholder,
+    .screen img {
       width: 100%;
       aspect-ratio: 9/16;
-      max-height: 160px;
-      background: linear-gradient(180deg, var(--surface) 0%, var(--card) 100%);
+      max-height: 200px;
+      object-fit: cover;
       border-radius: 8px;
       margin: 0 auto 0.5rem;
+      display: block;
+    }
+    .screen-placeholder {
+      background: linear-gradient(180deg, var(--surface) 0%, var(--card) 100%);
     }
     .screen span { font-size: 0.75rem; font-weight: 500; color: var(--muted); }
 
@@ -328,22 +333,22 @@
       </div>
 
       <section class="summary-section">
-        <h2 class="section-title">Summary</h2>
+        <h2 class="section-title">Screenshots</h2>
         <div class="screens">
           <div class="screen">
-            <div class="screen-placeholder"></div>
+            <img src="./screenshots/map.png" alt="Map screen — search, filters, tap to pin" loading="lazy" />
             <span>Map</span>
           </div>
           <div class="screen">
-            <div class="screen-placeholder"></div>
+            <img src="./screenshots/feed.png" alt="Feed — spots list with search and filters" loading="lazy" />
             <span>Feed</span>
           </div>
           <div class="screen">
-            <div class="screen-placeholder"></div>
+            <img src="./screenshots/saved.png" alt="Saved — favorites and lists" loading="lazy" />
             <span>Saved</span>
           </div>
           <div class="screen">
-            <div class="screen-placeholder"></div>
+            <img src="./screenshots/spot.png" alt="Spot detail — photos, best light, directions" loading="lazy" />
             <span>Spot</span>
           </div>
         </div>
@@ -354,12 +359,12 @@
         <div class="btns">
           <div>
             <a href="./SnapMap.apk" class="btn btn-primary">Download APK</a>
-            <p class="version-under-btn">v1.0.21</p>
+            <p class="version-under-btn">v1.1.2</p>
           </div>
           <a href="#" class="btn btn-ghost" id="ios-btn">Add to Home Screen (iOS)</a>
         </div>
         <p class="footer-note">Free · Android: APK above · iOS: open the link in Safari on your iPhone, then Share → Add to Home Screen</p>
-        <p class="footer-note" style="margin-top: 0.5rem;">App v1.0.21</p>
+        <p class="footer-note" style="margin-top: 0.5rem;">App v1.1.2</p>
       </section>
     </div>
   </main>
