@@ -214,11 +214,41 @@ export default function App() {
   }, []);
 
   // Prefer userSpots over communitySpots when same id (so local edits persist after reopen)
-  const allSpots = [
+  const allSpotsRaw = [
     ...CURATED_SPOTS,
     ...communitySpots.filter((c) => !userSpots.some((u) => u.id === c.id)),
     ...userSpots,
   ];
+
+  // Dedupe by name+address so same place doesn't show twice with different coordinates (and different distances)
+  const spotKey = (s) => `${(s.name || '').trim().toLowerCase()}|${(s.address || '').trim().toLowerCase()}`;
+  const keepByKey = new Map();
+  for (const spot of allSpotsRaw) {
+    const key = spotKey(spot);
+    if (!key || key === '|') continue;
+    const prev = keepByKey.get(key);
+    const inUser = userSpots.some((u) => u.id === spot.id);
+    const prevInUser = prev && userSpots.some((u) => u.id === prev.id);
+    const keep =
+      !prev
+        ? spot
+        : inUser && !prevInUser
+          ? spot
+          : prevInUser && !inUser
+            ? prev
+            : (new Date(spot.createdAt || 0) > new Date(prev.createdAt || 0) ? spot : prev);
+    keepByKey.set(key, keep);
+  }
+  const seenKeys = new Set();
+  const allSpots = allSpotsRaw.filter((spot) => {
+    const key = spotKey(spot);
+    if (!key || key === '|') return true;
+    const kept = keepByKey.get(key);
+    if (kept?.id !== spot.id) return false;
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
 
   const addSpot = useCallback(
     async (spot) => {
