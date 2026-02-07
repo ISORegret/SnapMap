@@ -129,6 +129,8 @@ export default function App() {
 
   const updateSpot = useCallback((spotId, updates) => {
     const inUser = userSpots.find((s) => s.id === spotId);
+    const isCloudId = spotId && !String(spotId).startsWith('user-');
+
     if (inUser) {
       const updated = { ...inUser, ...updates };
       setUserSpots((prev) => {
@@ -136,9 +138,12 @@ export default function App() {
         saveUserSpots(next);
         return next;
       });
-    }
-    const isCloudId = spotId && !String(spotId).startsWith('user-');
-    if (isCloudId) {
+      if (isCloudId) {
+        updateCommunitySpot(spotId, updates).then((ok) => {
+          if (ok) setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+        });
+      }
+    } else if (isCloudId) {
       updateCommunitySpot(spotId, updates).then((ok) => {
         if (ok) setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
       });
@@ -337,7 +342,7 @@ export default function App() {
         </Routes>
       </main>
       {/* Floating / compact nav: fixed at viewport bottom so it stays put when scrolling */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ backgroundColor: 'var(--bg-page)' }}>
+      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 12, backgroundColor: 'var(--bg-page)' }}>
         <nav
           className="flex w-full max-w-md items-center justify-around gap-1 rounded-full border border-white/10 px-2 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
           style={{ backgroundColor: 'var(--bg-nav)' }}
