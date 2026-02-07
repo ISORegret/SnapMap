@@ -91,6 +91,20 @@ export default function App() {
 
   useEffect(() => {
     if (!isOnline) return;
+    const onVisible = () => {
+      setCommunitySpotsLoading(true);
+      fetchCommunitySpots()
+        .then(setCommunitySpots)
+        .finally(() => setCommunitySpotsLoading(false));
+    };
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', onVisible);
+      return () => document.removeEventListener('visibilitychange', onVisible);
+    }
+  }, [isOnline]);
+
+  useEffect(() => {
+    if (!isOnline) return;
     checkUpdateAvailable(appVersion).then(setUpdateAvailable);
   }, [isOnline, appVersion]);
 

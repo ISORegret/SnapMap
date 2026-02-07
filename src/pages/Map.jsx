@@ -16,7 +16,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
 
-const LIST_PANEL_HEIGHT_PX = 260;
+const LIST_PANEL_HEIGHT_PX = 300;
 
 // Fix default marker icon in react-leaflet (webpack/vite)
 const icon = L.icon({
@@ -391,7 +391,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {filteredSpots.length === 0 ? (
             <p className="px-4 py-2 text-sm text-slate-500">No spots match. Adjust filters or add a spot.</p>
           ) : (
-            <ul className="space-y-1 px-2 pb-24">
+            <ul className="space-y-1 px-2 pb-32">
               {filteredSpots.map((spot) => (
                 <li key={spot.id}>
                   <button
