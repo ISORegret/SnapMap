@@ -167,8 +167,18 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400">
-        Loading…
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#080c0a] px-6 animate-fade-in" role="status" aria-label="Loading">
+        <div className="animate-splash-pulse flex flex-col items-center gap-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500/20 shadow-glow">
+            <Map className="h-10 w-10 text-emerald-400" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-gradient">SnapMap</h1>
+          <p className="text-sm text-slate-500">The best places for photography and cars</p>
+        </div>
+        <div className="mt-10 flex items-center gap-2 text-slate-500">
+          <div className="h-4 w-4 animate-spin-slow rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
+          <span className="text-sm">Loading…</span>
+        </div>
       </div>
     );
   }
@@ -183,7 +193,7 @@ export default function App() {
     }`;
 
   return (
-    <div className="flex min-h-screen flex-col app-shell" style={{ backgroundColor: 'var(--bg-page)' }}>
+    <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <InstallPrompt />
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">

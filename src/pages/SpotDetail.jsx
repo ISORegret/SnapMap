@@ -434,7 +434,7 @@ export default function SpotDetail({
       : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
 
     return (
-    <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6">
+    <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6 animate-fade-in">
       {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}
       <div
         ref={shareCardRef}

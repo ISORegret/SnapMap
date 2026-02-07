@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
@@ -487,12 +487,28 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       <ul className="space-y-3 px-4 pt-2">
         {spotsLoading && displaySpots.length === 0 ? (
           Array.from({ length: 5 }, (_, i) => <FeedSkeletonCard key={`skeleton-${i}`} />)
+        ) : displaySpots.length === 0 ? (
+          <li className="animate-fade-in rounded-xl border border-white/[0.06] bg-[#151a18] px-6 py-10 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+              <LayoutGrid className="h-6 w-6 text-slate-500" />
+            </div>
+            <h3 className="text-sm font-medium text-slate-300">
+              {allSpots.length === 0
+                ? 'No spots yet'
+                : 'No spots match'}
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              {allSpots.length === 0
+                ? 'Add your first spot to get started.'
+                : 'Try different filters or search.'}
+            </p>
+          </li>
         ) : (
-        displaySpots.map((spot) => (
-          <li key={spot.id}>
+        displaySpots.map((spot, index) => (
+          <li key={spot.id} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}>
             <Link
               to={`/spot/${spot.id}`}
-              className="group flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] transition-all duration-200 hover:border-emerald-500/30 hover:bg-[#1a211e] hover:shadow-glow-sm"
+              className="group flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] transition-all duration-200 hover:border-emerald-500/30 hover:bg-[#1a211e] hover:shadow-glow-sm active:scale-[0.99]"
             >
               <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-800">
                 <img

@@ -1,8 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, MapPin } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
+import { getCurrentPosition } from '../utils/geo';
 
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
@@ -34,6 +35,8 @@ export default function Add({ onAdd, onUpdate }) {
   const [createdBy, setCreatedBy] = useState('');
   const [photoError, setPhotoError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
   useEffect(() => {
     if (!editSpot) return;
@@ -81,6 +84,19 @@ export default function Add({ onAdd, onUpdate }) {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const useMyLocation = useCallback(async () => {
+    setLocationError(null);
+    setLocationLoading(true);
+    const pos = await getCurrentPosition();
+    setLocationLoading(false);
+    if (pos) {
+      setLat(pos.lat.toFixed(6));
+      setLng(pos.lng.toFixed(6));
+    } else {
+      setLocationError('Location unavailable. Allow access or enter coordinates.');
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || submitting) return;
@@ -127,7 +143,7 @@ export default function Add({ onAdd, onUpdate }) {
   };
 
   return (
-    <div className="mx-auto max-w-md bg-[#0c0c0f] px-4 pb-20 pt-5">
+    <div className="mx-auto max-w-md bg-[#0c0c0f] px-4 pb-20 pt-5 animate-fade-in">
       <header className="border-b border-white/[0.06] pb-5">
         <h1 className="text-xl font-semibold tracking-tight text-white">
           {editSpot ? 'Edit spot' : 'Add a spot'}
@@ -220,6 +236,18 @@ export default function Add({ onAdd, onUpdate }) {
             />
           </div>
         </div>
+        <button
+          type="button"
+          onClick={useMyLocation}
+          disabled={locationLoading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
+        >
+          <MapPin className="h-4 w-4 shrink-0" />
+          {locationLoading ? 'Getting location…' : 'Use my location'}
+        </button>
+        {locationError && (
+          <p className="text-xs text-amber-400">{locationError}</p>
+        )}
         <div>
           <label className="block text-xs font-medium text-slate-500">Added by (optional)</label>
           <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
