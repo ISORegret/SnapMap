@@ -27,6 +27,12 @@ This folder is **separate from PepTalk** so the two projects stay independent.
 
 ---
 
+## App icon
+
+The photography spotting logo (map pin + camera aperture, emerald on dark) is in **`public/snapmap-icon.png`**. It’s used for the web PWA and Apple touch icon. To use it for **Android**: in Android Studio, right‑click **`android/app/src/main/res`** → **New** → **Image Asset** → choose **Launcher Icons**, set **Foreground** to `public/snapmap-icon.png` (or the path to that file), then generate. That updates the mipmap icons.
+
+---
+
 ## Scripts
 
 | Script | Description |

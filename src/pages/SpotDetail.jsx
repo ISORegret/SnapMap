@@ -349,10 +349,13 @@ export default function SpotDetail({
           directory: Directory.Cache,
         });
         const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+        const shareText = [spot.name, spot.address || locationText, mapsUrl ? `Open in Maps: ${mapsUrl}` : null]
+          .filter(Boolean)
+          .join('\n');
         await Share.share({
           url: uri,
           title: spot.name,
-          text: spot.address || spot.name,
+          text: shareText,
           dialogTitle: 'Share spot',
         });
       } else {
@@ -360,7 +363,10 @@ export default function SpotDetail({
         const blob = await res.blob();
         const file = new File([blob], `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').slice(0, 30)}.png`, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: spot.name, text: spot.address || spot.name });
+          const shareText = [spot.name, spot.address || locationText, mapsUrl ? `Open in Maps: ${mapsUrl}` : null]
+            .filter(Boolean)
+            .join('\n');
+          await navigator.share({ files: [file], title: spot.name, text: shareText });
         } else {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
@@ -432,6 +438,10 @@ export default function SpotDetail({
     const locationText = (spot.address && spot.address !== 'Not specified')
       ? spot.address
       : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
+    const mapsUrl =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(latitude + ',' + longitude)}`
+        : null;
 
     return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6 animate-fade-in">
@@ -455,6 +465,11 @@ export default function SpotDetail({
           )}
           {spot.bestTime && spot.bestTime !== 'Not specified' && (
             <p className="mt-1 text-xs text-slate-500">Best time: {spot.bestTime}</p>
+          )}
+          {mapsUrl && (
+            <p className="mt-2 break-all text-[10px] text-emerald-500/90">
+              Open in Maps: {mapsUrl}
+            </p>
           )}
           <p className="mt-2 text-[10px] text-slate-600">SnapMap</p>
         </div>

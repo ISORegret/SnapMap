@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'snapmap-icon.png'],
       manifest: {
         name: 'SnapMap',
         short_name: 'SnapMap',
@@ -31,7 +31,8 @@ export default defineConfig(({ mode }) => ({
         scope: mode === 'android' ? './' : (process.env.BASE_PATH || '/'),
         icons: [
           { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
-          { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'maskable' },
+          { src: '/snapmap-icon.png', type: 'image/png', sizes: '1024x1024', purpose: 'any' },
+          { src: '/snapmap-icon.png', type: 'image/png', sizes: '1024x1024', purpose: 'maskable' },
         ],
       },
       workbox: {
