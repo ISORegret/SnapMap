@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Map, Plus, Heart, WifiOff, Sun, Moon } from 'lucide-react';
+import { LayoutGrid, Map as MapIcon, Plus, Heart, WifiOff, Sun, Moon } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
@@ -22,7 +22,7 @@ import { getProfileById, createProfile } from './api/profiles';
 import { supabase, hasSupabase } from './api/supabase';
 import { getCurrentPosition } from './utils/geo';
 import Feed from './pages/Feed';
-import MapPage from './pages/Map';
+const MapPage = lazy(() => import('./pages/Map'));
 import Add from './pages/Add';
 import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
@@ -517,7 +517,7 @@ export default function App() {
               />
             }
           />
-          <Route path="/map" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} />} />
+          <Route path="/map" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-slate-400">Loading map…</div>}><MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} /></Suspense>} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
@@ -578,7 +578,7 @@ export default function App() {
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You ({allSpots.length})</span>
           </NavLink>
           <NavLink to="/map" className={navLinkClass}>
-            <Map className="h-5 w-5" />
+            <MapIcon className="h-5 w-5" />
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Map</span>
           </NavLink>
           <NavLink to="/add" className={addLinkClass}>
