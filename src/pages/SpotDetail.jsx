@@ -10,14 +10,31 @@ function formatTime(d) {
 
 function SpotImageGallery({ images, spotName }) {
   const [index, setIndex] = React.useState(0);
+  const touchStartX = React.useRef(0);
+  const SWIPE_THRESHOLD = 50;
   if (!images?.length) return null;
   const current = images[index] || images[0];
+  const goPrev = () => setIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+  const goNext = () => setIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
+  const onTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (dx > SWIPE_THRESHOLD) goPrev();
+    else if (dx < -SWIPE_THRESHOLD) goNext();
+  };
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800">
+    <div
+      className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 touch-pan-y"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <img
         src={current.uri}
         alt={spotName}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-cover select-none"
+        draggable={false}
       />
       {images.length > 1 && (
         <>
@@ -35,7 +52,7 @@ function SpotImageGallery({ images, spotName }) {
             ))}
           </div>
           <p className="absolute bottom-8 left-2 right-2 text-center text-[10px] text-white/80 drop-shadow">
-            Photo by {current.photoBy}
+            Photo by {current.photoBy} · {index + 1}/{images.length}
           </p>
         </>
       )}

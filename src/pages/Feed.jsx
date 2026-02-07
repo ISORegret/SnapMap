@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MapPin, ChevronRight, Search } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -123,6 +123,15 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   alt=""
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 />
+                {(() => {
+                  const count = getSpotImages(spot).length;
+                  if (count <= 0) return null;
+                  return (
+                    <span className="absolute bottom-0.5 left-0.5 rounded px-1 text-[10px] font-medium text-white/90 bg-black/50 backdrop-blur-sm">
+                      {count} photo{count !== 1 ? 's' : ''}
+                    </span>
+                  );
+                })()}
                 {spot.uploadError && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
                     <p className="text-[10px] font-medium leading-tight text-amber-200 line-clamp-3">
