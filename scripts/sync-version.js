@@ -6,8 +6,8 @@
  * - website/index.html (replaces {{VERSION}})
  * Run before build:android / build:apk so web and APK match.
  *
- * Version rule: after 1.0.20 the next is 1.2.0, then 1.2.1, 1.2.2, …
- * (Move decimal: 1.0.20 → 1.2.0, then count.)
+ * Version cap: patch (third number) is capped at 9. If patch >= 10,
+ * it rolls to the next minor: e.g. 1.1.10 → 1.2.0, then 1.2.1, 1.2.2, …
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -15,8 +15,21 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
-const version = pkg.version || '1.0.0';
+const pkgPath = path.join(root, 'package.json');
+let pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+let version = pkg.version || '1.0.0';
+
+// Cap patch at 9: if patch >= 10, roll to (major, minor+1, 0) and write back
+const parts = version.split('.').map((s) => parseInt(s, 10) || 0);
+const major = parts[0] ?? 1;
+const minor = parts[1] ?? 0;
+const patch = parts[2] ?? 0;
+if (patch >= 10) {
+  version = `${major}.${minor + 1}.0`;
+  pkg.version = version;
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  console.log(`Version rolled to ${version} (patch was >= 10).`);
+}
 
 const propsPath = path.join(root, 'android', 'app', 'version.properties');
 writeFileSync(propsPath, `VERSION_NAME=${version}\n`, 'utf8');
