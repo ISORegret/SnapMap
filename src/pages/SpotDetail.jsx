@@ -255,12 +255,34 @@ export default function SpotDetail({
     setShareImageError(null);
     setShareImageLoading(true);
     try {
+      const primaryImage = getSpotPrimaryImage(spot);
+      const imgEl = shareCardRef.current.querySelector('img');
+      if (imgEl && primaryImage && (primaryImage.startsWith('http:') || primaryImage.startsWith('https:'))) {
+        const imageDataUrl = await fetch(primaryImage, { mode: 'cors' })
+          .then((r) => r.blob())
+          .then(
+            (blob) =>
+              new Promise((res, rej) => {
+                const reader = new FileReader();
+                reader.onload = () => res(reader.result);
+                reader.onerror = rej;
+                reader.readAsDataURL(blob);
+              })
+          )
+          .catch(() => null);
+        if (imageDataUrl) {
+          imgEl.src = imageDataUrl;
+          await new Promise((resolve, reject) => {
+            imgEl.onload = () => resolve();
+            imgEl.onerror = reject;
+            if (imgEl.complete && imgEl.naturalWidth) resolve();
+          });
+        }
+      }
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#0c0c0f',
-        useCORS: true,
-        includeQueryParams: true,
       });
       const base64 = dataUrl.split(',')[1];
       if (!base64) throw new Error('Failed to create image');
