@@ -90,6 +90,10 @@ export default function App() {
   }, [ready]);
 
   useEffect(() => {
+    if (ready) requestPosition();
+  }, [ready, requestPosition]);
+
+  useEffect(() => {
     if (!isOnline) return;
     const onVisible = () => {
       setCommunitySpotsLoading(true);
