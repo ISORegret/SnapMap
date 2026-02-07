@@ -226,6 +226,7 @@
     }
     .btn-ghost:hover { background: var(--surface); border-color: var(--muted-strong); }
     .footer-note { font-size: 0.8rem; color: var(--muted-strong); line-height: 1.5; }
+    .version-under-btn { font-size: 0.65rem; color: var(--muted-strong); margin: 0.35rem 0 0; text-align: center; }
 
     .modal {
       display: none;
@@ -351,7 +352,10 @@
       <section class="cta-section">
         <p class="privacy"><strong>Private.</strong> Your data stays on your device. No accounts, no selling data.</p>
         <div class="btns">
-          <a href="./SnapMap.apk" class="btn btn-primary">Download APK</a>
+          <div>
+            <a href="./SnapMap.apk" class="btn btn-primary">Download APK</a>
+            <p class="version-under-btn">v1.0.0</p>
+          </div>
           <a href="#" class="btn btn-ghost" id="ios-btn">Add to Home Screen (iOS)</a>
         </div>
         <p class="footer-note">Free · Android: APK above · iOS: open the link in Safari on your iPhone, then Share → Add to Home Screen</p>

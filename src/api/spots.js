@@ -58,11 +58,11 @@ export async function insertCommunitySpot(spot) {
     score: spot.score ?? 0,
     tags: spot.tags ?? [],
     images: imageList,
-    image_uri: String(imageUriValue || DEFAULT_IMAGE_URI),
     photo_by: photoBy || 'You',
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
   };
+  row.image_uri = String(imageUriValue || DEFAULT_IMAGE_URI);
   const { data, error } = await supabase.from('spots').insert(row).select().single();
   if (error) {
     console.warn('SnapMap: insert spot failed', error);
