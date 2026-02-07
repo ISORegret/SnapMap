@@ -88,7 +88,8 @@ export async function updateCommunitySpot(id, updates) {
     return false;
   }
   const payload = {};
-  // Immutable (enforced by DB trigger): name, latitude, longitude, created_by, created_at — do not send.
+  // Immutable (enforced by DB trigger): latitude, longitude, created_by, created_at — do not send.
+  if (updates.name != null) payload.name = updates.name;
   if (updates.description != null) payload.description = updates.description;
   if (updates.address != null) payload.address = updates.address;
   if (updates.parking != null) payload.parking = updates.parking;

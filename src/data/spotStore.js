@@ -1,6 +1,7 @@
 const USER_SPOTS_KEY = 'snapmap-user-spots';
 const FAVORITES_KEY = 'snapmap-favorites';
 const COLLECTIONS_KEY = 'snapmap-collections';
+const SYNC_CODE_KEY = 'snapmap-favorites-sync-code';
 
 export function loadUserSpots() {
   try {
@@ -34,6 +35,22 @@ export function saveFavorites(ids) {
   } catch {
     // e.g. private browsing, quota exceeded — fail silently like load functions
   }
+}
+
+export function loadSyncCode() {
+  try {
+    const raw = localStorage.getItem(SYNC_CODE_KEY);
+    return raw ? String(raw).trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveSyncCode(code) {
+  try {
+    if (code) localStorage.setItem(SYNC_CODE_KEY, String(code).trim());
+    else localStorage.removeItem(SYNC_CODE_KEY);
+  } catch {}
 }
 
 // Collections: named lists of spot ids

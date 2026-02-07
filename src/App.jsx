@@ -9,12 +9,16 @@ import {
   saveFavorites,
   loadCollections,
   saveCollections,
+  loadSyncCode,
+  saveSyncCode,
   addSpotToCollection,
   removeSpotFromCollection,
   createCollection as createCollectionInStore,
   deleteCollection as deleteCollectionInStore,
 } from './data/spotStore';
 import { fetchCommunitySpots, insertCommunitySpot, updateCommunitySpot, deleteCommunitySpot } from './api/spots';
+import { fetchFavorites as fetchFavoritesApi, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from './api/favorites';
+import { supabase, hasSupabase } from './api/supabase';
 import { getCurrentPosition } from './utils/geo';
 import Feed from './pages/Feed';
 import MapPage from './pages/Map';
@@ -31,6 +35,7 @@ export default function App() {
   const [communitySpotsLoading, setCommunitySpotsLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [syncCode, setSyncCodeState] = useState('');
   const [ready, setReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [theme, setThemeState] = useState(() =>
@@ -78,6 +83,7 @@ export default function App() {
     setUserSpots(loadUserSpots());
     setFavoriteIds(loadFavorites());
     setCollections(loadCollections());
+    setSyncCodeState(loadSyncCode());
     setReady(true);
   }, []);
 
@@ -111,7 +117,25 @@ export default function App() {
     }
   }, [isOnline]);
 
-  // Periodic refetch while app is visible so edits from another device appear without switching tabs
+  // Supabase Realtime: refetch community spots as soon as any spot is inserted/updated/deleted (sync across devices)
+  useEffect(() => {
+    if (!isOnline || !ready || !hasSupabase || !supabase) return;
+    const channel = supabase
+      .channel('spots-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'spots' },
+        () => {
+          fetchCommunitySpots().then(setCommunitySpots);
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOnline, ready]);
+
+  // Periodic refetch while app is visible (backup if Realtime is not enabled for spots)
   const REFETCH_INTERVAL_MS = 45 * 1000;
   useEffect(() => {
     if (!isOnline) return;
@@ -142,6 +166,52 @@ export default function App() {
     if (!isOnline) return;
     checkUpdateAvailable(appVersion).then(setUpdateAvailable);
   }, [isOnline, appVersion]);
+
+  // When sync code is set and online, load favorites from Supabase and refetch on visibility
+  const syncCodeRef = React.useRef(syncCode);
+  syncCodeRef.current = syncCode;
+  useEffect(() => {
+    if (!ready || !isOnline || !hasSupabase || !syncCode) return;
+    let cancelled = false;
+    fetchFavoritesApi(syncCode).then((ids) => {
+      if (!cancelled) {
+        setFavoriteIds(ids);
+        saveFavorites(ids);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [ready, isOnline, syncCode]);
+
+  const refetchFavorites = useCallback((overrideCode) => {
+    const code = overrideCode ?? syncCodeRef.current;
+    if (!hasSupabase || !code) return Promise.resolve();
+    return fetchFavoritesApi(code).then((ids) => {
+      setFavoriteIds(ids);
+      saveFavorites(ids);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline || !syncCode || !hasSupabase) return;
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetchFavorites();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isOnline, syncCode, refetchFavorites]);
+
+  const setSyncCode = useCallback((code) => {
+    const trimmed = code ? String(code).trim() : '';
+    setSyncCodeState(trimmed);
+    saveSyncCode(trimmed);
+  }, []);
+
+  const pushFavoritesToSync = useCallback(async (code, ids) => {
+    if (!hasSupabase || !code || !ids?.length) return;
+    for (const spotId of ids) {
+      if (spotId && !String(spotId).startsWith('user-')) await addFavoriteApi(code, spotId);
+    }
+  }, []);
 
   // Prefer userSpots over communitySpots when same id (so local edits persist after reopen)
   const allSpots = [
@@ -237,15 +307,29 @@ export default function App() {
     navigate('/');
   }, [userSpots, favoriteIds, collections, navigate]);
 
-  const toggleFavorite = useCallback((spotId) => {
-    const isAdding = !favoriteIds.includes(spotId);
-    const next = isAdding
-      ? [...favoriteIds, spotId]
-      : favoriteIds.filter((id) => id !== spotId);
-    setFavoriteIds(next);
-    saveFavorites(next);
-    if (isAdding) hapticLight();
-  }, [favoriteIds]);
+  const toggleFavorite = useCallback(
+    async (spotId) => {
+      const isAdding = !favoriteIds.includes(spotId);
+      const next = isAdding
+        ? [...favoriteIds, spotId]
+        : favoriteIds.filter((id) => id !== spotId);
+      setFavoriteIds(next);
+      saveFavorites(next);
+      if (isAdding) hapticLight();
+      if (syncCode && hasSupabase) {
+        if (isAdding) {
+          const ok = await addFavoriteApi(syncCode, spotId);
+          if (!ok) {
+            setFavoriteIds(favoriteIds);
+            saveFavorites(favoriteIds);
+          }
+        } else {
+          removeFavoriteApi(syncCode, spotId);
+        }
+      }
+    },
+    [favoriteIds, syncCode]
+  );
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
   const isUserSpot = (spotId) => userSpots.some((s) => s.id === spotId);
@@ -383,6 +467,11 @@ export default function App() {
                 deleteCollection={deleteCollection}
                 removeFromCollection={removeFromCollection}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
+                syncCode={syncCode}
+                setSyncCode={setSyncCode}
+                refetchFavorites={refetchFavorites}
+                pushFavoritesToSync={pushFavoritesToSync}
+                hasSupabase={hasSupabase}
                 theme={theme}
                 setTheme={setTheme}
                 units={units}

@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2 } from 'lucide-react';
 import { getSpotPrimaryImage } from '../utils/spotImages';
+
+function generateSyncCode() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let s = '';
+  for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -116,11 +123,18 @@ export default function Saved({
   deleteCollection,
   removeFromCollection,
   onDismissSpotError,
+  syncCode = '',
+  setSyncCode,
+  refetchFavorites,
+  pushFavoritesToSync,
+  hasSupabase = false,
   theme = 'dark',
   setTheme,
 }) {
   const [searchParams] = useSearchParams();
   const idsParam = searchParams.get('ids');
+  const [enterCodeValue, setEnterCodeValue] = useState('');
+  const [codeCopied, setCodeCopied] = useState(false);
   const sharedIds = useMemo(
     () => (idsParam ? idsParam.split(',').map((id) => id.trim()).filter(Boolean) : null),
     [idsParam]
@@ -214,6 +228,83 @@ export default function Saved({
               </button>
             </form>
           </div>
+
+          {/* Sync favorites across devices */}
+          {hasSupabase && (
+            <div className="border-b border-white/[0.06] px-4 py-3">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <Link2 className="h-3.5 w-3.5" />
+                Sync favorites
+              </p>
+              {!syncCode ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-slate-400">
+                    Use the same code on each device to see the same favorites everywhere.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const code = generateSyncCode();
+                      setSyncCode(code);
+                      await pushFavoritesToSync?.(code, favoriteIds);
+                    }}
+                    className="flex items-center gap-2 rounded-xl bg-emerald-500/20 px-3 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/30"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Turn on sync
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-lg border border-white/10 bg-[#18181b] px-3 py-2 font-mono text-sm tracking-wider text-emerald-400">
+                      {syncCode}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(syncCode).then(() => {
+                          setCodeCopied(true);
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        });
+                      }}
+                      className="shrink-0 rounded-lg border border-white/10 bg-[#18181b] p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                      aria-label="Copy code"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {codeCopied && <p className="text-xs text-emerald-400">Copied.</p>}
+                  <p className="text-xs text-slate-500">
+                    Enter this code on your other devices (Saved → Sync favorites → Enter code).
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={enterCodeValue}
+                      onChange={(e) => setEnterCodeValue(e.target.value)}
+                      placeholder="Code from another device"
+                      className="flex-1 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const code = enterCodeValue.trim();
+                        if (code) {
+                          setSyncCode(code);
+                          setEnterCodeValue('');
+                          refetchFavorites?.(code);
+                        }
+                      }}
+                      className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
+                    >
+                      Use code
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Export My spots */}
           {savedSpots.length > 0 && (

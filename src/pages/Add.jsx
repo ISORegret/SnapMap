@@ -168,7 +168,7 @@ export default function Add({ onAdd, onUpdate }) {
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
           {editSpot
-            ? "Update description, photos, and more. Name and location can't be changed after creation."
+            ? "Update name, description, photos, and more. Location can't be changed after creation."
             : hasSupabase
               ? 'Spots will be shared with everyone (saved to cloud).'
               : 'Data stays on your device. Add Supabase in .env to share spots.'}
