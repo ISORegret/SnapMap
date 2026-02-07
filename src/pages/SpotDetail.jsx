@@ -176,6 +176,7 @@ export default function SpotDetail({
   const [copyFeedback, setCopyFeedback] = useState(null);
   const [addPhotoLoading, setAddPhotoLoading] = useState(false);
   const [shareImageLoading, setShareImageLoading] = useState(false);
+  const [shareImageError, setShareImageError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportType, setReportType] = useState('wrong_location');
   const [reportNote, setReportNote] = useState('');
@@ -251,27 +252,53 @@ export default function SpotDetail({
 
   const shareAsImage = async () => {
     if (!shareCardRef.current || shareImageLoading) return;
+    setShareImageError(null);
     setShareImageLoading(true);
     try {
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#0c0c0f',
+        useCORS: true,
+        includeQueryParams: true,
       });
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').slice(0, 30)}.png`, { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: spot.name, text: spot.address || spot.name });
+      const base64 = dataUrl.split(',')[1];
+      if (!base64) throw new Error('Failed to create image');
+
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const fileName = `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 30)}.png`;
+        await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+        await Share.share({
+          url: uri,
+          title: spot.name,
+          text: spot.address || spot.name,
+          dialogTitle: 'Share spot',
+        });
       } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(a.href);
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').slice(0, 30)}.png`, { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: spot.name, text: spot.address || spot.name });
+        } else {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = file.name;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }
       }
     } catch (e) {
       console.warn('Share as image failed', e);
+      setShareImageError(e?.message || 'Could not share image');
     } finally {
       setShareImageLoading(false);
     }
@@ -335,14 +362,15 @@ export default function SpotDetail({
 
     return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6">
-      {/* Hidden card for share-as-image (rendered off-screen) */}
+      {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}
       <div
         ref={shareCardRef}
-        className="fixed left-[-9999px] top-0 w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[#151a18] text-left"
+        className="fixed left-0 top-0 z-[-1] w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[#151a18] text-left opacity-0 pointer-events-none"
         style={{ fontFamily: 'system-ui, sans-serif' }}
+        aria-hidden
       >
         <div className="aspect-[4/3] w-full bg-slate-800">
-          <img src={primaryImage} alt="" className="h-full w-full object-cover" />
+          <img src={primaryImage} alt="" className="h-full w-full object-cover" crossOrigin="anonymous" />
         </div>
         <div className="px-4 py-3">
           <h2 className="text-lg font-semibold text-white">{spot.name}</h2>
@@ -614,6 +642,9 @@ export default function SpotDetail({
               <Image className="h-4 w-4" />
               {shareImageLoading ? 'Creating…' : 'Share as image'}
             </button>
+            {shareImageError && (
+              <p className="w-full text-center text-xs text-amber-400 mt-1">{shareImageError}</p>
+            )}
           </div>
         </div>
 
