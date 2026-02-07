@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Map, Plus, Heart } from 'lucide-react';
+import { LayoutGrid, Map, Plus, Heart, WifiOff } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
@@ -28,7 +28,19 @@ export default function App() {
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [collections, setCollections] = useState([]);
   const [ready, setReady] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   useEffect(() => {
     setUserSpots(loadUserSpots());
@@ -154,6 +166,12 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col bg-[#080c0a]">
       <InstallPrompt />
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          You&apos;re offline. Sync may fail until you&apos;re back online.
+        </div>
+      )}
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <Routes>
           <Route

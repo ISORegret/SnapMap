@@ -149,7 +149,11 @@ Features that take roughly half a day to a day each — good next steps after qu
 | **Offline basics** | Service worker caches map tiles and saved spots so list/map work with no connection. |
 | **Edit spot** | Allow editing name, description, best time, etc. for user-added spots (and sync updates to Supabase where applicable). |
 | **Delete spot** | Allow removing a user-added or community spot with confirmation; sync delete to Supabase for owned data. |
-| **Sort Feed** | Sort by "newest", "name", "distance" (if location available), or "saved first". |
+| **Search by tag** | Tapping a tag (e.g. "automotive") filters the Feed by that tag. |
+| **Sort Feed** | By "Newest", "Score", "Name", or "Best time" (e.g. "Morning" first). |
+| **Share spot as image** | Generate a simple card (name, photo, address, best time) for sharing to Instagram/Stories. |
+| **Offline indicator** | Small banner when the app is offline so users know why sync might fail. |
+| **Report / Wrong location** | Let users flag a spot (store in Supabase or send to you) for moderation. |
 | **Map cluster markers** | When zoomed out, cluster nearby markers (e.g. Leaflet.markercluster) to reduce clutter. |
 | **Spot form validation** | Clear validation and inline errors on Add form (required name, valid coords, image feedback). |
 

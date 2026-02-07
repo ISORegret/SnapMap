@@ -31,6 +31,45 @@ const FILTER_OPTIONS = [
   ...CATEGORIES.filter((c) => c.id !== 'all'),
 ];
 
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest' },
+  { id: 'score', label: 'Score' },
+  { id: 'name', label: 'Name' },
+  { id: 'bestTime', label: 'Best time' },
+];
+
+const BEST_TIME_ORDER = ['Morning', 'Golden hour', 'Blue hour', 'Sunset', 'Night', 'Anytime'];
+
+function applySort(spots, sortId) {
+  const list = [...spots];
+  if (sortId === 'newest') {
+    list.sort((a, b) => {
+      const aAt = a.createdAt ? new Date(a.createdAt).getTime() : (a.id && typeof a.id === 'string' && a.id.startsWith('user-') ? parseInt(a.id.replace('user-', ''), 10) : 0);
+      const bAt = b.createdAt ? new Date(b.createdAt).getTime() : (b.id && typeof b.id === 'string' && b.id.startsWith('user-') ? parseInt(b.id.replace('user-', ''), 10) : 0);
+      return bAt - aAt;
+    });
+  } else if (sortId === 'score') {
+    list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  } else if (sortId === 'name') {
+    list.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  } else if (sortId === 'bestTime') {
+    list.sort((a, b) => {
+      const ai = BEST_TIME_ORDER.indexOf(a.bestTime || '');
+      const bi = BEST_TIME_ORDER.indexOf(b.bestTime || '');
+      const aIdx = ai === -1 ? BEST_TIME_ORDER.length : ai;
+      const bIdx = bi === -1 ? BEST_TIME_ORDER.length : bi;
+      return aIdx - bIdx;
+    });
+  }
+  return list;
+}
+
+function matchesTag(spot, tag) {
+  if (!tag) return true;
+  const t = String(tag).toLowerCase().trim();
+  return (spot.tags || []).some((x) => String(x).toLowerCase() === t);
+}
+
 function openInMaps(spot) {
   const lat = spot.latitude;
   const lng = spot.longitude;
@@ -42,6 +81,8 @@ function openInMaps(spot) {
 export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissSpotError, onRefresh }) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [sort, setSort] = useState('newest');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const touchStartY = useRef(0);
@@ -73,10 +114,12 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   }, [pullY, handleRefresh]);
 
   const filteredSpots = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
-  const displaySpots = useMemo(
-    () => filteredSpots.filter((s) => matchesSearch(s, searchQuery)),
-    [filteredSpots, searchQuery]
+  const byTag = useMemo(
+    () => (tagFilter ? filteredSpots.filter((s) => matchesTag(s, tagFilter)) : filteredSpots),
+    [filteredSpots, tagFilter]
   );
+  const bySearch = useMemo(() => byTag.filter((s) => matchesSearch(s, searchQuery)), [byTag, searchQuery]);
+  const displaySpots = useMemo(() => applySort(bySearch, sort), [bySearch, sort]);
 
   return (
     <div
@@ -163,14 +206,51 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </div>
       </div>
 
+      {/* Sort */}
+      <div className="border-b border-white/[0.06] px-4 py-2">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Sort</p>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setSort(opt.id)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                sort === opt.id
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Section label */}
       <div className="px-4 pt-4 pb-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
           For You
         </h2>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-500">
           {displaySpots.length} spot{displaySpots.length !== 1 ? 's' : ''}
           {filter !== 'all' && ` · ${FILTER_OPTIONS.find((o) => o.id === filter)?.label}`}
+          {tagFilter && (
+            <>
+              {' · Tag: '}
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-emerald-400">
+                {tagFilter}
+                <button
+                  type="button"
+                  onClick={() => setTagFilter('')}
+                  className="rounded p-0.5 hover:bg-emerald-500/30"
+                  aria-label="Clear tag filter"
+                >
+                  ×
+                </button>
+              </span>
+            </>
+          )}
           {searchQuery.trim() && ` · "${searchQuery.trim()}"`}
         </p>
       </div>
@@ -251,6 +331,28 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     {spot.description}
                   </p>
                 )}
+                {spot.tags?.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {spot.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTagFilter(String(tag).toLowerCase().trim());
+                        }}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
+                          tagFilter && String(tag).toLowerCase() === tagFilter
+                            ? 'bg-emerald-500/30 text-emerald-400'
+                            : 'bg-white/10 text-slate-500 hover:bg-white/15 hover:text-slate-400'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">
                     {spot.bestTime && spot.bestTime !== 'Not specified' ? spot.bestTime : ''}
@@ -286,9 +388,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         <p className="px-4 py-8 text-center text-sm text-slate-400">
           {searchQuery.trim()
             ? `No spots match "${searchQuery.trim()}". Try another search or filter.`
-            : filter !== 'all'
-              ? `No spots match this filter. Try "All" or add a spot from the map.`
-              : 'No spots yet. Add one from the map or the Add tab.'}
+            : tagFilter
+              ? `No spots with tag "${tagFilter}". Clear the tag or try another.`
+              : filter !== 'all'
+                ? `No spots match this filter. Try "All" or add a spot from the map.`
+                : 'No spots yet. Add one from the map or the Add tab.'}
         </p>
       )}
     </div>

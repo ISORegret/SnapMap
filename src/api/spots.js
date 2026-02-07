@@ -93,3 +93,17 @@ export async function deleteCommunitySpot(id) {
   }
   return true;
 }
+
+export async function insertSpotReport(spotId, reportType = 'wrong_location', note = '') {
+  if (!hasSupabase) return { ok: false, error: 'Supabase not configured' };
+  const { error } = await supabase.from('spot_reports').insert({
+    spot_id: spotId,
+    report_type: reportType,
+    note: (note || '').trim().slice(0, 500),
+  });
+  if (error) {
+    console.warn('SnapMap: insert spot report failed', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}

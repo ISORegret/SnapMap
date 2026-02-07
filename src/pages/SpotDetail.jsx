@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2 } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag } from 'lucide-react';
 import SunCalc from 'suncalc';
+import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
+import { insertSpotReport } from '../api/spots';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -173,7 +175,13 @@ export default function SpotDetail({
   });
   const [copyFeedback, setCopyFeedback] = useState(null);
   const [addPhotoLoading, setAddPhotoLoading] = useState(false);
+  const [shareImageLoading, setShareImageLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportType, setReportType] = useState('wrong_location');
+  const [reportNote, setReportNote] = useState('');
+  const [reportSent, setReportSent] = useState(false);
   const addPhotoInputRef = useRef(null);
+  const shareCardRef = useRef(null);
 
   const sunTimes = useMemo(() => {
     if (!spot?.latitude || !spot?.longitude) return null;
@@ -238,6 +246,46 @@ export default function SpotDetail({
     }
   };
 
+  const shareAsImage = async () => {
+    if (!shareCardRef.current || shareImageLoading) return;
+    setShareImageLoading(true);
+    try {
+      const dataUrl = await toPng(shareCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#0c0c0f',
+      });
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').slice(0, 30)}.png`, { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: spot.name, text: spot.address || spot.name });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    } catch (e) {
+      console.warn('Share as image failed', e);
+    } finally {
+      setShareImageLoading(false);
+    }
+  };
+
+  const canReport = spot.id && !String(spot.id).startsWith('user-');
+  const sendReport = async () => {
+    if (!canReport) return;
+    const { ok } = await insertSpotReport(spot.id, reportType, reportNote);
+    if (ok) {
+      setReportSent(true);
+      setReportOpen(false);
+      setReportNote('');
+      setReportType('wrong_location');
+    }
+  };
+
   const CROWD_LABELS = { quiet: 'Quiet', moderate: 'Moderate', busy: 'Busy' };
   const crowdLevel = spot.crowdLevel && CROWD_LABELS[spot.crowdLevel] ? spot.crowdLevel : null;
   const spotImages = getSpotImages(spot);
@@ -256,8 +304,37 @@ export default function SpotDetail({
       .finally(() => setAddPhotoLoading(false));
   };
 
-  return (
+  const primaryImage = getSpotPrimaryImage(spot);
+    const locationText = (spot.address && spot.address !== 'Not specified')
+      ? spot.address
+      : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
+
+    return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6">
+      {/* Hidden card for share-as-image (rendered off-screen) */}
+      <div
+        ref={shareCardRef}
+        className="fixed left-[-9999px] top-0 w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[#151a18] text-left"
+        style={{ fontFamily: 'system-ui, sans-serif' }}
+      >
+        <div className="aspect-[4/3] w-full bg-slate-800">
+          <img src={primaryImage} alt="" className="h-full w-full object-cover" />
+        </div>
+        <div className="px-4 py-3">
+          <h2 className="text-lg font-semibold text-white">{spot.name}</h2>
+          {locationText && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              {locationText}
+            </p>
+          )}
+          {spot.bestTime && spot.bestTime !== 'Not specified' && (
+            <p className="mt-1 text-xs text-slate-500">Best time: {spot.bestTime}</p>
+          )}
+          <p className="mt-2 text-[10px] text-slate-600">SnapMap</p>
+        </div>
+      </div>
+
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-[#0c0c0f]/95 px-4 py-3 backdrop-blur-xl">
         <button
           type="button"
@@ -441,11 +518,11 @@ export default function SpotDetail({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Share
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={copyCoords}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#27272a]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#27272a]"
             >
               <Copy className="h-4 w-4" />
               {copyFeedback === 'coords' ? 'Copied!' : 'Copy coordinates'}
@@ -453,16 +530,95 @@ export default function SpotDetail({
             <button
               type="button"
               onClick={shareSpot}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#27272a]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#27272a]"
             >
               <Share2 className="h-4 w-4" />
               {copyFeedback === 'link' ? 'Copied!' : 'Share spot'}
+            </button>
+            <button
+              type="button"
+              onClick={shareAsImage}
+              disabled={shareImageLoading}
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#27272a] disabled:opacity-50"
+            >
+              <Image className="h-4 w-4" />
+              {shareImageLoading ? 'Creating…' : 'Share as image'}
             </button>
           </div>
         </div>
 
         {/* Weather — in-app from Open-Meteo API (no key) */}
         <WeatherAtSpot latitude={latitude} longitude={longitude} />
+
+        {/* Report / Wrong location (community spots only) */}
+        {canReport && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Something wrong?
+            </p>
+            {reportSent ? (
+              <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-center text-sm text-emerald-400">
+                Thanks, we&apos;ll look into it.
+              </p>
+            ) : !reportOpen ? (
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#18181b] py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-300"
+              >
+                <Flag className="h-4 w-4" />
+                Report or wrong location
+              </button>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-[#18181b] p-3 space-y-3">
+                <p className="text-xs text-slate-500">What&apos;s wrong?</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReportType('wrong_location')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                      reportType === 'wrong_location' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Wrong location
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportType('other')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                      reportType === 'other' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Other
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={reportNote}
+                  onChange={(e) => setReportNote(e.target.value)}
+                  placeholder="Optional note"
+                  className="w-full rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setReportOpen(false); setReportNote(''); }}
+                    className="flex-1 rounded-lg border border-white/10 py-2 text-sm font-medium text-slate-400 hover:bg-white/5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendReport}
+                    className="flex-1 rounded-lg bg-amber-500/20 py-2 text-sm font-medium text-amber-400 hover:bg-amber-500/30"
+                  >
+                    Send report
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Delete listing (user spots only) */}
         {isUserSpot(spot.id) && onDeleteSpot && (
