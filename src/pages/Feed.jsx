@@ -115,6 +115,8 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [userPosition, setUserPosition] = useState(null);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationPromptPending, setLocationPromptPending] = useState(null); // { type: 'distance', mi } | { type: 'sort' } | null
   const [openPopover, setOpenPopover] = useState(null); // null | 'filter' | 'distance' | 'sort'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
@@ -134,15 +136,43 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       setDistanceFilterMi(null);
       return;
     }
-    const pos = await requestPosition();
-    if (pos) setDistanceFilterMi(mi);
-  }, [requestPosition]);
+    if (!userPosition) {
+      setLocationPromptPending({ type: 'distance', mi });
+      setShowLocationPrompt(true);
+      return;
+    }
+    setDistanceFilterMi(mi);
+  }, [userPosition]);
+
+  const onLocationPromptAllow = useCallback(async () => {
+    const pending = locationPromptPending;
+    setShowLocationPrompt(false);
+    setLocationPromptPending(null);
+    setPositionLoading(true);
+    const pos = await getCurrentPosition();
+    setPositionLoading(false);
+    if (pos) {
+      setUserPosition(pos);
+      if (pending?.type === 'distance' && pending.mi != null) setDistanceFilterMi(pending.mi);
+      if (pending?.type === 'sort') setSort('nearMe');
+      setOpenPopover(null);
+    }
+  }, [locationPromptPending]);
+
+  const onLocationPromptDismiss = useCallback(() => {
+    setShowLocationPrompt(false);
+    setLocationPromptPending(null);
+  }, []);
 
   const setSortNearMe = useCallback(async () => {
-    const pos = await requestPosition();
-    if (pos) setSort('nearMe');
+    if (!userPosition) {
+      setLocationPromptPending({ type: 'sort' });
+      setShowLocationPrompt(true);
+      return;
+    }
+    setSort('nearMe');
     setOpenPopover(null);
-  }, [requestPosition]);
+  }, [userPosition]);
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
@@ -193,6 +223,41 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Location permission prompt */}
+      {showLocationPrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="location-prompt-title">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151a18] p-5 shadow-xl">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-emerald-500/20 p-3">
+                <MapPin className="h-8 w-8 text-emerald-400" />
+              </div>
+            </div>
+            <h2 id="location-prompt-title" className="mt-4 text-center text-lg font-semibold text-white">
+              Use your location?
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-400">
+              SnapMap uses your location to show spots near you and sort by distance. Your device will ask for permission.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={onLocationPromptDismiss}
+                className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={onLocationPromptAllow}
+                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+              >
+                Allow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pull-to-refresh indicator */}
       {pullY > 0 && (
         <div className="flex justify-center py-2 text-emerald-400">
@@ -254,38 +319,47 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
           <button
             type="button"
             onClick={() => setOpenPopover(openPopover === 'filter' ? null : 'filter')}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'filter'
                 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
-            <span className="truncate">{filterLabel}</span>
-            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'filter' ? 'rotate-180' : ''}`} />
+            <span className="text-[10px] uppercase tracking-wider opacity-80">Filter</span>
+            <span className="flex items-center gap-0.5 truncate max-w-full">
+              {filterLabel}
+              <ChevronDown className={`h-3 w-3 shrink-0 transition ${openPopover === 'filter' ? 'rotate-180' : ''}`} />
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setOpenPopover(openPopover === 'distance' ? null : 'distance')}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'distance'
                 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
-            <span className="truncate">{distanceLabel}</span>
-            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'distance' ? 'rotate-180' : ''}`} />
+            <span className="text-[10px] uppercase tracking-wider opacity-80">Distance</span>
+            <span className="flex items-center gap-0.5 truncate max-w-full">
+              {distanceLabel}
+              <ChevronDown className={`h-3 w-3 shrink-0 transition ${openPopover === 'distance' ? 'rotate-180' : ''}`} />
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setOpenPopover(openPopover === 'sort' ? null : 'sort')}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-xs font-medium transition ${
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'sort'
                 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
-            <span className="truncate">{sortLabel}</span>
-            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition ${openPopover === 'sort' ? 'rotate-180' : ''}`} />
+            <span className="text-[10px] uppercase tracking-wider opacity-80">Sort</span>
+            <span className="flex items-center gap-0.5 truncate max-w-full">
+              {sortLabel}
+              <ChevronDown className={`h-3 w-3 shrink-0 transition ${openPopover === 'sort' ? 'rotate-180' : ''}`} />
+            </span>
           </button>
         </div>
 

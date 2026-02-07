@@ -117,6 +117,8 @@ export default function Map({ allSpots }) {
   const [userPosition, setUserPosition] = useState(null);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationPromptMi, setLocationPromptMi] = useState(null); // pending mi when user allows
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -127,14 +129,36 @@ export default function Map({ allSpots }) {
     return pos;
   }, [userPosition]);
 
-  const setDistanceFilter = useCallback(async (mi) => {
+  const setDistanceFilter = useCallback((mi) => {
     if (mi === null) {
       setDistanceFilterMi(null);
       return;
     }
-    const pos = await requestPosition();
-    if (pos) setDistanceFilterMi(mi);
-  }, [requestPosition]);
+    if (!userPosition) {
+      setLocationPromptMi(mi);
+      setShowLocationPrompt(true);
+      return;
+    }
+    setDistanceFilterMi(mi);
+  }, [userPosition]);
+
+  const onLocationPromptAllow = useCallback(async () => {
+    const mi = locationPromptMi;
+    setShowLocationPrompt(false);
+    setLocationPromptMi(null);
+    setPositionLoading(true);
+    const pos = await getCurrentPosition();
+    setPositionLoading(false);
+    if (pos) {
+      setUserPosition(pos);
+      if (mi != null) setDistanceFilterMi(mi);
+    }
+  }, [locationPromptMi]);
+
+  const onLocationPromptDismiss = useCallback(() => {
+    setShowLocationPrompt(false);
+    setLocationPromptMi(null);
+  }, []);
 
   const byFilter = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
   const filteredSpots = useMemo(
@@ -158,6 +182,41 @@ export default function Map({ allSpots }) {
       className="absolute inset-0 w-full min-h-[300px]"
       style={{ bottom: NAV_HEIGHT_PX, minHeight: 300 }}
     >
+      {/* Location permission prompt */}
+      {showLocationPrompt && (
+        <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151a18] p-5 shadow-xl">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-emerald-500/20 p-3">
+                <MapPin className="h-8 w-8 text-emerald-400" />
+              </div>
+            </div>
+            <h2 id="map-location-prompt-title" className="mt-4 text-center text-lg font-semibold text-white">
+              Use your location?
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-400">
+              SnapMap uses your location to show spots near you on the map. Your device will ask for permission.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={onLocationPromptDismiss}
+                className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={onLocationPromptAllow}
+                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+              >
+                Allow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {filteredSpots.length === 0 && (
         <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0c0f0e]/90 px-6 backdrop-blur-sm">
           <p className="text-center text-sm font-medium text-slate-300">
