@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 
@@ -60,6 +60,15 @@ function FitBounds({ spots }) {
   return null;
 }
 
+function FlyToCenter({ center, zoom = 14 }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (center?.lat == null || center?.lng == null) return;
+    map.flyTo([center.lat, center.lng], zoom, { duration: 0.8 });
+  }, [map, center?.lat, center?.lng, zoom]);
+  return null;
+}
+
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
     click: (e) => {
@@ -109,6 +118,19 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
+async function geocodeAddress(query) {
+  if (!String(query).trim()) return null;
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(String(query).trim())}&format=json&limit=1`;
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'SnapMap/1.0 (photo spot app)' },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = data?.[0];
+  if (!first || first.lat == null || first.lon == null) return null;
+  return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
+}
+
 export default function Map({ allSpots, theme = 'dark', setTheme }) {
   const navigate = useNavigate();
   const [selectedSpotId, setSelectedSpotId] = useState(null);
@@ -116,10 +138,16 @@ export default function Map({ allSpots, theme = 'dark', setTheme }) {
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [distanceDropdownOpen, setDistanceDropdownOpen] = useState(false);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptMi, setLocationPromptMi] = useState(null); // pending mi when user allows
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const [mapSearchError, setMapSearchError] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(null); // { lat, lng } to fly map to
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -177,6 +205,29 @@ export default function Map({ allSpots, theme = 'dark', setTheme }) {
     navigate('/add', { state: { lat: pendingPin.lat, lng: pendingPin.lng } });
     setPendingPin(null);
   }, [navigate, pendingPin]);
+
+  const handleMapSearch = useCallback(async (e) => {
+    e?.preventDefault();
+    const q = mapSearchQuery.trim();
+    if (!q) return;
+    setMapSearchError(null);
+    setMapSearchLoading(true);
+    try {
+      const result = await geocodeAddress(q);
+      if (result) {
+        setSearchCenter({ lat: result.lat, lng: result.lng });
+      } else {
+        setMapSearchError('Address not found. Try a different search.');
+      }
+    } catch {
+      setMapSearchError('Search failed. Try again.');
+    } finally {
+      setMapSearchLoading(false);
+    }
+  }, [mapSearchQuery]);
+
+  const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
+  const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
 
   return (
     <div
@@ -245,6 +296,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme }) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds spots={filteredSpots} />
+        {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
 
         {pendingPin && (
@@ -299,52 +351,116 @@ export default function Map({ allSpots, theme = 'dark', setTheme }) {
         </div>
       )}
 
-      {/* Filter + Distance rows */}
-      <div className="absolute left-3 right-3 top-3 z-[1000] flex flex-col gap-2">
-        <div className="flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
-          {FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setFilter(opt.id)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                filter === opt.id ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 overflow-x-auto rounded-xl bg-black/70 p-2 backdrop-blur scrollbar-none">
+      {/* Search address */}
+      <div className="absolute left-3 right-14 top-3 z-[1000]">
+        <form onSubmit={handleMapSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="search"
+              value={mapSearchQuery}
+              onChange={(e) => { setMapSearchQuery(e.target.value); setMapSearchError(null); }}
+              onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
+              placeholder="Search address or place…"
+              className="w-full rounded-xl border border-white/10 bg-black/70 py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 backdrop-blur focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/25"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={mapSearchLoading || !mapSearchQuery.trim()}
+            className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
+          >
+            {mapSearchLoading ? '…' : 'Go'}
+          </button>
+        </form>
+        {mapSearchError && (
+          <p className="mt-1.5 text-xs text-amber-400">{mapSearchError}</p>
+        )}
+      </div>
+
+      {/* Filter + Distance dropdowns */}
+      <div className="absolute left-3 top-[4.25rem] right-12 z-[1000] flex gap-2">
+        <div className="relative flex-1">
           <button
             type="button"
-            onClick={() => setDistanceFilterMi(null)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-              distanceFilterMi === null ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'
-            }`}
+            onClick={() => { setFilterDropdownOpen((o) => !o); setDistanceDropdownOpen(false); }}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-medium text-slate-300 backdrop-blur hover:bg-black/80"
           >
-            All
+            <span className="truncate">Filter: {filterLabel}</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition ${filterDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
-          {DISTANCE_OPTIONS_MI.map((mi) => (
-            <button
-              key={mi}
-              type="button"
-              onClick={() => setDistanceFilter(mi)}
-              disabled={positionLoading}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                distanceFilterMi === mi ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20 disabled:opacity-50'
-              }`}
-            >
-              Within {mi} mi
-            </button>
-          ))}
+          {filterDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setFilterDropdownOpen(false)} aria-hidden />
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                {FILTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => { setFilter(opt.id); setFilterDropdownOpen(false); }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+                      filter === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    {opt.label}
+                    {filter === opt.id && <span className="text-emerald-400">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="relative flex-1">
+          <button
+            type="button"
+            onClick={() => { setDistanceDropdownOpen((o) => !o); setFilterDropdownOpen(false); }}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-medium text-slate-300 backdrop-blur hover:bg-black/80"
+          >
+            <span className="truncate">Distance: {distanceLabel}</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition ${distanceDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {distanceDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setDistanceDropdownOpen(false)} aria-hidden />
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => { setDistanceFilterMi(null); setDistanceDropdownOpen(false); }}
+                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+                    distanceFilterMi === null ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  All
+                  {distanceFilterMi === null && <span className="text-emerald-400">✓</span>}
+                </button>
+                {DISTANCE_OPTIONS_MI.map((mi) => (
+                  <button
+                    key={mi}
+                    type="button"
+                    onClick={() => { setDistanceFilter(mi); setDistanceDropdownOpen(false); }}
+                    disabled={positionLoading}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
+                      distanceFilterMi === mi ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    Within {mi} mi
+                    {distanceFilterMi === mi && <span className="text-emerald-400">✓</span>}
+                  </button>
+                ))}
+                {!userPosition && (distanceFilterMi != null || positionLoading) && (
+                  <p className="px-4 py-2 text-xs text-slate-500">Allow location for distance</p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
-      <div className="absolute bottom-14 left-3 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
+
+      <div className="absolute bottom-4 left-3 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur sm:left-3">
         Tap map to pin · Save spot here
       </div>
       {pendingPin && (
-        <div className="absolute bottom-14 left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm">
+        <div className="absolute bottom-4 left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm">
           <p className="text-sm font-medium text-white">Save spot here</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}
