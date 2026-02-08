@@ -246,23 +246,40 @@ export default function App() {
     checkUpdateAvailable(appVersion).then(setUpdateAvailable);
   }, [isOnline, appVersion]);
 
-  // When sync code is set and online, load favorites from Supabase and refetch on visibility
-  const syncCodeRef = React.useRef(syncCode);
-  syncCodeRef.current = syncCode;
+  // When signed in, favorites are tied to account (user_<id>); otherwise use manual sync code
+  const effectiveSyncCode = currentUser ? `user_${currentUser.id}` : syncCode;
+  const effectiveSyncCodeRef = React.useRef(effectiveSyncCode);
+  effectiveSyncCodeRef.current = effectiveSyncCode;
+
+  // When sync code (or user) is set and online, load favorites from Supabase and refetch on visibility
   useEffect(() => {
-    if (!ready || !isOnline || !hasSupabase || !syncCode) return;
+    if (!ready || !isOnline || !hasSupabase || !effectiveSyncCode) return;
     let cancelled = false;
-    fetchFavoritesApi(syncCode).then((ids) => {
+    fetchFavoritesApi(effectiveSyncCode).then(async (ids) => {
       if (!cancelled) {
         setFavoriteIds(ids);
         saveFavorites(ids);
+        // First-time sign-in: migrate local favorites to account if user has none in cloud
+        if (currentUser && ids.length === 0) {
+          const localFavs = loadFavorites();
+          if (localFavs.length > 0) {
+            for (const spotId of localFavs) {
+              if (spotId && !String(spotId).startsWith('user-')) await addFavoriteApi(effectiveSyncCode, spotId);
+            }
+            if (!cancelled) {
+              const next = await fetchFavoritesApi(effectiveSyncCode);
+              setFavoriteIds(next);
+              saveFavorites(next);
+            }
+          }
+        }
       }
     });
     return () => { cancelled = true; };
-  }, [ready, isOnline, syncCode]);
+  }, [ready, isOnline, effectiveSyncCode, currentUser?.id]);
 
   const refetchFavorites = useCallback((overrideCode) => {
-    const code = overrideCode ?? syncCodeRef.current;
+    const code = overrideCode ?? effectiveSyncCodeRef.current;
     if (!hasSupabase || !code) return Promise.resolve();
     return fetchFavoritesApi(code).then((ids) => {
       setFavoriteIds(ids);
@@ -271,13 +288,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isOnline || !syncCode || !hasSupabase) return;
+    if (!isOnline || !effectiveSyncCode || !hasSupabase) return;
     const onVisible = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetchFavorites();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [isOnline, syncCode, refetchFavorites]);
+  }, [isOnline, effectiveSyncCode, refetchFavorites]);
 
   const setSyncCode = useCallback((code) => {
     const trimmed = code ? String(code).trim() : '';
@@ -430,19 +447,19 @@ export default function App() {
       setFavoriteIds(next);
       saveFavorites(next);
       if (isAdding) hapticLight();
-      if (syncCode && hasSupabase) {
+      if (effectiveSyncCode && hasSupabase) {
         if (isAdding) {
-          const ok = await addFavoriteApi(syncCode, spotId);
+          const ok = await addFavoriteApi(effectiveSyncCode, spotId);
           if (!ok) {
             setFavoriteIds(favoriteIds);
             saveFavorites(favoriteIds);
           }
         } else {
-          removeFavoriteApi(syncCode, spotId);
+          removeFavoriteApi(effectiveSyncCode, spotId);
         }
       }
     },
-    [favoriteIds, syncCode]
+    [favoriteIds, effectiveSyncCode]
   );
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
@@ -587,6 +604,8 @@ export default function App() {
                 removeFromCollection={removeFromCollection}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
                 syncCode={syncCode}
+                effectiveSyncCode={effectiveSyncCode}
+                currentUser={currentUser}
                 setSyncCode={setSyncCode}
                 refetchFavorites={refetchFavorites}
                 pushFavoritesToSync={pushFavoritesToSync}

@@ -124,6 +124,8 @@ export default function Saved({
   removeFromCollection,
   onDismissSpotError,
   syncCode = '',
+  effectiveSyncCode,
+  currentUser = null,
   setSyncCode,
   refetchFavorites,
   pushFavoritesToSync,
@@ -229,14 +231,18 @@ export default function Saved({
             </form>
           </div>
 
-          {/* Sync favorites across devices */}
+          {/* Sync favorites across devices (or "saved to account" when signed in) */}
           {hasSupabase && (
             <div className="border-b border-white/[0.06] px-4 py-3">
               <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <Link2 className="h-3.5 w-3.5" />
-                Sync favorites
+                {currentUser ? 'Favorites' : 'Sync favorites'}
               </p>
-              {!syncCode ? (
+              {currentUser ? (
+                <p className="text-sm text-slate-400">
+                  Favorites are saved to your account and sync across your devices when you sign in.
+                </p>
+              ) : !syncCode ? (
                 <div className="space-y-2">
                   <p className="text-sm text-slate-400">
                     Use the same code on each device to see the same favorites everywhere.
