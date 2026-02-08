@@ -215,7 +215,8 @@
     .cta-section .privacy { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; max-width: 100%; }
     .cta-section .privacy strong { color: var(--text); }
     .cta-section .footer-note { text-align: center; margin: 0; }
-    .btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1.5rem 2rem; margin-bottom: 1rem; }
+    .btns > div { min-width: 10rem; display: flex; flex-direction: column; align-items: center; }
     .btn {
       display: inline-block;
       padding: 0.6rem 1.25rem;
@@ -442,11 +443,10 @@
           <div>
             <a href="./snapmap.apk" class="btn btn-primary" id="download-apk-btn" download="SnapMap.apk">Download APK</a>
             <p class="version-under-btn">v1.2.1</p>
-            <p class="download-count version-under-btn" id="download-count" style="margin-top: 0.25rem;">—</p>
           </div>
           <div>
             <a href="./app/" class="btn btn-primary">Use web app / iOS install</a>
-            <p class="version-under-btn" style="font-size: 0.7rem; opacity: 0.85;">iOS: open in Safari, then Share → Add to Home Screen</p>
+            <p class="version-under-btn">iOS: open in Safari, then Share → Add to Home Screen</p>
           </div>
         </div>
         <p class="footer-note">Free · Android: APK above · Web &amp; iOS: use web app</p>
@@ -469,73 +469,24 @@
     </div>
   </div>
 
-  <!-- Load config.js (copy from config.example.js, add your Supabase url + anonKey) for download count + increment on click -->
   <script src="./config.js"></script>
   <script>
     (function () {
-      var supabase = typeof window.SNAPMAP_SUPABASE !== 'undefined' && window.SNAPMAP_SUPABASE && window.SNAPMAP_SUPABASE.url && window.SNAPMAP_SUPABASE.anonKey ? window.SNAPMAP_SUPABASE : null;
-      var base = supabase ? supabase.url.replace(/\/$/, '') : '';
-
-      function loadDownloadCount() {
-        var el = document.getElementById('download-count');
-        if (!el) return;
-        if (base) {
-          fetch(base + '/rest/v1/app_stats?key=eq.downloads', {
-            headers: { apikey: supabase.anonKey, Authorization: 'Bearer ' + supabase.anonKey, Accept: 'application/json' },
-            cache: 'no-store'
-          }).then(function (r) { return r.ok ? r.json() : null; }).then(function (arr) {
-            var n = arr && arr[0] && typeof arr[0].value === 'number' && arr[0].value >= 0 ? arr[0].value : null;
-            el.textContent = n != null ? (n.toLocaleString() + (n === 1 ? ' download' : ' downloads')) : '—';
-          }).catch(function () { el.textContent = '—'; });
-        } else {
-          fetch('./stats.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-            var n = d && typeof d.downloads === 'number' && d.downloads >= 0 ? d.downloads : null;
-            el.textContent = n != null ? (n.toLocaleString() + (n === 1 ? ' download' : ' downloads')) : '—';
-          }).catch(function () { el.textContent = '—'; });
-        }
-      }
-
       var downloadBtn = document.getElementById('download-apk-btn');
       if (downloadBtn) {
         downloadBtn.addEventListener('click', function (e) {
           var href = downloadBtn.getAttribute('href');
           if (!href) return;
           e.preventDefault();
-          if (base) {
-            fetch(base + '/rest/v1/rpc/increment_download_count', {
-              method: 'POST',
-              headers: { apikey: supabase.anonKey, Authorization: 'Bearer ' + supabase.anonKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-              body: '{}'
-            }).then(function (r) { return r.ok ? r.json() : null; }).then(function (newVal) {
-              var el = document.getElementById('download-count');
-              if (el && typeof newVal === 'number' && newVal >= 0) {
-                el.textContent = newVal.toLocaleString() + (newVal === 1 ? ' download' : ' downloads');
-              } else if (el) {
-                var prev = parseInt(el.textContent, 10);
-                if (!isNaN(prev)) el.textContent = (prev + 1).toLocaleString() + ' downloads';
-              }
-            }).catch(function () {}).finally(function () {
-              var a = document.createElement('a');
-              a.href = href;
-              a.download = 'SnapMap.apk';
-              a.style.display = 'none';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-            });
-          } else {
-            var a = document.createElement('a');
-            a.href = href;
-            a.download = 'SnapMap.apk';
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }
+          var a = document.createElement('a');
+          a.href = href;
+          a.download = 'SnapMap.apk';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
         });
       }
-
-      loadDownloadCount();
 
       (function lightbox() {
         var screenshots = [
