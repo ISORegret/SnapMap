@@ -103,20 +103,21 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // When user lands from magic link with hash #access_token=... (no path), exchange for session and go to Feed
+  // When user lands from magic link: tokens can be in hash (#access_token=...) or query (?access_token=...)
   useEffect(() => {
-    if (!hasSupabase || !supabase) return;
-    const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
-    const qIndex = hash.indexOf('?');
-    const search = qIndex >= 0 ? hash.slice(qIndex + 1) : hash;
-    const params = new URLSearchParams(search);
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
+    if (!hasSupabase || !supabase || typeof window === 'undefined') return;
+    const hash = window.location.hash.slice(1);
+    const qInHash = hash.indexOf('?');
+    const searchFromHash = qInHash >= 0 ? hash.slice(qInHash + 1) : hash;
+    const fromHash = new URLSearchParams(searchFromHash);
+    const fromQuery = new URLSearchParams(window.location.search || '');
+    const access_token = fromHash.get('access_token') || fromQuery.get('access_token');
+    const refresh_token = fromHash.get('refresh_token') || fromQuery.get('refresh_token');
     if (!access_token) return;
     supabase.auth
       .setSession({ access_token, refresh_token: refresh_token || '' })
       .then(() => {
-        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + '#/');
+        window.history.replaceState(null, '', window.location.pathname + '#/');
         navigate('/', { replace: true });
       })
       .catch(() => {});

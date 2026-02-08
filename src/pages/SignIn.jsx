@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, hasSupabase } from '../api/supabase';
 
-function getAuthParamsFromHash() {
-  const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
-  const qIndex = hash.indexOf('?');
-  const search = qIndex >= 0 ? hash.slice(qIndex + 1) : hash;
-  const params = new URLSearchParams(search);
-  return { access_token: params.get('access_token'), refresh_token: params.get('refresh_token') };
+function getAuthParamsFromUrl() {
+  if (typeof window === 'undefined') return { access_token: null, refresh_token: null };
+  const hash = window.location.hash.slice(1);
+  const qInHash = hash.indexOf('?');
+  const searchFromHash = qInHash >= 0 ? hash.slice(qInHash + 1) : hash;
+  const fromHash = new URLSearchParams(searchFromHash);
+  const fromQuery = new URLSearchParams(window.location.search || '');
+  return {
+    access_token: fromHash.get('access_token') || fromQuery.get('access_token'),
+    refresh_token: fromHash.get('refresh_token') || fromQuery.get('refresh_token'),
+  };
 }
 
 export default function SignIn({ onSuccess, currentUser }) {
@@ -21,10 +26,10 @@ export default function SignIn({ onSuccess, currentUser }) {
   const [exchanging, setExchanging] = useState(true);
   const navigate = useNavigate();
 
-  // When user lands from magic link, URL has access_token (and refresh_token) in hash – exchange for session and go to Feed
+  // When user lands from magic link, URL has access_token in hash or query – exchange for session and go to Feed
   useEffect(() => {
     if (!hasSupabase || !supabase) return;
-    const { access_token, refresh_token } = getAuthParamsFromHash();
+    const { access_token, refresh_token } = getAuthParamsFromUrl();
     if (!access_token) {
       setExchanging(false);
       return;
@@ -32,7 +37,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     supabase.auth
       .setSession({ access_token, refresh_token: refresh_token || '' })
       .then(() => {
-        window.history.replaceState(null, '', window.location.pathname + '#/');
+        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + '#/');
         navigate('/', { replace: true });
       })
       .catch(() => setExchanging(false))
@@ -169,7 +174,7 @@ export default function SignIn({ onSuccess, currentUser }) {
         <p className="mt-2 text-sm text-slate-400">
           We sent a confirmation link to <strong className="text-slate-300">{email}</strong>. Click it to activate your account, then sign in with your password.
         </p>
-        <p className="mt-3 text-xs text-slate-500">Check your spam folder if you don&apos;t see it.</p>
+        <p className="mt-3 text-xs text-slate-500">Check your spam folder. Using Resend? Add and verify your domain so confirmation emails can reach any address.</p>
         <button
           type="button"
           onClick={handleResend}
