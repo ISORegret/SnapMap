@@ -11,7 +11,7 @@ insert into public.app_stats (key, value) values ('downloads', 0)
 
 alter table public.app_stats enable row level security;
 
--- Anonymous can read (for app and website to show count)
+drop policy if exists "Anyone can read app_stats" on public.app_stats;
 create policy "Anyone can read app_stats"
   on public.app_stats for select
   using (true);
