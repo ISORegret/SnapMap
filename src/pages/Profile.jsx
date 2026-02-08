@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, User } from 'lucide-react';
-import { getProfileByUsername } from '../api/profiles';
+import { MapPin, User, Pencil, X } from 'lucide-react';
+import { getProfileByUsername, updateProfile } from '../api/profiles';
 import { getFollowerCount, getFollowingCount, isFollowing, follow, unfollow } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
@@ -17,6 +17,11 @@ export default function Profile({ allSpots = [], currentUser }) {
   const [followingCount, setFollowingCount] = useState(0);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const userSpots = useMemo(() => {
     if (!profile?.username || !allSpots.length) return [];
@@ -93,6 +98,39 @@ export default function Profile({ allSpots = [], currentUser }) {
 
   const isOwnProfile = currentUser?.id === profile.id;
 
+  const startEditing = () => {
+    setEditDisplayName(profile.display_name || profile.username || '');
+    setEditBio(profile.bio || '');
+    setEditError('');
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setEditError('');
+  };
+
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    setEditError('');
+    setEditSaving(true);
+    const ok = await updateProfile({
+      displayName: editDisplayName.trim() || profile.username,
+      bio: editBio.trim().slice(0, 500),
+    });
+    setEditSaving(false);
+    if (ok) {
+      setProfile((p) => ({
+        ...p,
+        display_name: editDisplayName.trim() || profile.username,
+        bio: editBio.trim().slice(0, 500),
+      }));
+      setEditing(false);
+    } else {
+      setEditError('Could not save. Try again.');
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6 animate-fade-in">
       <header className="border-b border-white/[0.06] px-4 py-6">
@@ -116,6 +154,16 @@ export default function Profile({ allSpots = [], currentUser }) {
               <span>{followerCount} followers</span>
               <span>{followingCount} following</span>
             </div>
+            {isOwnProfile && (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-emerald-400"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit profile
+              </button>
+            )}
             {!isOwnProfile && currentUser && (
               <button
                 type="button"
@@ -128,6 +176,55 @@ export default function Profile({ allSpots = [], currentUser }) {
             )}
           </div>
         </div>
+        {isOwnProfile && editing && (
+          <form onSubmit={saveProfile} className="mt-6 rounded-xl border border-white/10 bg-[#18181b] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-white">Edit profile</h2>
+              <button type="button" onClick={cancelEditing} className="rounded p-1 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Cancel">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label htmlFor="profile-display-name" className="block text-xs font-medium text-slate-500">Display name</label>
+                <input
+                  id="profile-display-name"
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Your name"
+                  maxLength={64}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-bio" className="block text-xs font-medium text-slate-500">Bio</label>
+                <textarea
+                  id="profile-bio"
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Short bio (optional)"
+                  rows={3}
+                  maxLength={500}
+                  className="mt-1 w-full resize-none rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+            {editError && <p className="mt-2 text-sm text-amber-400">{editError}</p>}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-400 disabled:opacity-50"
+              >
+                {editSaving ? 'Saving…' : 'Save'}
+              </button>
+              <button type="button" onClick={cancelEditing} className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/5">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </header>
 
       <div className="px-4 pt-4">
