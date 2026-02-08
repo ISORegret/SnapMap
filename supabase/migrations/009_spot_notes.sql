@@ -8,10 +8,12 @@ create table if not exists public.spot_notes (
 
 alter table public.spot_notes enable row level security;
 
+drop policy if exists "Anyone can read spot_notes" on public.spot_notes;
 create policy "Anyone can read spot_notes"
   on public.spot_notes for select
   using (true);
 
+drop policy if exists "Anyone can insert spot_notes" on public.spot_notes;
 create policy "Anyone can insert spot_notes"
   on public.spot_notes for insert
   with check (true);
