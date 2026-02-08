@@ -445,9 +445,8 @@
             <p class="download-count version-under-btn" id="download-count" style="margin-top: 0.25rem;">—</p>
           </div>
           <div>
-            <a href="./app/" class="btn btn-primary">Use web app</a>
-            <p class="version-under-btn">No install — use in browser</p>
-            <p class="version-under-btn" style="margin-top: 0.25rem; font-size: 0.7rem; opacity: 0.85;">iOS: open in Safari, then Share → Add to Home Screen</p>
+            <a href="./app/" class="btn btn-primary">Use web app / iOS install</a>
+            <p class="version-under-btn" style="font-size: 0.7rem; opacity: 0.85;">iOS: open in Safari, then Share → Add to Home Screen</p>
           </div>
         </div>
         <p class="footer-note">Free · Android: APK above · Web &amp; iOS: use web app</p>
@@ -516,10 +515,22 @@
                 if (!isNaN(prev)) el.textContent = (prev + 1).toLocaleString() + ' downloads';
               }
             }).catch(function () {}).finally(function () {
-              window.location.href = href;
+              var a = document.createElement('a');
+              a.href = href;
+              a.download = 'SnapMap.apk';
+              a.style.display = 'none';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
             });
           } else {
-            window.location.href = href;
+            var a = document.createElement('a');
+            a.href = href;
+            a.download = 'SnapMap.apk';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
           }
         });
       }
