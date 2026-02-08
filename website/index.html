@@ -472,6 +472,10 @@
   <script src="./config.js"></script>
   <script>
     (function () {
+      // Register root SW so / serves the landing page, not cached app
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js', { scope: '/' }).catch(function () {});
+      }
       var downloadBtn = document.getElementById('download-apk-btn');
       if (downloadBtn) {
         downloadBtn.addEventListener('click', function (e) {
