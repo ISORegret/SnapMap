@@ -69,26 +69,40 @@ export default function SignIn({ onSuccess, currentUser }) {
     }
     setError('');
     setLoading(true);
-    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
     try {
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
-    } catch (_) {}
-    const { data, error: err } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message || 'Sign up failed.');
-      return;
-    }
-    setError('');
-    if (data?.session) {
-      navigate('/', { replace: true });
-    } else {
-      setSignUpConfirm(true);
+      let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
+      } catch (_) {}
+      const { data, error: err } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: redirectTo },
+      });
+      if (err) {
+        const msg = (err.message || '').toLowerCase();
+        const code = err.code || '';
+        if (msg.includes('already registered') || msg.includes('already exists') || code === 'user_already_exists') {
+          setError('An account with this email already exists. Sign in with your password above.');
+        } else if (msg.includes('redirect') || msg.includes('allowed')) {
+          setError('Sign-up link is misconfigured. Add this app URL to Supabase Auth → Redirect URLs.');
+        } else if (msg.includes('sign up') && msg.includes('disabled')) {
+          setError('New sign-ups are disabled. Contact the app owner.');
+        } else {
+          setError(err.message || 'Sign up failed.');
+        }
+        return;
+      }
+      if (data?.session) {
+        navigate('/', { replace: true });
+      } else {
+        setSignUpConfirm(true);
+      }
+    } catch (thrown) {
+      setError(thrown?.message || 'Something went wrong. Check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
