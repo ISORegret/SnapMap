@@ -1,5 +1,5 @@
-# Build and deploy the SnapMap React app to GitHub Pages (isoregret.github.io/SnapMap/)
-name: Deploy SnapMap app to GitHub Pages
+# Build and deploy: landing at root (snapmap.lol/), app at /app/ (snapmap.lol/app/)
+name: Deploy SnapMap to GitHub Pages
 
 on:
   push:
@@ -34,17 +34,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app for GitHub Pages (root base for custom domain snapmap.lol)
+      - name: Build app for /app/ path
         env:
-          BASE_PATH: /
+          BASE_PATH: /app/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
+      - name: Prepare deploy (landing at root, app at /app/)
+        run: |
+          mkdir -p deploy/app
+          cp -r website/* deploy/
+          cp -r dist/* deploy/app/
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: deploy
 
       - name: Dedupe github-pages artifact
         env:
