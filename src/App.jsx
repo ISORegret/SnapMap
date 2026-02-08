@@ -389,7 +389,13 @@ export default function App() {
       let payload = { ...spot };
       if (currentUser) {
         const profile = await getProfileById(currentUser.id);
-        if (profile?.username) payload = { ...payload, createdBy: profile.username };
+        if (profile?.username) {
+          payload = {
+            ...payload,
+            createdBy: profile.username,
+            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || profile.username,
+          };
+        }
       }
       const result = await insertCommunitySpot(payload);
       if (result.spot) {

@@ -587,7 +587,7 @@ export default function SpotDetail({
               to={`/user/${encodeURIComponent(String(spot.createdBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
               className="text-emerald-400 hover:underline"
             >
-              @{String(spot.createdBy).trim()}
+              {String(spot.createdByDisplayName || spot.createdBy).trim()}
             </Link>
           </p>
         ) : (

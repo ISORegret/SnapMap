@@ -157,6 +157,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         linkUrl: linkUrl.trim() || '',
         linkLabel: linkLabel.trim() || 'More info',
         createdBy: (currentUserProfile?.username && !editSpot) ? currentUserProfile.username : (createdBy.trim() || ''),
+        createdByDisplayName: (currentUserProfile && !editSpot)
+          ? ((currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || currentUserProfile.username || '')
+          : '',
       };
       if (editSpot && onUpdate) {
         setSaveFeedback(null);

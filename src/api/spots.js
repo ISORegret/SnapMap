@@ -22,6 +22,7 @@ function rowToSpot(row) {
     linkLabel: row.link_label ?? 'More info',
     createdAt: row.created_at,
     createdBy: row.created_by ?? '',
+    createdByDisplayName: row.created_by_display_name ?? row.created_by ?? '',
     lastEditedBy: row.last_edited_by ?? '',
   };
 }
@@ -64,6 +65,7 @@ export async function insertCommunitySpot(spot) {
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
     created_by: ((spot.createdBy ?? '').trim().slice(0, 100)) || '',
+    created_by_display_name: ((spot.createdByDisplayName ?? '').trim().slice(0, 200)) || ((spot.createdBy ?? '').trim().slice(0, 100)) || '',
   };
   row.image_uri = String(imageUriValue || DEFAULT_IMAGE_URI);
   const { data, error } = await supabase.from('spots').insert(row).select().single();

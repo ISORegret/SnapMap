@@ -832,7 +832,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       <span className="ml-1 text-emerald-400">· {spot.score}</span>
                     )}
                     {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
-                      <span className="ml-1 text-slate-600">· Added by @{String(spot.createdBy).trim()}</span>
+                      <span className="ml-1 text-slate-600">· Added by {String(spot.createdByDisplayName || spot.createdBy).trim()}</span>
                     ) : (
                       <span className="ml-1 text-slate-600">· Anonymous</span>
                     )}
