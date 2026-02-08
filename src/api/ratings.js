@@ -18,31 +18,31 @@ export async function getSpotRating(spotId) {
   return { average, count };
 }
 
-/** Batch fetch rating average + count for many spots. Returns Map(spotId -> { average, count }). */
+/** Batch fetch rating average + count for many spots. Returns { [spotId]: { average, count } }. */
 export async function getSpotRatingsForSpotIds(spotIds) {
-  if (!hasSupabase || !spotIds?.length) return new Map();
+  if (!hasSupabase || !spotIds?.length) return {};
   const ids = [...new Set(spotIds)].filter((id) => id && typeof id === 'string' && !id.startsWith('user-'));
-  if (ids.length === 0) return new Map();
+  if (ids.length === 0) return {};
   const { data, error } = await supabase
     .from('spot_ratings')
     .select('spot_id, rating')
     .in('spot_id', ids);
   if (error) {
     console.warn('SnapMap: get spot ratings batch failed', error);
-    return new Map();
+    return {};
   }
-  const bySpot = new Map();
+  const bySpot = {};
   for (const row of data || []) {
     const sid = row.spot_id;
-    if (!bySpot.has(sid)) bySpot.set(sid, []);
-    bySpot.get(sid).push(row.rating);
+    if (!bySpot[sid]) bySpot[sid] = [];
+    bySpot[sid].push(row.rating);
   }
-  const result = new Map();
-  for (const [sid, ratings] of bySpot) {
+  const result = {};
+  for (const [sid, ratings] of Object.entries(bySpot)) {
     const count = ratings.length;
     const sum = ratings.reduce((a, b) => a + b, 0);
     const average = count === 0 ? 0 : Math.round((sum / count) * 10) / 10;
-    result.set(sid, { average, count });
+    result[sid] = { average, count };
   }
   return result;
 }

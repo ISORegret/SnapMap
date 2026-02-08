@@ -9,6 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 const appVersion = pkg.version || '1.0.0';
 
+const basePath = (process.env.BASE_PATH || '/').replace(/\/?$/, '/'); // e.g. /app/ for GitHub Pages
+
 export default defineConfig(({ mode }) => ({
   root: __dirname,
   envDir: __dirname,
@@ -27,21 +29,21 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#0a0a0f',
         background_color: '#0a0a0f',
         display: 'standalone',
-        start_url: mode === 'android' ? './index.html' : (process.env.BASE_PATH || '/'),
-        scope: mode === 'android' ? './' : (process.env.BASE_PATH || '/'),
+        start_url: mode === 'android' ? './index.html' : basePath,
+        scope: mode === 'android' ? './' : basePath,
         icons: [
-          { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
-          { src: '/snapmap-icon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
-          { src: '/snapmap-icon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'maskable' },
-          { src: '/snapmap-icon.png', type: 'image/png', sizes: '1024x1024', purpose: 'any' },
-          { src: '/snapmap-icon.png', type: 'image/png', sizes: '1024x1024', purpose: 'maskable' },
+          { src: `${basePath}favicon.svg`, type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
+          { src: `${basePath}snapmap-icon.svg`, type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
+          { src: `${basePath}snapmap-icon.svg`, type: 'image/svg+xml', sizes: 'any', purpose: 'maskable' },
+          { src: `${basePath}snapmap-icon.png`, type: 'image/png', sizes: '1024x1024', purpose: 'any' },
+          { src: `${basePath}snapmap-icon.png`, type: 'image/png', sizes: '1024x1024', purpose: 'maskable' },
         ],
       },
       workbox: {
         // In dev, dev-dist only has sw.js + workbox-*.js; include workbox so the glob matches and the warning goes away
         globPatterns: mode === 'development' ? ['**/workbox-*.js'] : ['**/*.{js,css,html,ico,svg,woff2}'],
         globIgnores: mode === 'development' ? ['**/node_modules/**/*'] : ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${basePath}index.html`,
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {

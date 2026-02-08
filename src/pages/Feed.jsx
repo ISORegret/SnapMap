@@ -132,7 +132,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [pullY, setPullY] = useState(0);
   const [visibleCount, setVisibleCount] = useState(INITIAL_SPOTS_VISIBLE);
   const touchStartY = useRef(0);
-  const [spotRatings, setSpotRatings] = useState(() => new Map());
+  const [spotRatings, setSpotRatings] = useState(() => ({}));
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -237,13 +237,13 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
 
   useEffect(() => {
     if (!hasSupabase || displaySpots.length === 0) {
-      setSpotRatings(new Map());
+      setSpotRatings({});
       return;
     }
     let cancelled = false;
     const ids = displaySpots.map((s) => s.id);
-    getSpotRatingsForSpotIds(ids).then((map) => {
-      if (!cancelled) setSpotRatings(map);
+    getSpotRatingsForSpotIds(ids).then((obj) => {
+      if (!cancelled) setSpotRatings(obj);
     });
     return () => { cancelled = true; };
   }, [displaySpots]);
@@ -800,11 +800,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     {spot.name}
                   </h3>
                   <span className="flex items-center gap-0.5 shrink-0 text-amber-400/90" title={(() => {
-                    const r = spotRatings.get(spot.id);
+                    const r = spotRatings[spot.id];
                     return r?.count ? `${r.average.toFixed(1)} (${r.count} rating${r.count !== 1 ? 's' : ''})` : 'No rating yet';
                   })()}>
                     {[1, 2, 3, 4, 5].map((star) => {
-                      const r = spotRatings.get(spot.id);
+                      const r = spotRatings[spot.id];
                       const avg = r?.average ?? 0;
                       const filled = star <= Math.round(avg);
                       return (
@@ -865,8 +865,8 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">
                     {spot.bestTime && spot.bestTime !== 'Not specified' ? spot.bestTime : ''}
-                    {spotRatings.get(spot.id)?.count > 0 && (
-                      <span className="ml-1 text-emerald-400">· {spotRatings.get(spot.id).average.toFixed(1)}</span>
+                    {spotRatings[spot.id]?.count > 0 && (
+                      <span className="ml-1 text-emerald-400">· {spotRatings[spot.id].average.toFixed(1)}</span>
                     )}
                     {(spot.createdBy != null && String(spot.createdBy).trim())
                       ? (
