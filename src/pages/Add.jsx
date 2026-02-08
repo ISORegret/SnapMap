@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ImagePlus, MapPin } from 'lucide-react';
+import { ImagePlus, MapPin, User } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
 import { getCurrentPosition } from '../utils/geo';
@@ -8,7 +8,7 @@ import { getCurrentPosition } from '../utils/geo';
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 
-export default function Add({ onAdd, onUpdate }) {
+export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }) {
   const location = useLocation();
   const navigate = useNavigate();
   const editSpot = location.state?.editSpot;
@@ -59,6 +59,12 @@ export default function Add({ onAdd, onUpdate }) {
     setFieldErrors({ name: '', latitude: '', longitude: '' });
     setSaveFeedback(null);
   }, [editSpot]);
+
+  // When signed in and creating (not editing), prefill "Added by" with current user
+  useEffect(() => {
+    if (editSpot || !currentUserProfile?.username) return;
+    setCreatedBy((prev) => (prev === '' ? currentUserProfile.username : prev));
+  }, [currentUserProfile?.username, editSpot]);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
@@ -303,13 +309,22 @@ export default function Add({ onAdd, onUpdate }) {
         <div>
           <label className="block text-xs font-medium text-slate-500">Added by (optional)</label>
           <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
-          <input
-            type="text"
-            value={createdBy}
-            onChange={(e) => setCreatedBy(e.target.value)}
-            placeholder="e.g. yourname"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          />
+          <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
+              {currentUserProfile?.avatar_url ? (
+                <img src={currentUserProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-4 w-4" /></div>
+              )}
+            </div>
+            <input
+              type="text"
+              value={createdBy}
+              onChange={(e) => setCreatedBy(e.target.value)}
+              placeholder={currentUserProfile?.username ? `@${currentUserProfile.username}` : 'e.g. yourname'}
+              className="min-w-0 flex-1 bg-transparent text-white placeholder-slate-500 focus:outline-none"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500">Best time (optional)</label>

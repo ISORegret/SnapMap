@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, User, Pencil, X } from 'lucide-react';
-import { getProfileByUsername, updateProfile } from '../api/profiles';
+import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFollowerCount, getFollowingCount, isFollowing, follow, unfollow } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
@@ -20,8 +20,11 @@ export default function Profile({ allSpots = [], currentUser }) {
   const [editing, setEditing] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const avatarInputRef = React.useRef(null);
 
   const userSpots = useMemo(() => {
     if (!profile?.username || !allSpots.length) return [];
@@ -101,8 +104,26 @@ export default function Profile({ allSpots = [], currentUser }) {
   const startEditing = () => {
     setEditDisplayName(profile.display_name || profile.username || '');
     setEditBio(profile.bio || '');
+    setEditAvatarUrl(profile.avatar_url || '');
     setEditError('');
     setEditing(true);
+  };
+
+  const handleAvatarFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file?.type?.startsWith('image/')) return;
+    setAvatarUploading(true);
+    setEditError('');
+    const url = await uploadAvatar(file);
+    setAvatarUploading(false);
+    if (url) {
+      setEditAvatarUrl(url);
+      setProfile((p) => (p ? { ...p, avatar_url: url } : p));
+      await updateProfile({ avatarUrl: url });
+    } else {
+      setEditError('Upload failed. Try another image.');
+    }
   };
 
   const cancelEditing = () => {
@@ -114,16 +135,19 @@ export default function Profile({ allSpots = [], currentUser }) {
     e.preventDefault();
     setEditError('');
     setEditSaving(true);
-    const ok = await updateProfile({
+    const payload = {
       displayName: editDisplayName.trim() || profile.username,
       bio: editBio.trim().slice(0, 500),
-    });
+    };
+    if (editAvatarUrl.trim() !== (profile.avatar_url || '')) payload.avatarUrl = editAvatarUrl.trim() || null;
+    const ok = await updateProfile(payload);
     setEditSaving(false);
     if (ok) {
       setProfile((p) => ({
         ...p,
         display_name: editDisplayName.trim() || profile.username,
         bio: editBio.trim().slice(0, 500),
+        avatar_url: editAvatarUrl.trim() || p?.avatar_url,
       }));
       setEditing(false);
     } else {
@@ -185,6 +209,45 @@ export default function Profile({ allSpots = [], currentUser }) {
               </button>
             </div>
             <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500">Profile picture</label>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
+                    {(editAvatarUrl || profile.avatar_url) ? (
+                      <img src={editAvatarUrl || profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-7 w-7" /></div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <input
+                      type="url"
+                      value={editAvatarUrl}
+                      onChange={(e) => setEditAvatarUrl(e.target.value)}
+                      placeholder="Image URL (optional)"
+                      className="w-full rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleAvatarFile}
+                        className="hidden"
+                        aria-hidden
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={avatarUploading}
+                        className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/5 disabled:opacity-50"
+                      >
+                        {avatarUploading ? 'Uploading…' : 'Upload photo'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div>
                 <label htmlFor="profile-display-name" className="block text-xs font-medium text-slate-500">Display name</label>
                 <input

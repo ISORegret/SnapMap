@@ -41,6 +41,7 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   const [syncCode, setSyncCodeState] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [ready, setReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [theme, setThemeState] = useState(() =>
@@ -159,13 +160,23 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser?.id || !hasSupabase) return;
+    let cancelled = false;
     getProfileById(currentUser.id).then((p) => {
+      if (cancelled) return;
       if (!p) {
         const u = (currentUser.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 32) || 'user';
         createProfile({ id: currentUser.id, username: u, displayName: u });
+        setCurrentUserProfile({ id: currentUser.id, username: u, display_name: u, avatar_url: null, bio: '' });
+      } else {
+        setCurrentUserProfile(p);
       }
     });
+    return () => { cancelled = true; };
   }, [currentUser?.id, currentUser?.email]);
+
+  useEffect(() => {
+    if (!currentUser?.id) setCurrentUserProfile(null);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!ready) return;
@@ -589,7 +600,7 @@ export default function App() {
             }
           />
           <Route path="/map" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-slate-400">Loading map…</div>}><MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} /></Suspense>} />
-          <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
+          <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
           <Route
