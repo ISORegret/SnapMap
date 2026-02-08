@@ -122,6 +122,40 @@ export default function App() {
       .catch(() => {});
   }, [hasSupabase, navigate]);
 
+  // Native app: when opened via magic link (snapmap://auth/callback#access_token=...), exchange for session
+  useEffect(() => {
+    if (!hasSupabase || !supabase) return;
+    const setSessionFromUrl = (url) => {
+      if (!url || !url.includes('access_token')) return;
+      const hashStart = url.indexOf('#');
+      const fragment = hashStart >= 0 ? url.slice(hashStart + 1) : '';
+      const qIndex = fragment.indexOf('?');
+      const search = qIndex >= 0 ? fragment.slice(qIndex + 1) : fragment;
+      const params = new URLSearchParams(search);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (!access_token) return;
+      supabase.auth
+        .setSession({ access_token, refresh_token: refresh_token || '' })
+        .then(() => navigate('/', { replace: true }))
+        .catch(() => {});
+    };
+    let listener;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+        const { url } = await App.getLaunchUrl();
+        if (url) setSessionFromUrl(url);
+        listener = await App.addListener('appUrlOpen', (e) => setSessionFromUrl(e.url));
+      } catch (_) {}
+    })();
+    return () => {
+      listener?.remove?.();
+    };
+  }, [hasSupabase, supabase, navigate]);
+
   useEffect(() => {
     if (!currentUser?.id || !hasSupabase) return;
     getProfileById(currentUser.id).then((p) => {

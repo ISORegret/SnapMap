@@ -41,9 +41,14 @@ export default function SignIn({ onSuccess, currentUser }) {
     if (!hasSupabase || !email.trim()) return;
     setError('');
     setLoading(true);
+    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
+    } catch (_) {}
     const { error: err } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin + (window.location.pathname || '') + '#/' },
+      options: { emailRedirectTo: redirectTo },
     });
     setLoading(false);
     if (err) {
