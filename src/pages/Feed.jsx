@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid, Settings, Sun, Moon, Download, Map } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, Search, RefreshCw, ExternalLink, MapPinOff, ChevronDown, LayoutGrid, Settings, Sun, Moon, Download, Map, Star } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm, kmToMi } from '../utils/geo';
@@ -780,9 +780,29 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                 </button>
               </div>
               <div className="min-w-0 flex-1 py-2 pr-3">
-                <h3 className="font-semibold text-white line-clamp-1 group-hover:text-emerald-300 transition-colors">
-                  {spot.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-white line-clamp-1 group-hover:text-emerald-300 transition-colors flex-1 min-w-0">
+                    {spot.name}
+                  </h3>
+                  {spot.score != null && spot.score > 0 && (
+                    <span className="flex items-center gap-0.5 shrink-0" title={`${Number(spot.score).toFixed(1)}`}>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const score = Math.min(5, Math.max(0, Number(spot.score)));
+                        const filled = star <= Math.round(score);
+                        return (
+                          <Star
+                            key={star}
+                            className="h-3.5 w-3.5 text-amber-400"
+                            fill={filled ? 'currentColor' : 'transparent'}
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            aria-hidden
+                          />
+                        );
+                      })}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400 line-clamp-1">
                   <MapPin className="h-3 w-3 shrink-0" />
                   {(spot.address && spot.address !== 'Not specified')

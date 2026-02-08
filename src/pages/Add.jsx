@@ -322,7 +322,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                     <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-4 w-4" /></div>
                   )}
                 </div>
-                <span className="text-sm font-medium text-white">@{currentUserProfile.username}</span>
+                <span className="text-sm font-medium text-white">
+                  {(currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || `@${currentUserProfile.username}`}
+                </span>
               </div>
             </>
           ) : (
