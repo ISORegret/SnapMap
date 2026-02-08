@@ -784,24 +784,22 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   <h3 className="font-semibold text-white line-clamp-1 group-hover:text-emerald-300 transition-colors flex-1 min-w-0">
                     {spot.name}
                   </h3>
-                  {spot.score != null && spot.score > 0 && (
-                    <span className="flex items-center gap-0.5 shrink-0" title={`${Number(spot.score).toFixed(1)}`}>
-                      {[1, 2, 3, 4, 5].map((star) => {
-                        const score = Math.min(5, Math.max(0, Number(spot.score)));
-                        const filled = star <= Math.round(score);
-                        return (
-                          <Star
-                            key={star}
-                            className="h-3.5 w-3.5 text-amber-400"
-                            fill={filled ? 'currentColor' : 'transparent'}
-                            stroke="currentColor"
-                            strokeWidth={1.5}
-                            aria-hidden
-                          />
-                        );
-                      })}
-                    </span>
-                  )}
+                  <span className="flex items-center gap-0.5 shrink-0 text-amber-400/90" title={spot.score != null && spot.score > 0 ? `${Number(spot.score).toFixed(1)}` : 'No rating yet'}>
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const score = Math.min(5, Math.max(0, Number(spot.score) || 0));
+                      const filled = star <= Math.round(score);
+                      return (
+                        <Star
+                          key={star}
+                          className="h-3.5 w-3.5"
+                          fill={filled ? 'currentColor' : 'transparent'}
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                          aria-hidden
+                        />
+                      );
+                    })}
+                  </span>
                 </div>
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400 line-clamp-1">
                   <MapPin className="h-3 w-3 shrink-0" />
