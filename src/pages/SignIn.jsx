@@ -1,12 +1,40 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase, hasSupabase } from '../api/supabase';
 
-export default function SignIn({ onSuccess }) {
+function getAuthParamsFromHash() {
+  const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
+  const qIndex = hash.indexOf('?');
+  const search = qIndex >= 0 ? hash.slice(qIndex + 1) : hash;
+  const params = new URLSearchParams(search);
+  return { access_token: params.get('access_token'), refresh_token: params.get('refresh_token') };
+}
+
+export default function SignIn({ onSuccess, currentUser }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [exchanging, setExchanging] = useState(true);
+  const navigate = useNavigate();
+
+  // When user lands from magic link, URL has access_token (and refresh_token) in hash – exchange for session and go to Feed
+  useEffect(() => {
+    if (!hasSupabase || !supabase) return;
+    const { access_token, refresh_token } = getAuthParamsFromHash();
+    if (!access_token) {
+      setExchanging(false);
+      return;
+    }
+    supabase.auth
+      .setSession({ access_token, refresh_token: refresh_token || '' })
+      .then(() => {
+        window.history.replaceState(null, '', window.location.pathname + '#/');
+        navigate('/', { replace: true });
+      })
+      .catch(() => setExchanging(false))
+      .finally(() => setExchanging(false));
+  }, [hasSupabase, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,7 +43,7 @@ export default function SignIn({ onSuccess }) {
     setLoading(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin + (window.location.pathname || '') + (window.location.hash || '#/') },
+      options: { emailRedirectTo: window.location.origin + (window.location.pathname || '') + '#/' },
     });
     setLoading(false);
     if (err) {
@@ -24,6 +52,23 @@ export default function SignIn({ onSuccess }) {
     }
     setSent(true);
   };
+
+  if (exchanging) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+        <p className="text-slate-400">Signing you in…</p>
+      </div>
+    );
+  }
+
+  if (currentUser) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+        <p className="text-white">You&apos;re signed in.</p>
+        <Link to="/" className="mt-4 text-emerald-400 hover:underline">Go to Feed</Link>
+      </div>
+    );
+  }
 
   if (!hasSupabase) {
     return (

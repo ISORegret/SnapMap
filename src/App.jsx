@@ -103,6 +103,25 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // When user lands from magic link with hash #access_token=... (no path), exchange for session and go to Feed
+  useEffect(() => {
+    if (!hasSupabase || !supabase) return;
+    const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
+    const qIndex = hash.indexOf('?');
+    const search = qIndex >= 0 ? hash.slice(qIndex + 1) : hash;
+    const params = new URLSearchParams(search);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (!access_token) return;
+    supabase.auth
+      .setSession({ access_token, refresh_token: refresh_token || '' })
+      .then(() => {
+        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + '#/');
+        navigate('/', { replace: true });
+      })
+      .catch(() => {});
+  }, [hasSupabase, navigate]);
+
   useEffect(() => {
     if (!currentUser?.id || !hasSupabase) return;
     getProfileById(currentUser.id).then((p) => {
@@ -519,7 +538,7 @@ export default function App() {
           />
           <Route path="/map" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-slate-400">Loading map…</div>}><MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} /></Suspense>} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} />} />
-          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
           <Route
             path="/saved"
