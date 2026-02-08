@@ -580,15 +580,19 @@ export default function SpotDetail({
               : (kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1) + ' mi away'}
           </p>
         )}
-        {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
+        {(spot.createdBy != null && String(spot.createdBy).trim()) || (spot.createdByDisplayName != null && String(spot.createdByDisplayName).trim()) ? (
           <p className="mt-1 text-xs text-slate-500">
             Added by{' '}
-            <Link
-              to={`/user/${encodeURIComponent(String(spot.createdBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
-              className="text-emerald-400 hover:underline"
-            >
-              {String(spot.createdByDisplayName || spot.createdBy).trim()}
-            </Link>
+            {(spot.createdBy != null && String(spot.createdBy).trim()) ? (
+              <Link
+                to={`/user/${encodeURIComponent(String(spot.createdBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
+                className="text-emerald-400 hover:underline"
+              >
+                @{String(spot.createdBy).trim()}
+              </Link>
+            ) : (
+              <span className="text-slate-400">{String(spot.createdByDisplayName).trim()}</span>
+            )}
           </p>
         ) : (
           <p className="mt-1 text-xs text-slate-500">Added by Anonymous</p>
