@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Heart, Plus, Map } from 'lucide-react';
+import { LayoutGrid, Heart, Plus, Map, User } from 'lucide-react';
 
 const TUTORIAL_KEY = 'snapmap_tutorial_done';
 
@@ -13,6 +13,11 @@ const STEPS = [
     title: 'Save favorites',
     body: 'Heart a spot to save it. Use the Saved tab to see your favorites and lists. Turn on sync to see the same favorites on all your devices.',
     icon: Heart,
+  },
+  {
+    title: 'Sign in & profile',
+    body: 'You can sign in with email and password or a magic link. Create an account to sync favorites and set a display name and profile picture. Spots you add will show as added by you.',
+    icon: User,
   },
   {
     title: 'Add spots',
