@@ -6,6 +6,7 @@ import { getSpotPrimaryImage, getSpotImages } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm, kmToMi } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
 import { hasSupabase } from '../api/supabase';
+import { getSpotRatingsForSpotIds } from '../api/ratings';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -131,6 +132,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   const [pullY, setPullY] = useState(0);
   const [visibleCount, setVisibleCount] = useState(INITIAL_SPOTS_VISIBLE);
   const touchStartY = useRef(0);
+  const [spotRatings, setSpotRatings] = useState(() => new Map());
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -232,6 +234,19 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
   );
   const bySearch = useMemo(() => byTag.filter((s) => matchesSearch(s, searchQuery)), [byTag, searchQuery]);
   const displaySpots = useMemo(() => applySort(bySearch, sort, userPosition), [bySearch, sort, userPosition]);
+
+  useEffect(() => {
+    if (!hasSupabase || displaySpots.length === 0) {
+      setSpotRatings(new Map());
+      return;
+    }
+    let cancelled = false;
+    const ids = displaySpots.map((s) => s.id);
+    getSpotRatingsForSpotIds(ids).then((map) => {
+      if (!cancelled) setSpotRatings(map);
+    });
+    return () => { cancelled = true; };
+  }, [displaySpots]);
 
   // Near you: top N nearest (from all spots when location available)
   const nearYouSpots = useMemo(() => {
@@ -784,10 +799,14 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   <h3 className="font-semibold text-white line-clamp-1 group-hover:text-emerald-300 transition-colors flex-1 min-w-0">
                     {spot.name}
                   </h3>
-                  <span className="flex items-center gap-0.5 shrink-0 text-amber-400/90" title={spot.score != null && spot.score > 0 ? `${Number(spot.score).toFixed(1)}` : 'No rating yet'}>
+                  <span className="flex items-center gap-0.5 shrink-0 text-amber-400/90" title={(() => {
+                    const r = spotRatings.get(spot.id);
+                    return r?.count ? `${r.average.toFixed(1)} (${r.count} rating${r.count !== 1 ? 's' : ''})` : 'No rating yet';
+                  })()}>
                     {[1, 2, 3, 4, 5].map((star) => {
-                      const score = Math.min(5, Math.max(0, Number(spot.score) || 0));
-                      const filled = star <= Math.round(score);
+                      const r = spotRatings.get(spot.id);
+                      const avg = r?.average ?? 0;
+                      const filled = star <= Math.round(avg);
                       return (
                         <Star
                           key={star}
@@ -846,8 +865,8 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">
                     {spot.bestTime && spot.bestTime !== 'Not specified' ? spot.bestTime : ''}
-                    {spot.score != null && spot.score > 0 && (
-                      <span className="ml-1 text-emerald-400">· {spot.score}</span>
+                    {spotRatings.get(spot.id)?.count > 0 && (
+                      <span className="ml-1 text-emerald-400">· {spotRatings.get(spot.id).average.toFixed(1)}</span>
                     )}
                     {(spot.createdBy != null && String(spot.createdBy).trim())
                       ? (
