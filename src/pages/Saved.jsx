@@ -129,6 +129,7 @@ export default function Saved({
   setSyncCode,
   refetchFavorites,
   pushFavoritesToSync,
+  importFavoritesFromSyncCode,
   hasSupabase = false,
   theme = 'dark',
   setTheme,
@@ -144,6 +145,9 @@ export default function Saved({
   const [newListName, setNewListName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [exportCopied, setExportCopied] = useState(false);
+  const [importCodeValue, setImportCodeValue] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importDone, setImportDone] = useState(false);
   const savedSpots = useMemo(() => {
     if (sharedIds?.length) {
       return allSpots.filter((s) => sharedIds.includes(s.id));
@@ -239,9 +243,46 @@ export default function Saved({
                 {currentUser ? 'Favorites' : 'Sync favorites'}
               </p>
               {currentUser ? (
-                <p className="text-sm text-slate-400">
-                  Favorites are saved to your account and sync across your devices when you sign in.
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-400">
+                    Favorites are saved to your account and sync across your devices when you sign in.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={importCodeValue}
+                      onChange={(e) => { setImportCodeValue(e.target.value); setImportDone(false); }}
+                      placeholder="Sync code from phone or other device"
+                      className="flex-1 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={!importCodeValue.trim() || importing}
+                      onClick={async () => {
+                        const code = importCodeValue.trim();
+                        if (!code || !importFavoritesFromSyncCode) return;
+                        setImporting(true);
+                        setImportDone(false);
+                        try {
+                          await importFavoritesFromSyncCode(code);
+                          setImportDone(true);
+                          setImportCodeValue('');
+                        } finally {
+                          setImporting(false);
+                        }
+                      }}
+                      className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                    >
+                      {importing ? 'Importing…' : 'Import'}
+                    </button>
+                  </div>
+                  {importDone && (
+                    <p className="text-xs text-emerald-400">Favorites from that code have been added to your account.</p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    If you used a sync code on your phone, enter it above to copy those favorites into your account.
+                  </p>
+                </div>
               ) : !syncCode ? (
                 <div className="space-y-2">
                   <p className="text-sm text-slate-400">

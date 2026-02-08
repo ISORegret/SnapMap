@@ -268,28 +268,36 @@ export default function App() {
   useEffect(() => {
     if (!ready || !isOnline || !hasSupabase || !effectiveSyncCode) return;
     let cancelled = false;
+    // Read local favorites before we overwrite them (for migration)
+    const localFavs = currentUser ? loadFavorites() : [];
+    const manualCode = syncCode && !String(syncCode).startsWith('user_') ? String(syncCode).trim() : '';
     fetchFavoritesApi(effectiveSyncCode).then(async (ids) => {
+      if (cancelled) return;
+      // First-time sign-in: migrate local + manual sync code favorites into account if cloud is empty
+      if (currentUser && ids.length === 0 && (localFavs.length > 0 || manualCode)) {
+        const toMigrate = new Set(localFavs.filter((id) => id && !String(id).startsWith('user-')));
+        if (manualCode) {
+          const fromCode = await fetchFavoritesApi(manualCode);
+          fromCode.forEach((id) => id && toMigrate.add(id));
+        }
+        for (const spotId of toMigrate) {
+          if (cancelled) break;
+          await addFavoriteApi(effectiveSyncCode, spotId);
+        }
+        if (!cancelled) {
+          const next = await fetchFavoritesApi(effectiveSyncCode);
+          setFavoriteIds(next);
+          saveFavorites(next);
+          return;
+        }
+      }
       if (!cancelled) {
         setFavoriteIds(ids);
         saveFavorites(ids);
-        // First-time sign-in: migrate local favorites to account if user has none in cloud
-        if (currentUser && ids.length === 0) {
-          const localFavs = loadFavorites();
-          if (localFavs.length > 0) {
-            for (const spotId of localFavs) {
-              if (spotId && !String(spotId).startsWith('user-')) await addFavoriteApi(effectiveSyncCode, spotId);
-            }
-            if (!cancelled) {
-              const next = await fetchFavoritesApi(effectiveSyncCode);
-              setFavoriteIds(next);
-              saveFavorites(next);
-            }
-          }
-        }
       }
     });
     return () => { cancelled = true; };
-  }, [ready, isOnline, effectiveSyncCode, currentUser?.id]);
+  }, [ready, isOnline, effectiveSyncCode, currentUser?.id, syncCode]);
 
   const refetchFavorites = useCallback((overrideCode) => {
     const code = overrideCode ?? effectiveSyncCodeRef.current;
@@ -321,6 +329,23 @@ export default function App() {
       if (spotId && !String(spotId).startsWith('user-')) await addFavoriteApi(code, spotId);
     }
   }, []);
+
+  /** Copy favorites from a manual sync code into the current account (user_<id>). Use when switching from code to sign-in or from another device. */
+  const importFavoritesFromSyncCode = useCallback(
+    async (manualCode) => {
+      const code = manualCode && String(manualCode).trim();
+      if (!hasSupabase || !currentUser || !code || code.startsWith('user_')) return;
+      const ids = await fetchFavoritesApi(code);
+      const accountCode = `user_${currentUser.id}`;
+      for (const spotId of ids) {
+        if (spotId && !String(spotId).startsWith('user-')) await addFavoriteApi(accountCode, spotId);
+      }
+      const next = await fetchFavoritesApi(accountCode);
+      setFavoriteIds(next);
+      saveFavorites(next);
+    },
+    [hasSupabase, currentUser?.id]
+  );
 
   // Prefer userSpots over communitySpots when same id (so local edits persist after reopen)
   const allSpotsRaw = [
@@ -626,6 +651,7 @@ export default function App() {
                 setSyncCode={setSyncCode}
                 refetchFavorites={refetchFavorites}
                 pushFavoritesToSync={pushFavoritesToSync}
+                importFavoritesFromSyncCode={importFavoritesFromSyncCode}
                 hasSupabase={hasSupabase}
                 theme={theme}
                 setTheme={setTheme}
