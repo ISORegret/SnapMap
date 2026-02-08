@@ -69,9 +69,15 @@ export default function SignIn({ onSuccess, currentUser }) {
     }
     setError('');
     setLoading(true);
+    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
+    } catch (_) {}
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      options: { emailRedirectTo: redirectTo },
     });
     setLoading(false);
     if (err) {
@@ -135,12 +141,30 @@ export default function SignIn({ onSuccess, currentUser }) {
   }
 
   if (signUpConfirm) {
+    const handleResend = async () => {
+      if (!hasSupabase || !supabase || !email.trim()) return;
+      setError('');
+      setLoading(true);
+      const { error: err } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+      setLoading(false);
+      if (err) setError(err.message || 'Could not resend.');
+    };
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
         <p className="text-lg font-medium text-white">Confirm your email</p>
         <p className="mt-2 text-sm text-slate-400">
           We sent a confirmation link to <strong className="text-slate-300">{email}</strong>. Click it to activate your account, then sign in with your password.
         </p>
+        <p className="mt-3 text-xs text-slate-500">Check your spam folder if you don&apos;t see it.</p>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={loading}
+          className="mt-4 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
+        >
+          {loading ? 'Sending…' : 'Resend link'}
+        </button>
+        {error && <p className="mt-2 text-sm text-amber-400">{error}</p>}
         <button type="button" onClick={() => setSignUpConfirm(false)} className="mt-6 text-emerald-400 hover:underline">Back to sign in</button>
       </div>
     );
