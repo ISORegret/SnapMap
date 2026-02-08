@@ -366,6 +366,13 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                         >
                           Profile
                         </a>
+                        <a
+                          href="#/change-password"
+                          onClick={() => setSettingsOpen(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                        >
+                          Change password
+                        </a>
                         <button
                           type="button"
                           onClick={() => { onSignOut?.(); setSettingsOpen(false); }}

@@ -28,6 +28,7 @@ import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
 import Profile from './pages/Profile';
 import SignIn from './pages/SignIn';
+import ChangePassword from './pages/ChangePassword';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import { hapticLight } from './utils/haptics';
@@ -602,6 +603,7 @@ export default function App() {
           <Route path="/map" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-slate-400">Loading map…</div>}><MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} /></Suspense>} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
+          <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
           <Route
             path="/saved"

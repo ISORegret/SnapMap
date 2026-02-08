@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase, hasSupabase } from '../api/supabase';
 
 function getAuthParamsFromUrl() {
-  if (typeof window === 'undefined') return { access_token: null, refresh_token: null };
+  if (typeof window === 'undefined') return { access_token: null, refresh_token: null, type: null };
   const hash = window.location.hash.slice(1);
   const qInHash = hash.indexOf('?');
   const searchFromHash = qInHash >= 0 ? hash.slice(qInHash + 1) : hash;
@@ -12,6 +12,7 @@ function getAuthParamsFromUrl() {
   return {
     access_token: fromHash.get('access_token') || fromQuery.get('access_token'),
     refresh_token: fromHash.get('refresh_token') || fromQuery.get('refresh_token'),
+    type: fromHash.get('type') || fromQuery.get('type'),
   };
 }
 
@@ -20,16 +21,21 @@ export default function SignIn({ onSuccess, currentUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
-  const [signUpConfirm, setSignUpConfirm] = useState(false); // sign up done, confirm email
+  const [signUpConfirm, setSignUpConfirm] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [sentReset, setSentReset] = useState(false);
+  const [showSetNewPassword, setShowSetNewPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [exchanging, setExchanging] = useState(true);
   const navigate = useNavigate();
 
-  // When user lands from magic link, URL has access_token in hash or query – exchange for session and go to Feed
+  // When user lands from magic link or password reset, exchange tokens for session
   useEffect(() => {
     if (!hasSupabase || !supabase) return;
-    const { access_token, refresh_token } = getAuthParamsFromUrl();
+    const { access_token, refresh_token, type } = getAuthParamsFromUrl();
     if (!access_token) {
       setExchanging(false);
       return;
@@ -38,7 +44,11 @@ export default function SignIn({ onSuccess, currentUser }) {
       .setSession({ access_token, refresh_token: refresh_token || '' })
       .then(() => {
         if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + '#/');
-        navigate('/', { replace: true });
+        if (type === 'recovery') {
+          setShowSetNewPassword(true);
+        } else {
+          navigate('/', { replace: true });
+        }
       })
       .catch(() => setExchanging(false))
       .finally(() => setExchanging(false));
@@ -133,6 +143,48 @@ export default function SignIn({ onSuccess, currentUser }) {
     setSent(true);
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!hasSupabase || !supabase || !email.trim()) return;
+    setError('');
+    setLoading(true);
+    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
+    } catch (_) {}
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    setLoading(false);
+    if (err) {
+      setError(err.message || 'Could not send reset link.');
+      return;
+    }
+    setSentReset(true);
+  };
+
+  const handleSetNewPassword = async (e) => {
+    e.preventDefault();
+    if (!hasSupabase || !supabase || !newPassword || !newPasswordConfirm) return;
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    setLoading(false);
+    if (err) {
+      setError(err.message || 'Could not update password.');
+      return;
+    }
+    setShowSetNewPassword(false);
+    navigate('/', { replace: true });
+  };
+
   if (exchanging) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
@@ -197,6 +249,104 @@ export default function SignIn({ onSuccess, currentUser }) {
           We sent a sign-in link to <strong className="text-slate-300">{email}</strong>. Click the link to sign in.
         </p>
         <Link to="/" className="mt-6 text-emerald-400 hover:underline">Back to For You</Link>
+      </div>
+    );
+  }
+
+  if (forgotPassword && !sentReset) {
+    return (
+      <div className="mx-auto max-w-sm px-4 py-12">
+        <h1 className="text-xl font-semibold text-white">Forgot password</h1>
+        <p className="mt-1 text-sm text-slate-500">Enter your email and we&apos;ll send a link to reset your password.</p>
+        <form onSubmit={handleForgotPassword} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="forgot-email" className="block text-xs font-medium text-slate-500">Email</label>
+            <input
+              id="forgot-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          {error && <p className="text-sm text-amber-400">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+          >
+            {loading ? 'Sending…' : 'Send reset link'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setForgotPassword(false); setError(''); }}
+            className="w-full rounded-xl border border-white/10 py-3 font-medium text-slate-300 hover:bg-white/5"
+          >
+            Back to sign in
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (sentReset) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-lg font-medium text-white">Check your email</p>
+        <p className="mt-2 text-sm text-slate-400">
+          We sent a password reset link to <strong className="text-slate-300">{email}</strong>. Click the link to set a new password.
+        </p>
+        <button type="button" onClick={() => { setSentReset(false); setForgotPassword(false); }} className="mt-6 text-emerald-400 hover:underline">Back to sign in</button>
+      </div>
+    );
+  }
+
+  if (showSetNewPassword) {
+    return (
+      <div className="mx-auto max-w-sm px-4 py-12">
+        <h1 className="text-xl font-semibold text-white">Set new password</h1>
+        <p className="mt-1 text-sm text-slate-500">Enter your new password below.</p>
+        <form onSubmit={handleSetNewPassword} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="new-password" className="block text-xs font-medium text-slate-500">New password</label>
+            <input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-password-confirm" className="block text-xs font-medium text-slate-500">Confirm new password</label>
+            <input
+              id="new-password-confirm"
+              type="password"
+              value={newPasswordConfirm}
+              onChange={(e) => setNewPasswordConfirm(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          {error && <p className="text-sm text-amber-400">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+          >
+            {loading ? 'Updating…' : 'Update password'}
+          </button>
+        </form>
       </div>
     );
   }
@@ -271,6 +421,13 @@ export default function SignIn({ onSuccess, currentUser }) {
             className="w-full rounded-xl border border-white/10 py-3 font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
           >
             Create account
+          </button>
+          <button
+            type="button"
+            onClick={() => { setForgotPassword(true); setError(''); }}
+            className="w-full py-2 text-sm text-slate-500 hover:text-emerald-400"
+          >
+            Forgot password?
           </button>
         </form>
       ) : (
