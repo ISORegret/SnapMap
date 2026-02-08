@@ -440,35 +440,21 @@
         <p class="privacy"><strong>Spots are cloud saved.</strong> Add a spot on your phone or the web — it syncs for everyone. No account, no selling data.</p>
         <div class="btns">
           <div>
-            <a href="./SnapMap.apk" class="btn btn-primary" id="download-apk-btn">Download APK</a>
+            <a href="./snapmap.apk" class="btn btn-primary" id="download-apk-btn" download="SnapMap.apk">Download APK</a>
             <p class="version-under-btn">v1.2.1</p>
             <p class="download-count version-under-btn" id="download-count" style="margin-top: 0.25rem;">—</p>
           </div>
           <div>
             <a href="./app/" class="btn btn-primary">Use web app</a>
             <p class="version-under-btn">No install — use in browser</p>
+            <p class="version-under-btn" style="margin-top: 0.25rem; font-size: 0.7rem; opacity: 0.85;">iOS: open in Safari, then Share → Add to Home Screen</p>
           </div>
-          <a href="#" class="btn btn-ghost" id="ios-btn">Add to Home Screen (iOS)</a>
         </div>
-        <p class="footer-note">Free · Android: APK above · Web: use in browser · iOS: open in Safari, then Share → Add to Home Screen</p>
+        <p class="footer-note">Free · Android: APK above · Web &amp; iOS: use web app</p>
         <p class="footer-note" style="margin-top: 0.5rem;">App v1.2.1</p>
       </section>
     </div>
   </main>
-
-  <div class="modal" id="ios-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-content">
-      <button type="button" class="modal-close" id="modal-close" aria-label="Close">&times;</button>
-      <h3 id="modal-title">Add SnapMap to your home screen</h3>
-      <ol>
-        <li>Tap the button below to open the app in Safari.</li>
-        <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
-        <li>Tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong>.</li>
-      </ol>
-      <a href="./app/" class="btn btn-primary" id="modal-gotit">Open app to install</a>
-    </div>
-  </div>
 
   <div class="lightbox" id="screenshot-lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
     <div class="lightbox-inner">
@@ -539,17 +525,6 @@
       }
 
       loadDownloadCount();
-
-      var iosBtn = document.getElementById('ios-btn');
-      var modal = document.getElementById('ios-modal');
-      var closeBtn = document.getElementById('modal-close');
-      var gotIt = document.getElementById('modal-gotit');
-      function openModal() { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); }
-      function closeModal() { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
-      iosBtn.addEventListener('click', function (e) { e.preventDefault(); openModal(); });
-      closeBtn.addEventListener('click', closeModal);
-      gotIt.addEventListener('click', function () { closeModal(); });
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
 
       (function lightbox() {
         var screenshots = [
