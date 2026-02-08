@@ -593,6 +593,17 @@ export default function SpotDetail({
         ) : (
           <p className="mt-1 text-xs text-slate-500">Added by Anonymous</p>
         )}
+        {(spot.lastEditedBy != null && String(spot.lastEditedBy).trim()) ? (
+          <p className="mt-0.5 text-xs text-slate-500">
+            Last edited by{' '}
+            <Link
+              to={`/user/${encodeURIComponent(String(spot.lastEditedBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
+              className="text-emerald-400 hover:underline"
+            >
+              @{String(spot.lastEditedBy).trim()}
+            </Link>
+          </p>
+        ) : null}
         {hasSupabase && (
           <div className="mt-3 flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-sm text-slate-500">

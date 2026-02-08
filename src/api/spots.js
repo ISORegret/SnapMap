@@ -22,6 +22,7 @@ function rowToSpot(row) {
     linkLabel: row.link_label ?? 'More info',
     createdAt: row.created_at,
     createdBy: row.created_by ?? '',
+    lastEditedBy: row.last_edited_by ?? '',
   };
 }
 
@@ -103,6 +104,7 @@ export async function updateCommunitySpot(id, updates) {
   if (updates.images != null) payload.images = updates.images;
   if (updates.linkUrl != null) payload.link_url = updates.linkUrl;
   if (updates.linkLabel != null) payload.link_label = updates.linkLabel;
+  if (updates.lastEditedBy !== undefined) payload.last_edited_by = (updates.lastEditedBy ?? '').toString().trim().slice(0, 100);
   if (Object.keys(payload).length === 0) return true;
   const { data, error } = await supabase
     .from('spots')

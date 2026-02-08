@@ -395,23 +395,26 @@ export default function App() {
     async (spotId, updates) => {
       const inUser = userSpots.find((s) => s.id === spotId);
       const isCloudId = spotId && !String(spotId).startsWith('user-');
+      const payload = currentUserProfile?.username
+        ? { ...updates, lastEditedBy: currentUserProfile.username }
+        : updates;
 
       if (inUser) {
-        const updated = { ...inUser, ...updates };
+        const updated = { ...inUser, ...payload };
         setUserSpots((prev) => {
           const next = prev.map((s) => (s.id === spotId ? updated : s));
           saveUserSpots(next);
           return next;
         });
         if (isCloudId) {
-          const ok = await updateCommunitySpot(spotId, updates);
+          const ok = await updateCommunitySpot(spotId, payload);
           if (ok) {
-            setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+            setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...payload } : s)));
             return true;
           }
           setUserSpots((prev) => {
             const next = prev.map((s) =>
-              s.id === spotId ? { ...s, ...updates, syncError: true } : s
+              s.id === spotId ? { ...s, ...payload, syncError: true } : s
             );
             saveUserSpots(next);
             return next;
@@ -421,16 +424,16 @@ export default function App() {
         return true; // local-only spot, local save succeeded
       }
       if (isCloudId) {
-        const ok = await updateCommunitySpot(spotId, updates);
+        const ok = await updateCommunitySpot(spotId, payload);
         if (ok) {
-          setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...updates } : s)));
+          setCommunitySpots((prev) => prev.map((s) => (s.id === spotId ? { ...s, ...payload } : s)));
           return true;
         }
         return false;
       }
       return true; // no cloud id, nothing to sync
     },
-    [userSpots]
+    [userSpots, currentUserProfile?.username]
   );
 
   const deleteSpot = useCallback((spotId) => {

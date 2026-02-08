@@ -156,7 +156,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         images: finalImages,
         linkUrl: linkUrl.trim() || '',
         linkLabel: linkLabel.trim() || 'More info',
-        createdBy: createdBy.trim() || '',
+        createdBy: (currentUserProfile?.username && !editSpot) ? currentUserProfile.username : (createdBy.trim() || ''),
       };
       if (editSpot && onUpdate) {
         setSaveFeedback(null);
@@ -307,24 +307,38 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-500">Added by (optional)</label>
-          <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
-          <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
-              {currentUserProfile?.avatar_url ? (
-                <img src={currentUserProfile.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-4 w-4" /></div>
-              )}
-            </div>
-            <input
-              type="text"
-              value={createdBy}
-              onChange={(e) => setCreatedBy(e.target.value)}
-              placeholder={currentUserProfile?.username ? `@${currentUserProfile.username}` : 'e.g. yourname'}
-              className="min-w-0 flex-1 bg-transparent text-white placeholder-slate-500 focus:outline-none"
-            />
-          </div>
+          <label className="block text-xs font-medium text-slate-500">Added by</label>
+          {currentUserProfile?.username ? (
+            <>
+              <p className="mt-0.5 text-[11px] text-slate-500">This spot will show as added by your profile.</p>
+              <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
+                  {currentUserProfile?.avatar_url ? (
+                    <img src={currentUserProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-4 w-4" /></div>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-white">@{currentUserProfile.username}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
+              <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
+                  <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-4 w-4" /></div>
+                </div>
+                <input
+                  type="text"
+                  value={createdBy}
+                  onChange={(e) => setCreatedBy(e.target.value)}
+                  placeholder="e.g. yourname"
+                  className="min-w-0 flex-1 bg-transparent text-white placeholder-slate-500 focus:outline-none"
+                />
+              </div>
+            </>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500">Best time (optional)</label>
