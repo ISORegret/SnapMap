@@ -75,9 +75,11 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
       setPhotoError('Please choose an image file.');
       return;
     }
+    const defaultPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
+      || (currentUserProfile?.username ? `@${currentUserProfile.username}` : 'You');
     resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)
       .then((dataUrl) => {
-        setImages((prev) => [...prev, { uri: dataUrl, photoBy: 'You' }]);
+        setImages((prev) => [...prev, { uri: dataUrl, photoBy: defaultPhotoBy }]);
       })
       .catch(() => setPhotoError('Could not load photo. Try another.'));
   };
@@ -124,9 +126,15 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setFieldErrors(errors);
     if (errors.name || errors.latitude || errors.longitude) return;
 
+    const creatorPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
+      || (currentUserProfile?.username ? `@${currentUserProfile.username}` : 'You');
     const validImages = images
       .filter((img) => img?.uri && String(img.uri).trim())
-      .map((img) => ({ uri: img.uri.trim(), photoBy: (img.photoBy || 'You').trim() }));
+      .map((img) => {
+        const by = (img.photoBy || 'You').trim();
+        const photoBy = (by === 'You' && currentUserProfile) ? creatorPhotoBy : by;
+        return { uri: img.uri.trim(), photoBy };
+      });
     const hasRealPhoto = validImages.some((img) => img.uri && img.uri !== DEFAULT_IMAGE);
     if (!editSpot && !hasRealPhoto) {
       setPhotoError('Add at least one photo of the spot.');

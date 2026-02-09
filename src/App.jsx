@@ -682,6 +682,8 @@ export default function App() {
                 removeFromCollection={removeFromCollection}
                 userPosition={userPosition}
                 units={units}
+                currentUser={currentUser}
+                currentUserProfile={currentUserProfile}
               />
             }
           />

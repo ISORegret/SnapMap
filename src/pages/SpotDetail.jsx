@@ -160,6 +160,14 @@ function WeatherAtSpot({ latitude, longitude }) {
   );
 }
 
+function photoByLabel(profile) {
+  if (!profile) return 'You';
+  const name = (profile.display_name || profile.displayName || '').trim();
+  if (name) return name;
+  if (profile.username) return `@${profile.username}`;
+  return 'You';
+}
+
 export default function SpotDetail({
   getSpotById,
   isUserSpot,
@@ -173,6 +181,8 @@ export default function SpotDetail({
   removeFromCollection,
   userPosition = null,
   units = 'mi',
+  currentUser = null,
+  currentUserProfile = null,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -464,10 +474,11 @@ export default function SpotDetail({
     e.target.value = '';
     if (!file || !file.type.startsWith('image/') || !canAddPhoto) return;
     setAddPhotoLoading(true);
+    const attributedTo = photoByLabel(currentUserProfile);
     resizeImageToDataUrl(file, 1200)
       .then((dataUrl) => {
         const current = getSpotImages(spot);
-        updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: 'You' }] });
+        updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo }] });
       })
       .finally(() => setAddPhotoLoading(false));
   };
