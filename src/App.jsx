@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Map as MapIcon, Plus, Heart, WifiOff, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
+import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
@@ -21,12 +21,14 @@ import { fetchFavorites as fetchFavoritesApi, addFavorite as addFavoriteApi, rem
 import { getProfileById, createProfile } from './api/profiles';
 import { supabase, hasSupabase } from './api/supabase';
 import { getCurrentPosition } from './utils/geo';
-import Feed from './pages/Feed';
-const MapPage = lazy(() => import('./pages/Map'));
+import MapPage from './pages/Map';
+import Explore from './pages/Explore';
 import Add from './pages/Add';
 import Saved from './pages/Saved';
 import SpotDetail from './pages/SpotDetail';
 import Profile from './pages/Profile';
+import Account from './pages/Account';
+import About from './pages/About';
 import SignIn from './pages/SignIn';
 import ChangePassword from './pages/ChangePassword';
 import InstallPrompt from './components/InstallPrompt';
@@ -93,6 +95,21 @@ export default function App() {
     setSyncCodeState(loadSyncCode());
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const splash = document.getElementById('splash');
+    if (!splash) return;
+    let removeId;
+    const hideId = setTimeout(() => {
+      splash.classList.add('hidden');
+      removeId = setTimeout(() => splash.remove(), 450);
+    }, 500);
+    return () => {
+      clearTimeout(hideId);
+      clearTimeout(removeId);
+    };
+  }, [ready]);
 
   useEffect(() => {
     if (!hasSupabase || !supabase) return;
@@ -589,12 +606,8 @@ export default function App() {
   }
 
   const navLinkClass = ({ isActive }) =>
-    `flex flex-col items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-smooth ${
+    `flex flex-col items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
       isActive ? 'text-accent-400' : 'text-slate-500 hover:bg-accent-500/10 hover:text-slate-300'
-    }`;
-  const addLinkClass = ({ isActive }) =>
-    `flex flex-col items-center gap-1 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition-all duration-smooth hover:bg-accent-400 ${
-      isActive ? 'ring-2 ring-accent-400 ring-offset-2 ring-offset-[#0f0e12]' : ''
     }`;
 
   return (
@@ -609,33 +622,24 @@ export default function App() {
       )}
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-44">
         <Routes>
+          <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} />} />
           <Route
-            path="/"
+            path="/explore"
             element={
-              <Feed
+              <Explore
                 allSpots={allSpots}
                 favoriteIds={favoriteIds}
                 toggleFavorite={toggleFavorite}
-                onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
-                onRefresh={() => {
-                  setCommunitySpotsLoading(true);
-                  return fetchCommunitySpots().then(setCommunitySpots).finally(() => setCommunitySpotsLoading(false));
-                }}
-                spotsLoading={communitySpotsLoading}
-                updateAvailable={updateAvailable}
                 userPosition={userPosition}
                 requestPosition={requestPosition}
-                theme={theme}
-                setTheme={setTheme}
                 units={units}
-                setUnits={setUnits}
-                currentUser={currentUser}
-                onSignOut={() => supabase?.auth?.signOut()}
               />
             }
           />
-          <Route path="/map" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-slate-400">Loading map…</div>}><MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} /></Suspense>} />
+          <Route path="/map" element={<Navigate to="/" replace />} />
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
+          <Route path="/profile" element={<Account allSpots={allSpots} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
+          <Route path="/about" element={<About allSpots={allSpots} />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
@@ -689,28 +693,37 @@ export default function App() {
           />
         </Routes>
       </main>
-      {/* Floating / compact nav: pill only, no black bar; content scrolls behind it */}
-      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 12 }}>
+      {/* FAB - Add spot */}
+      <NavLink
+        to="/add"
+        className="fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent-500 text-white shadow-glow transition hover:bg-accent-400 active:scale-95"
+        aria-label="Add spot"
+      >
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
+      </NavLink>
+
+      {/* Bottom nav: Map | Explore | Saved | Profile */}
+      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 0 }}>
         <nav
-          className="flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-white/[0.08] px-2 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-smooth"
+          className="flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-white/[0.08] px-2 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
           style={{ backgroundColor: 'var(--bg-nav)' }}
           aria-label="Main"
         >
           <NavLink to="/" className={navLinkClass}>
-            <LayoutGrid className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">For You ({allSpots.length})</span>
-          </NavLink>
-          <NavLink to="/map" className={navLinkClass}>
             <MapIcon className="h-5 w-5" />
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Map</span>
           </NavLink>
-          <NavLink to="/add" className={addLinkClass}>
-            <Plus className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Add</span>
+          <NavLink to="/explore" className={navLinkClass}>
+            <Compass className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Explore</span>
           </NavLink>
           <NavLink to="/saved" className={navLinkClass}>
             <Heart className="h-5 w-5" />
             <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
+          </NavLink>
+          <NavLink to="/profile" className={navLinkClass}>
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Profile</span>
           </NavLink>
         </nav>
         <p className="mt-1 text-center text-[10px] text-slate-500" aria-hidden="true">

@@ -92,9 +92,10 @@ export default function Profile({ allSpots = [], currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
         <p className="text-slate-400">User not found.</p>
-        <Link to="/" className="text-accent-400 hover:underline">
-          Back to For You
-        </Link>
+        <div className="flex gap-4">
+          <Link to="/" className="text-accent-400 hover:underline">Back to Map</Link>
+          <Link to="/about" className="text-accent-400 hover:underline">About SnapMap</Link>
+        </div>
       </div>
     );
   }

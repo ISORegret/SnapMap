@@ -63,7 +63,7 @@ export default function ChangePassword({ currentUser }) {
       <div className="mx-auto max-w-sm px-4 py-12 text-center">
         <p className="text-lg font-medium text-white">Password updated</p>
         <p className="mt-2 text-sm text-slate-400">Your password has been changed. Use it next time you sign in.</p>
-        <Link to="/" className="mt-6 inline-block text-accent-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="mt-6 inline-block text-accent-400 hover:underline">Back to Map</Link>
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function ChangePassword({ currentUser }) {
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        <Link to="/" className="text-accent-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="text-accent-400 hover:underline">Back to Map</Link>
       </p>
     </div>
   );

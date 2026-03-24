@@ -32,41 +32,63 @@ function SpotImageGallery({ images, spotName }) {
     else if (dx < -SWIPE_THRESHOLD) goNext();
   };
   return (
-    <div
-      className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 touch-pan-y"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      <img
-        src={current.uri}
-        alt={spotName}
-        className="h-full w-full object-cover select-none"
-        draggable={false}
-      />
+    <div>
+      <div
+        className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 touch-pan-y"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <img
+          src={current.uri}
+          alt={spotName}
+          className="h-full w-full object-cover select-none"
+          draggable={false}
+        />
+        {images.length > 1 && (
+          <>
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  className={`h-1.5 rounded-full transition ${
+                    i === index ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/70'
+                  }`}
+                  aria-label={`Photo ${i + 1}`}
+                />
+              ))}
+            </div>
+            <p className="absolute bottom-8 left-2 right-2 text-center text-[10px] text-white/80 drop-shadow">
+              Photo by {current.photoBy} · {index + 1}/{images.length}
+            </p>
+          </>
+        )}
+        {images.length === 1 && current.photoBy && (
+          <p className="absolute bottom-2 left-2 text-[10px] text-white/80 drop-shadow">
+            Photo by {current.photoBy}
+          </p>
+        )}
+      </div>
+      {/* Thumbnail gallery - show all photos when more than one */}
       {images.length > 1 && (
-        <>
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
-            {images.map((_, i) => (
+        <div className="px-4 py-3 border-b border-white/[0.06]">
+          <p className="text-xs font-medium text-slate-500 mb-2">Photos at this spot ({images.length})</p>
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {images.map((img, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition ${
-                  i === index ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/70'
+                className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${
+                  i === index ? 'border-accent-500' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
-                aria-label={`Photo ${i + 1}`}
-              />
+              >
+                <img src={img.uri} alt={`${spotName} photo ${i + 1}`} className="h-full w-full object-cover" />
+              </button>
             ))}
           </div>
-          <p className="absolute bottom-8 left-2 right-2 text-center text-[10px] text-white/80 drop-shadow">
-            Photo by {current.photoBy} · {index + 1}/{images.length}
-          </p>
-        </>
-      )}
-      {images.length === 1 && current.photoBy && (
-        <p className="absolute bottom-2 left-2 text-[10px] text-white/80 drop-shadow">
-          Photo by {current.photoBy}
-        </p>
+        </div>
       )}
     </div>
   );
@@ -258,12 +280,18 @@ export default function SpotDetail({
     };
   }, [spot?.latitude, spot?.longitude, sunDate]);
 
+  const canAddNotes = spot?.id && !String(spot.id).startsWith('user-');
+  useEffect(() => {
+    if (!canAddNotes) return;
+    fetchSpotNotes(spot.id).then(setNotes);
+  }, [spot?.id, canAddNotes]);
+
   if (!spot) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
         <p className="text-slate-400">Spot not found.</p>
         <Link to="/" className="text-accent">
-          Back to For You
+          Back
         </Link>
       </div>
     );
@@ -432,12 +460,6 @@ export default function SpotDetail({
   };
 
   const canReport = spot.id && !String(spot.id).startsWith('user-');
-  const canAddNotes = spot.id && !String(spot.id).startsWith('user-');
-
-  useEffect(() => {
-    if (!canAddNotes) return;
-    fetchSpotNotes(spot.id).then(setNotes);
-  }, [spot.id, canAddNotes]);
 
   const addNote = async () => {
     if (!canAddNotes || !noteText.trim() || noteSubmitting) return;

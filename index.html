@@ -14,7 +14,131 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <div class="splash-bg"></div>
+      <div class="splash-content">
+        <div class="splash-logo-wrap">
+          <div class="splash-logo-glow"></div>
+          <div class="splash-logo">
+            <img src="./snapmap-icon.svg" alt="" width="80" height="80" />
+          </div>
+        </div>
+        <h1 class="splash-title">SnapMap</h1>
+        <p class="splash-tagline">The best places for photography and cars</p>
+        <p class="splash-sub">Exact geo · Best times · Plan less, travel more</p>
+        <div class="splash-loading">
+          <div class="splash-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #051009;
+        transition: opacity 0.4s ease-out, visibility 0.4s;
+        font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+      }
+      #splash.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .splash-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 50% at 50% 20%, rgba(232,167,53,0.15), transparent 50%),
+          radial-gradient(ellipse 60% 40% at 50% 80%, rgba(232,167,53,0.08), transparent 50%);
+      }
+      .splash-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      .splash-logo-wrap {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+      .splash-logo-glow {
+        position: absolute;
+        inset: -1rem;
+        border-radius: 50%;
+        background: rgba(232,167,53,0.2);
+        filter: blur(24px);
+      }
+      .splash-logo {
+        position: relative;
+        width: 7rem;
+        height: 7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 1rem;
+        border: 1px solid rgba(232,167,53,0.3);
+        background: #0f0e12;
+        box-shadow: 0 0 40px -8px rgba(232,167,53,0.4);
+      }
+      .splash-logo img {
+        width: 5rem;
+        height: 5rem;
+        object-fit: contain;
+      }
+      .splash-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 50%, #e8a735 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+      }
+      .splash-tagline {
+        margin: 0.75rem 0 0.25rem;
+        font-size: 1rem;
+        color: #94a3b8;
+      }
+      .splash-sub {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+      .splash-loading {
+        margin-top: 3.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+      .splash-dots {
+        display: flex;
+        gap: 0.375rem;
+      }
+      .splash-dots span {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: rgba(232,167,53,0.6);
+        animation: splash-bounce 0.6s ease-in-out infinite;
+      }
+      .splash-dots span:nth-child(2) { animation-delay: 0.15s; }
+      .splash-dots span:nth-child(3) { animation-delay: 0.3s; }
+      @keyframes splash-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+    </style>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -197,7 +197,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
         <p className="text-white">You&apos;re signed in.</p>
-        <Link to="/" className="mt-4 text-accent-400 hover:underline">Go to Feed</Link>
+        <Link to="/" className="mt-4 text-accent-400 hover:underline">Go to Map</Link>
       </div>
     );
   }
@@ -248,7 +248,7 @@ export default function SignIn({ onSuccess, currentUser }) {
         <p className="mt-2 text-sm text-slate-400">
           We sent a sign-in link to <strong className="text-slate-300">{email}</strong>. Click the link to sign in.
         </p>
-        <Link to="/" className="mt-6 text-accent-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="mt-6 text-accent-400 hover:underline">Back to Map</Link>
       </div>
     );
   }
@@ -456,7 +456,9 @@ export default function SignIn({ onSuccess, currentUser }) {
       )}
 
       <p className="mt-6 text-center text-sm text-slate-500">
-        <Link to="/" className="text-accent-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="text-accent-400 hover:underline">Back to Map</Link>
+        {' · '}
+        <Link to="/about" className="text-accent-400 hover:underline">About SnapMap</Link>
       </p>
     </div>
   );

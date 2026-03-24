@@ -5,29 +5,29 @@ const TUTORIAL_KEY = 'snapmap_tutorial_done';
 
 const STEPS = [
   {
-    title: 'Discover spots',
-    body: 'Browse the For You feed. Filter by category, distance, or search. Tap a spot to see details, sun times, and directions.',
+    title: 'Map first',
+    body: 'Start with the map to see all photo spots. Tap a marker to preview, then open for full details. Switch layers (Map, Satellite, Terrain, Dark) in the control.',
+    icon: Map,
+  },
+  {
+    title: 'Explore',
+    body: 'Browse spots by category or search. See spots near you when location is on. Full-width cards show the best of each location.',
     icon: LayoutGrid,
   },
   {
-    title: 'Save favorites',
-    body: 'Heart a spot to save it. Use the Saved tab to see your favorites and lists. Turn on sync to see the same favorites on all your devices.',
+    title: 'Save & share',
+    body: 'Heart spots to save them. Use the Saved tab for your favorites and lists. Sync across devices when signed in.',
     icon: Heart,
   },
   {
-    title: 'Sign in & profile',
-    body: 'You can sign in with email and password or a magic link. Create an account to sync favorites and set a display name and profile picture. Spots you add will show as added by you.',
-    icon: User,
-  },
-  {
     title: 'Add spots',
-    body: 'Tap + to add a new spot. Add at least one photo, name, and location. Your spot is shared with everyone when Supabase is connected.',
+    body: 'Tap the + button to add a new spot. Add a photo, name, and location. Your spot is shared with everyone when connected.',
     icon: Plus,
   },
   {
-    title: 'Use the map',
-    body: 'Open the Map tab to see all spots. Switch layers (Map, Satellite, Terrain, Dark) with the control. Tap the map to add a spot at that location.',
-    icon: Map,
+    title: 'Profile',
+    body: 'Sign in to sync favorites, set a display name, and show spots as added by you. Create an account with email or magic link.',
+    icon: User,
   },
 ];
 

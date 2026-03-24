@@ -33,11 +33,9 @@ class AppErrorBoundary extends React.Component {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AppErrorBoundary>
-      <HashRouter>
-        <App />
-      </HashRouter>
-    </AppErrorBoundary>
-  </React.StrictMode>
+  <AppErrorBoundary>
+    <HashRouter>
+      <App />
+    </HashRouter>
+  </AppErrorBoundary>
 );

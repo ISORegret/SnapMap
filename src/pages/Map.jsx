@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, LayersControl, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
@@ -89,11 +89,22 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
     const group = new L.MarkerClusterGroup({ showCoverageOnHover: false, zoomToBoundsOnClick: true });
     groupRef.current = group;
 
+    const container = map.getContainer();
+    const handlePopupLinkClick = (e) => {
+      const a = e.target?.closest?.('a[data-spot-id]');
+      if (a) {
+        e.preventDefault();
+        const id = a.getAttribute('data-spot-id');
+        if (id) window.location.hash = `#/spot/${id}`;
+      }
+    };
+    container.addEventListener('click', handlePopupLinkClick);
+
     spots.forEach((spot) => {
       const marker = L.marker([spot.latitude, spot.longitude], { icon })
         .bindPopup(
           `<div class="min-w-[140px] text-slate-200">
-            <a href="#/spot/${spot.id}" class="font-semibold text-accent-400 hover:underline">${escapeHtml(spot.name)}</a>
+            <a href="#/spot/${escapeHtml(spot.id)}" data-spot-id="${escapeHtml(spot.id)}" class="font-semibold text-accent-400 hover:underline">${escapeHtml(spot.name)}</a>
             <br><small class="text-slate-400">${escapeHtml(spot.bestTime || '—')}</small>
           </div>`,
           { className: 'snapmap-popup' }
@@ -105,6 +116,7 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
 
     map.addLayer(group);
     return () => {
+      container.removeEventListener('click', handlePopupLinkClick);
       map.removeLayer(group);
       groupRef.current = null;
     };
@@ -135,6 +147,7 @@ async function geocodeAddress(query) {
 
 export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', setUnits }) {
   const navigate = useNavigate();
+  const [mapReady, setMapReady] = useState(false);
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -266,6 +279,20 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     return () => document.removeEventListener('backbutton', handleBack);
   }, [goBack]);
 
+  // Defer MapContainer mount to avoid react-leaflet hook-order issues (#310)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMapReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  if (!mapReady) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-[#0f0e12] text-slate-400">
+        Loading map…
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 w-full flex flex-col">
       {/* Location permission prompt */}
@@ -304,7 +331,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       )}
 
       {filteredSpots.length === 0 && (
-        <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0c0f0e]/90 px-6 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0f0e12]/90 px-6 backdrop-blur-sm">
           <p className="text-center text-sm font-medium text-slate-300">
             No spots yet. Add your first spot to see it on the map.
           </p>
@@ -325,8 +352,10 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         className="h-full w-full"
         style={{ height: '100%', minHeight: 200 }}
         scrollWheelZoom
+        zoomControl={false}
       >
-        <LayersControl position="topright">
+        <ZoomControl position="bottomleft" />
+        <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name="Map">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -371,7 +400,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         />
       </MapContainer>
 
-      <div className="absolute bottom-2 left-3 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur">
+      <div className="absolute bottom-2 left-14 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur">
         Tap map to pin · Save spot here
       </div>
       {pendingPin && (
@@ -506,8 +535,8 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         </div>
       )}
 
-      {/* Back button + Search address */}
-      <div className="absolute left-3 right-14 top-3 z-[1000] flex flex-wrap items-center gap-2">
+      {/* Back button + Search address - leave right side for settings + layer switcher */}
+      <div className="absolute left-3 right-24 top-3 z-[1000] flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={goBack}
@@ -542,7 +571,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       </div>
 
       {/* Filter + Distance dropdowns */}
-      <div className="absolute left-3 top-[4.25rem] right-12 z-[1000] flex gap-2">
+      <div className="absolute left-3 top-[4.25rem] right-24 z-[1000] flex gap-2">
         <div className="relative flex-1">
           <button
             type="button"
