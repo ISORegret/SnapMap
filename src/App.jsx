@@ -620,7 +620,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-44">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(12rem + env(safe-area-inset-bottom, 0px))' }}>
         <Routes>
           <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} />} />
           <Route

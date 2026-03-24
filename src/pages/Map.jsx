@@ -442,7 +442,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {filteredSpots.length === 0 ? (
             <p className="px-4 py-2 text-sm text-slate-500">No spots match. Adjust filters or add a spot.</p>
           ) : (
-            <ul className="space-y-1 px-2 pb-32">
+            <ul className="space-y-1 px-2 pb-44">
               {filteredSpots.map((spot) => (
                 <li key={spot.id}>
                   <button
