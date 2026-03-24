@@ -458,7 +458,9 @@ export default function SignIn({ onSuccess, currentUser }) {
       <p className="mt-6 text-center text-sm text-slate-500">
         <Link to="/" className="text-accent-400 hover:underline">Back to Map</Link>
         {' · '}
-        <Link to="/about" className="text-accent-400 hover:underline">About SnapMap</Link>
+        <Link to="/about" className="text-accent-400 hover:underline">About</Link>
+        {' · '}
+        <Link to="/privacy" className="text-accent-400 hover:underline">Privacy Policy</Link>
       </p>
     </div>
   );

@@ -112,8 +112,14 @@ export default function About({ allSpots = [] }) {
           )}
         </section>
 
-        {/* CTA */}
+        {/* Privacy */}
         <section className="pt-4">
+          <Link
+            to="/privacy"
+            className="block mb-4 text-sm text-accent-400 hover:underline"
+          >
+            Privacy Policy
+          </Link>
           <Link
             to="/"
             className="inline-flex items-center gap-2 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-400"

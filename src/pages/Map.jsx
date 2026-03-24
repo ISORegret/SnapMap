@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents, LayersControl, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEvents, LayersControl, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, ChevronRight, Download, ArrowLeft } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
-import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchDownloadCount } from '../utils/stats';
 
 import 'leaflet/dist/leaflet.css';
@@ -15,8 +14,6 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
-
-const LIST_PANEL_HEIGHT_PX = 300;
 
 // Fix default marker icon in react-leaflet (webpack/vite)
 const icon = L.icon({
@@ -145,10 +142,9 @@ async function geocodeAddress(query) {
   return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
 }
 
-export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', setUnits }) {
+export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', setUnits, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
-  const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(null);
@@ -164,8 +160,6 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [mapSearchError, setMapSearchError] = useState(null);
   const [searchCenter, setSearchCenter] = useState(null); // { lat, lng } to fly map to
-  const [flyToSpot, setFlyToSpot] = useState(null); // { lat, lng } when list item tapped
-  const listItemRefs = useRef({});
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -215,7 +209,6 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
 
   const onMapClick = useCallback(({ lat, lng }) => {
     setPendingPin({ lat, lng });
-    setSelectedSpotId(null);
   }, []);
 
   const goToAddSpot = useCallback(() => {
@@ -246,17 +239,6 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
-
-  const onListSpotTap = useCallback((spot) => {
-    setFlyToSpot({ lat: spot.latitude, lng: spot.longitude });
-    setSelectedSpotId(spot.id);
-  }, []);
-
-  useEffect(() => {
-    if (selectedSpotId && listItemRefs.current[selectedSpotId]) {
-      listItemRefs.current[selectedSpotId].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, [selectedSpotId]);
 
   useEffect(() => {
     fetchDownloadCount().then(setDownloadCount);
@@ -294,7 +276,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
   }
 
   return (
-    <div className="absolute inset-0 w-full flex flex-col">
+    <div className="fixed inset-0 flex flex-col min-h-0 z-10">
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">
@@ -345,7 +327,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           </button>
         </div>
       )}
-      <div className="flex-1 min-h-[200px] relative" style={{ minHeight: 200 }}>
+      <div className="flex-1 min-h-[200px] relative overflow-hidden">
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
@@ -383,9 +365,24 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         </LayersControl>
         <FitBounds spots={filteredSpots} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
-        {flyToSpot && <FlyToCenter center={flyToSpot} zoom={15} />}
         <MapClickHandler onMapClick={onMapClick} />
 
+        {userPosition && (
+          <CircleMarker
+            center={[userPosition.lat, userPosition.lng]}
+            radius={10}
+            pathOptions={{
+              color: '#3b82f6',
+              fillColor: '#3b82f6',
+              fillOpacity: 0.8,
+              weight: 2,
+              opacity: 1,
+            }}
+            zIndexOffset={500}
+          >
+            <Popup>You are here</Popup>
+          </CircleMarker>
+        )}
         {pendingPin && (
           <Marker
             position={[pendingPin.lat, pendingPin.lng]}
@@ -396,15 +393,19 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         <SpotMarkersCluster
           spots={filteredSpots}
           icon={icon}
-          setSelectedSpotId={setSelectedSpotId}
+          setSelectedSpotId={() => {}}
         />
       </MapContainer>
 
-      <div className="absolute bottom-2 left-14 z-[1000] rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur">
-        Tap map to pin · Save spot here
+      <div className="absolute bottom-2 left-3 right-3 z-[1000] flex items-center justify-between gap-2 rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur">
+        <span>Tap map to pin · Save spot here</span>
+        <Link to="/explore" className="flex items-center gap-1 rounded-md px-2 py-1 text-accent-400 hover:bg-white/10 transition">
+          <Compass className="h-3.5 w-3.5" />
+          Browse spots
+        </Link>
       </div>
       {pendingPin && (
-        <div className="absolute bottom-2 left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm">
+        <div className="absolute left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm" style={{ bottom: 'calc(9rem + env(safe-area-inset-bottom, 0px))' }}>
           <p className="text-sm font-medium text-white">Save spot here</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}
@@ -430,57 +431,6 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       )}
       </div>
 
-      {/* List + map link: spot list panel */}
-      <div
-        className="shrink-0 border-t border-white/10 bg-[#0f0e12]/95 backdrop-blur flex flex-col"
-        style={{ height: LIST_PANEL_HEIGHT_PX }}
-      >
-        <p className="shrink-0 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Spots ({filteredSpots.length})
-        </p>
-        <div className="flex-1 overflow-auto overscroll-contain">
-          {filteredSpots.length === 0 ? (
-            <p className="px-4 py-2 text-sm text-slate-500">No spots match. Adjust filters or add a spot.</p>
-          ) : (
-            <ul className="space-y-1 px-2 pb-44">
-              {filteredSpots.map((spot) => (
-                <li key={spot.id}>
-                  <button
-                    type="button"
-                    ref={(el) => { if (el) listItemRefs.current[spot.id] = el; }}
-                    onClick={() => onListSpotTap(spot)}
-                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
-                      selectedSpotId === spot.id
-                        ? 'border-accent-500 bg-accent-500/20'
-                        : 'border-white/10 bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-800">
-                      <img
-                        src={getSpotPrimaryImage(spot)}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-white">{spot.name}</p>
-                      <p className="truncate text-xs text-slate-500">
-                        {spot.address && spot.address !== 'Not specified'
-                          ? spot.address
-                          : spot.latitude != null && spot.longitude != null
-                            ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
-                            : '—'}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
       {/* Settings in corner */}
       {setTheme && (
         <div className="absolute right-3 top-3 z-[1001]">
@@ -502,6 +452,17 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                     <Download className="h-4 w-4 shrink-0" />
                     {downloadCount.toLocaleString()}+ downloads
                   </div>
+                )}
+                {onRefreshSpots && (
+                  <button
+                    type="button"
+                    onClick={() => { onRefreshSpots(); setSettingsOpen(false); }}
+                    disabled={spotsLoading}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${spotsLoading ? 'animate-spin' : ''}`} />
+                    Refresh spots
+                  </button>
                 )}
                 {setUnits && (
                   <button

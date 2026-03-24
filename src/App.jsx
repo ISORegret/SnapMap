@@ -29,6 +29,7 @@ import SpotDetail from './pages/SpotDetail';
 import Profile from './pages/Profile';
 import Account from './pages/Account';
 import About from './pages/About';
+import Privacy from './pages/Privacy';
 import SignIn from './pages/SignIn';
 import ChangePassword from './pages/ChangePassword';
 import InstallPrompt from './components/InstallPrompt';
@@ -208,23 +209,25 @@ export default function App() {
     if (ready) requestPosition();
   }, [ready, requestPosition]);
 
+  const refetchCommunitySpots = useCallback(() => {
+    if (!isOnline) return Promise.resolve();
+    setCommunitySpotsLoading(true);
+    return fetchCommunitySpots()
+      .then(setCommunitySpots)
+      .finally(() => setCommunitySpotsLoading(false));
+  }, [isOnline]);
+
   // Refetch community spots when tab becomes visible so other device's edits show up
   useEffect(() => {
     if (!isOnline) return;
-    const refetch = () => {
-      setCommunitySpotsLoading(true);
-      fetchCommunitySpots()
-        .then(setCommunitySpots)
-        .finally(() => setCommunitySpotsLoading(false));
-    };
     const onVisible = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetch();
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetchCommunitySpots();
     };
     if (typeof document !== 'undefined' && document.addEventListener) {
       document.addEventListener('visibilitychange', onVisible);
       return () => document.removeEventListener('visibilitychange', onVisible);
     }
-  }, [isOnline]);
+  }, [isOnline, refetchCommunitySpots]);
 
   // Supabase Realtime: refetch community spots as soon as any spot is inserted/updated/deleted (sync across devices)
   useEffect(() => {
@@ -527,7 +530,12 @@ export default function App() {
   );
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
-  const isUserSpot = (spotId) => userSpots.some((s) => s.id === spotId);
+  const isUserSpot = (spotId) => {
+    if (userSpots.some((s) => s.id === spotId)) return true;
+    const spot = allSpots.find((s) => s.id === spotId);
+    if (!spot || !currentUserProfile?.username) return false;
+    return (spot.createdBy || '').trim() === (currentUserProfile.username || '').trim();
+  };
   const isFavorite = (spotId) => favoriteIds.includes(spotId);
 
   const addToCollection = useCallback((collectionId, spotId) => {
@@ -621,8 +629,9 @@ export default function App() {
         </div>
       )}
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(12rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Routes>
-          <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} />} />
+        <div className="flex-1 min-h-0 flex flex-col relative">
+          <Routes>
+          <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} onRefreshSpots={refetchCommunitySpots} spotsLoading={communitySpotsLoading} />} />
           <Route
             path="/explore"
             element={
@@ -640,6 +649,7 @@ export default function App() {
           <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/profile" element={<Account allSpots={allSpots} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/about" element={<About allSpots={allSpots} />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
@@ -692,11 +702,12 @@ export default function App() {
             }
           />
         </Routes>
+        </div>
       </main>
       {/* FAB - Add spot */}
       <NavLink
         to="/add"
-        className="fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent-500 text-white shadow-glow transition hover:bg-accent-400 active:scale-95"
+        className="fixed right-4 bottom-36 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent-500 text-white shadow-glow transition hover:bg-accent-400 active:scale-95"
         aria-label="Add spot"
       >
         <Plus className="h-6 w-6" strokeWidth={2.5} />
