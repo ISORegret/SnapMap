@@ -104,7 +104,7 @@ function openInMaps(spot) {
 
 function FeedSkeletonCard() {
   return (
-    <li className="flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] p-3">
+    <li className="flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#1a191f] p-3">
       <div className="h-16 w-20 shrink-0 animate-pulse rounded-lg bg-white/10" />
       <div className="min-w-0 flex-1 space-y-2">
         <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
@@ -279,10 +279,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="location-prompt-title">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151a18] p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a191f] p-5 shadow-xl">
             <div className="flex justify-center">
-              <div className="rounded-full bg-emerald-500/20 p-3">
-                <MapPin className="h-8 w-8 text-emerald-400" />
+              <div className="rounded-full bg-accent-500/20 p-3">
+                <MapPin className="h-8 w-8 text-accent-400" />
               </div>
             </div>
             <h2 id="location-prompt-title" className="mt-4 text-center text-lg font-semibold text-white">
@@ -302,7 +302,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               <button
                 type="button"
                 onClick={onLocationPromptAllow}
-                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                className="flex-1 rounded-xl bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-400"
               >
                 Allow
               </button>
@@ -313,7 +313,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
 
       {/* Pull-to-refresh indicator */}
       {pullY > 0 && (
-        <div className="flex justify-center py-2 text-emerald-400">
+        <div className="flex justify-center py-2 text-accent-400">
           {pullY >= 50 ? (
             <span className="text-xs font-medium">Release to refresh</span>
           ) : (
@@ -322,14 +322,14 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         </div>
       )}
       {/* App title + tagline */}
-      <header className="relative border-b border-emerald-500/10 bg-gradient-to-b from-emerald-950/30 to-transparent px-4 pt-6 pb-5 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(52,211,153,0.08),transparent)] pointer-events-none" />
+      <header className="relative border-b border-accent-500/10 bg-gradient-to-b from-accent/10 to-transparent px-4 pt-6 pb-5 text-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(232,167,53,0.08),transparent)] pointer-events-none" />
         {setTheme && (
           <div className="absolute right-3 top-4 z-10">
             <button
               type="button"
               onClick={() => setSettingsOpen((o) => !o)}
-              className="rounded-full p-2 text-slate-500 transition hover:bg-white/10 hover:text-emerald-400"
+              className="rounded-full p-2 text-slate-500 transition hover:bg-white/10 hover:text-accent-400"
               aria-label="Settings"
               aria-expanded={settingsOpen}
             >
@@ -338,7 +338,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             {settingsOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
-                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
                   {downloadCount != null && (
                     <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400" aria-hidden>
                       <Download className="h-4 w-4 shrink-0" />
@@ -348,7 +348,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   <button
                     type="button"
                     onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                   >
                     {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     {theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -357,7 +357,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     <button
                       type="button"
                       onClick={() => { setUnits(units === 'mi' ? 'km' : 'mi'); setSettingsOpen(false); }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                     >
                       <MapPin className="h-4 w-4" />
                       Distance: {units === 'mi' ? 'Miles' : 'km'}
@@ -366,7 +366,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   <a
                     href="#/saved"
                     onClick={() => setSettingsOpen(false)}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                   >
                     <Heart className="h-4 w-4" />
                     Saved
@@ -377,21 +377,21 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                         <a
                           href={`#/user/${(currentUser.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_')}`}
                           onClick={() => setSettingsOpen(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                         >
                           Profile
                         </a>
                         <a
                           href="#/change-password"
                           onClick={() => setSettingsOpen(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                         >
                           Change password
                         </a>
                         <button
                           type="button"
                           onClick={() => { onSignOut?.(); setSettingsOpen(false); }}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                         >
                           Sign out
                         </button>
@@ -400,7 +400,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       <a
                         href="#/signin"
                         onClick={() => setSettingsOpen(false)}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                       >
                         Sign in
                       </a>
@@ -420,10 +420,10 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         <p className="relative mt-1 text-xs font-medium text-slate-500" aria-hidden="true">
           App v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
           {updateAvailable && (
-            <span className="block text-[10px] text-emerald-400 mt-0.5">Update available</span>
+            <span className="block text-[10px] text-accent-400 mt-0.5">Update available</span>
           )}
         </p>
-        <p className="relative mt-0.5 text-sm font-medium text-emerald-400">
+        <p className="relative mt-0.5 text-sm font-medium text-accent-400">
           The best places for photography and cars
         </p>
         <div className="relative mt-2 flex items-center justify-center gap-2">
@@ -432,7 +432,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-white/10 hover:text-emerald-400 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-white/10 hover:text-accent-400 disabled:opacity-50"
               aria-label="Refresh spots"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -454,7 +454,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search spots by name, address, tags…"
-            className="w-full rounded-xl border border-white/10 bg-[#151a18] py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/25"
+            className="w-full rounded-xl border border-white/10 bg-[#1a191f] py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/25"
           />
         </div>
       </div>
@@ -467,7 +467,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             onClick={() => setOpenPopover(openPopover === 'filter' ? null : 'filter')}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'filter'
-                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                ? 'border-accent-500 bg-accent-500/20 text-accent-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
@@ -482,7 +482,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             onClick={() => setOpenPopover(openPopover === 'distance' ? null : 'distance')}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'distance'
-                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                ? 'border-accent-500 bg-accent-500/20 text-accent-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
@@ -497,7 +497,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
             onClick={() => setOpenPopover(openPopover === 'sort' ? null : 'sort')}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border py-2 text-xs font-medium transition ${
               openPopover === 'sort'
-                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                ? 'border-accent-500 bg-accent-500/20 text-accent-400'
                 : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
             }`}
           >
@@ -516,7 +516,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               onClick={() => setOpenPopover(null)}
               aria-hidden
             />
-            <div className="absolute left-4 right-4 top-full z-50 mt-1 max-h-56 overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+            <div className="absolute left-4 right-4 top-full z-50 mt-1 max-h-56 overflow-auto rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
               {openPopover === 'filter' &&
                 FILTER_OPTIONS.map((opt) => (
                   <button
@@ -527,11 +527,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       setOpenPopover(null);
                     }}
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                      filter === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      filter === opt.id ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
                     {opt.label}
-                    {filter === opt.id && <span className="text-emerald-400">✓</span>}
+                    {filter === opt.id && <span className="text-accent-400">✓</span>}
                   </button>
                 ))}
               {openPopover === 'distance' && (
@@ -543,11 +543,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       setOpenPopover(null);
                     }}
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                      distanceFilterMi === null ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      distanceFilterMi === null ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
                     All
-                    {distanceFilterMi === null && <span className="text-emerald-400">✓</span>}
+                    {distanceFilterMi === null && <span className="text-accent-400">✓</span>}
                   </button>
                   {DISTANCE_OPTIONS_MI.map((mi) => (
                     <button
@@ -559,11 +559,11 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       }}
                       disabled={positionLoading}
                       className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
-                        distanceFilterMi === mi ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                        distanceFilterMi === mi ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                       }`}
                     >
                       Within {mi} mi
-                      {distanceFilterMi === mi && <span className="text-emerald-400">✓</span>}
+                      {distanceFilterMi === mi && <span className="text-accent-400">✓</span>}
                     </button>
                   ))}
                   {!userPosition && (distanceFilterMi != null || positionLoading) && (
@@ -588,12 +588,12 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                     }}
                     disabled={opt.id === 'nearMe' && positionLoading}
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
-                      sort === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      sort === opt.id ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
                     {opt.id === 'nearMe' && positionLoading && !userPosition ? '…' : opt.label}
-                    {sort === opt.id && opt.id !== 'nearMe' && <span className="text-emerald-400">✓</span>}
-                    {sort === opt.id && opt.id === 'nearMe' && userPosition && <span className="text-emerald-400">✓</span>}
+                    {sort === opt.id && opt.id !== 'nearMe' && <span className="text-accent-400">✓</span>}
+                    {sort === opt.id && opt.id === 'nearMe' && userPosition && <span className="text-accent-400">✓</span>}
                   </button>
                 ))}
             </div>
@@ -605,7 +605,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
       <div className="border-b border-white/[0.06] px-4 py-2">
         <Link
           to="/map"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:border-emerald-500/50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent-500/30 bg-accent-500/10 py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/20 hover:border-accent-500/50"
         >
           <Map className="h-4 w-4" />
           View on map
@@ -626,7 +626,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               <Link
                 key={spot.id}
                 to={`/spot/${spot.id}`}
-                className="group flex shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] w-[140px] transition hover:border-emerald-500/30 hover:bg-[#1a211e]"
+                className="group flex shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#1a191f] w-[140px] transition hover:border-accent-500/30 hover:bg-[#222128]"
               >
                 <div className="relative h-24 w-full overflow-hidden bg-slate-800">
                   <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
@@ -639,7 +639,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   )}
                 </div>
                 <div className="min-w-0 flex-1 p-2">
-                  <p className="truncate text-sm font-medium text-white group-hover:text-emerald-300">{spot.name}</p>
+                  <p className="truncate text-sm font-medium text-white group-hover:text-accent-300">{spot.name}</p>
                 </div>
               </Link>
             ))}
@@ -650,7 +650,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
           <button
             type="button"
             onClick={() => { setLocationPromptPending({ type: 'sort' }); setShowLocationPrompt(true); }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-emerald-400"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-accent-400"
           >
             <MapPin className="h-4 w-4" />
             See spots near you — allow location
@@ -669,7 +669,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                 type="button"
                 onClick={() => { setFilter(opt.id); setVisibleCount(INITIAL_SPOTS_VISIBLE); }}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filter === opt.id ? 'bg-emerald-500/30 text-emerald-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
+                  filter === opt.id ? 'bg-accent-500/30 text-accent-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
                 }`}
               >
                 {opt.label}
@@ -679,7 +679,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               type="button"
               onClick={() => { setFilter('all'); setVisibleCount(INITIAL_SPOTS_VISIBLE); }}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                filter === 'all' ? 'bg-emerald-500/30 text-emerald-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
+                filter === 'all' ? 'bg-accent-500/30 text-accent-400' : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-slate-300'
               }`}
             >
               All
@@ -699,12 +699,12 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
           {tagFilter && (
             <>
               {' · Tag: '}
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent-500/20 px-1.5 py-0.5 text-accent-400">
                 {tagFilter}
                 <button
                   type="button"
                   onClick={() => setTagFilter('')}
-                  className="rounded p-0.5 hover:bg-emerald-500/30"
+                  className="rounded p-0.5 hover:bg-accent-500/30"
                   aria-label="Clear tag filter"
                 >
                   ×
@@ -721,7 +721,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
         {spotsLoading && displaySpots.length === 0 ? (
           Array.from({ length: 5 }, (_, i) => <FeedSkeletonCard key={`skeleton-${i}`} />)
         ) : displaySpots.length === 0 ? (
-          <li className="animate-fade-in rounded-xl border border-white/[0.06] bg-[#151a18] px-6 py-10 text-center">
+          <li className="animate-fade-in rounded-xl border border-white/[0.06] bg-[#1a191f] px-6 py-10 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
               <LayoutGrid className="h-6 w-6 text-slate-500" />
             </div>
@@ -741,7 +741,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
           <li key={spot.id} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}>
             <Link
               to={`/spot/${spot.id}`}
-              className="group flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#151a18] transition-all duration-200 hover:border-emerald-500/30 hover:bg-[#1a211e] hover:shadow-glow-sm active:scale-[0.99]"
+              className="group flex gap-3 overflow-hidden rounded-card border border-white/[0.08] bg-[#1a191f] transition-all duration-smooth hover:border-accent-500/30 hover:bg-[#222128] hover:shadow-glow-sm active:scale-[0.99]"
             >
               <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-800">
                 <img
@@ -796,7 +796,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
               </div>
               <div className="min-w-0 flex-1 py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-white line-clamp-1 group-hover:text-emerald-300 transition-colors flex-1 min-w-0">
+                  <h3 className="font-semibold text-white line-clamp-1 group-hover:text-accent-300 transition-colors flex-1 min-w-0">
                     {spot.name}
                   </h3>
                   <span className="flex items-center gap-0.5 shrink-0 text-amber-400/90" title={(() => {
@@ -829,7 +829,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                       : '—')}
                 </p>
                 {userPosition && spot.latitude != null && spot.longitude != null && (
-                  <p className="mt-0.5 text-[11px] text-emerald-400">
+                  <p className="mt-0.5 text-[11px] text-accent-400">
                     {units === 'km'
                       ? (haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude)).toFixed(1) + ' km away'
                       : (kmToMi(haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude))).toFixed(1) + ' mi away'}
@@ -853,7 +853,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                         }}
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
                           tagFilter && String(tag).toLowerCase() === tagFilter
-                            ? 'bg-emerald-500/30 text-emerald-400'
+                            ? 'bg-accent-500/30 text-accent-400'
                             : 'bg-white/10 text-slate-500 hover:bg-white/15 hover:text-slate-400'
                         }`}
                       >
@@ -866,7 +866,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                   <span className="text-[11px] text-slate-500">
                     {spot.bestTime && spot.bestTime !== 'Not specified' ? spot.bestTime : ''}
                     {spotRatings[spot.id]?.count > 0 && (
-                      <span className="ml-1 text-emerald-400">· {spotRatings[spot.id].average.toFixed(1)}</span>
+                      <span className="ml-1 text-accent-400">· {spotRatings[spot.id].average.toFixed(1)}</span>
                     )}
                     {(spot.createdBy != null && String(spot.createdBy).trim())
                       ? (
@@ -889,14 +889,14 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
                           e.stopPropagation();
                           openInMaps(spot);
                         }}
-                        className="rounded p-1 text-slate-500 transition hover:bg-white/10 hover:text-emerald-400"
+                        className="rounded p-1 text-slate-500 transition hover:bg-white/10 hover:text-accent-400"
                         aria-label="Open in Maps"
                         title="Open in Maps"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </button>
                     )}
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-accent-400 transition-colors" />
                   </div>
                 </div>
               </div>
@@ -910,7 +910,7 @@ export default function Feed({ allSpots, favoriteIds, toggleFavorite, onDismissS
           <button
             type="button"
             onClick={loadMore}
-            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-emerald-400"
+            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-accent-400"
           >
             Load more ({displaySpots.length - visibleCount} more)
           </button>

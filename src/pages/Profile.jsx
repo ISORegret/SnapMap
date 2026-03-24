@@ -92,7 +92,7 @@ export default function Profile({ allSpots = [], currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
         <p className="text-slate-400">User not found.</p>
-        <Link to="/" className="text-emerald-400 hover:underline">
+        <Link to="/" className="text-accent-400 hover:underline">
           Back to For You
         </Link>
       </div>
@@ -156,10 +156,10 @@ export default function Profile({ allSpots = [], currentUser }) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-[#0c0c0f] pb-6 animate-fade-in">
+    <div className="min-h-[calc(100vh-56px)] bg-[#0f0e12] pb-6 animate-fade-in">
       <header className="border-b border-white/[0.06] px-4 py-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
@@ -182,7 +182,7 @@ export default function Profile({ allSpots = [], currentUser }) {
               <button
                 type="button"
                 onClick={startEditing}
-                className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-emerald-400"
+                className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-accent-400"
               >
                 <Pencil className="h-4 w-4" />
                 Edit profile
@@ -193,7 +193,7 @@ export default function Profile({ allSpots = [], currentUser }) {
                 type="button"
                 onClick={handleFollow}
                 disabled={followLoading}
-                className="mt-3 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-400 disabled:opacity-50"
+                className="mt-3 rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-400 disabled:opacity-50"
               >
                 {followLoading ? '…' : following ? 'Following' : 'Follow'}
               </button>
@@ -201,7 +201,7 @@ export default function Profile({ allSpots = [], currentUser }) {
           </div>
         </div>
         {isOwnProfile && editing && (
-          <form onSubmit={saveProfile} className="mt-6 rounded-xl border border-white/10 bg-[#18181b] p-4">
+          <form onSubmit={saveProfile} className="mt-6 rounded-xl border border-white/10 bg-[#1a191f] p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-white">Edit profile</h2>
               <button type="button" onClick={cancelEditing} className="rounded p-1 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Cancel">
@@ -212,11 +212,11 @@ export default function Profile({ allSpots = [], currentUser }) {
               <div>
                 <label className="block text-xs font-medium text-slate-500">Profile picture</label>
                 <div className="mt-2 flex items-center gap-4">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-emerald-500/20">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
                     {(editAvatarUrl || profile.avatar_url) ? (
                       <img src={editAvatarUrl || profile.avatar_url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-emerald-400"><User className="h-7 w-7" /></div>
+                      <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-7 w-7" /></div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
@@ -225,7 +225,7 @@ export default function Profile({ allSpots = [], currentUser }) {
                       value={editAvatarUrl}
                       onChange={(e) => setEditAvatarUrl(e.target.value)}
                       placeholder="Image URL (optional)"
-                      className="w-full rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-white/10 bg-[#0f0e12] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                     />
                     <div className="flex items-center gap-2">
                       <input
@@ -257,7 +257,7 @@ export default function Profile({ allSpots = [], currentUser }) {
                   onChange={(e) => setEditDisplayName(e.target.value)}
                   placeholder="Your name"
                   maxLength={64}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0f0e12] px-3 py-2 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 />
               </div>
               <div>
@@ -269,7 +269,7 @@ export default function Profile({ allSpots = [], currentUser }) {
                   placeholder="Short bio (optional)"
                   rows={3}
                   maxLength={500}
-                  className="mt-1 w-full resize-none rounded-lg border border-white/10 bg-[#0c0c0f] px-3 py-2 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="mt-1 w-full resize-none rounded-lg border border-white/10 bg-[#0f0e12] px-3 py-2 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 />
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function Profile({ allSpots = [], currentUser }) {
               <button
                 type="submit"
                 disabled={editSaving}
-                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-400 disabled:opacity-50"
+                className="rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-400 disabled:opacity-50"
               >
                 {editSaving ? 'Saving…' : 'Save'}
               </button>
@@ -302,7 +302,7 @@ export default function Profile({ allSpots = [], currentUser }) {
               <li key={spot.id}>
                 <Link
                   to={`/spot/${spot.id}`}
-                  className="flex gap-3 rounded-xl border border-white/[0.06] bg-[#18181b] p-3 transition hover:border-emerald-500/20 hover:bg-[#27272a]"
+                  className="flex gap-3 rounded-xl border border-white/[0.06] bg-[#1a191f] p-3 transition hover:border-accent-500/20 hover:bg-[#222128]"
                 >
                   <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-800">
                     <img

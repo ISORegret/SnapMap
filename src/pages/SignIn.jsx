@@ -197,7 +197,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
         <p className="text-white">You&apos;re signed in.</p>
-        <Link to="/" className="mt-4 text-emerald-400 hover:underline">Go to Feed</Link>
+        <Link to="/" className="mt-4 text-accent-400 hover:underline">Go to Feed</Link>
       </div>
     );
   }
@@ -206,7 +206,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
         <p className="text-slate-400">Sign in requires Supabase.</p>
-        <Link to="/" className="mt-4 text-emerald-400 hover:underline">Back</Link>
+        <Link to="/" className="mt-4 text-accent-400 hover:underline">Back</Link>
       </div>
     );
   }
@@ -236,7 +236,7 @@ export default function SignIn({ onSuccess, currentUser }) {
           {loading ? 'Sending…' : 'Resend link'}
         </button>
         {error && <p className="mt-2 text-sm text-amber-400">{error}</p>}
-        <button type="button" onClick={() => setSignUpConfirm(false)} className="mt-6 text-emerald-400 hover:underline">Back to sign in</button>
+        <button type="button" onClick={() => setSignUpConfirm(false)} className="mt-6 text-accent-400 hover:underline">Back to sign in</button>
       </div>
     );
   }
@@ -248,7 +248,7 @@ export default function SignIn({ onSuccess, currentUser }) {
         <p className="mt-2 text-sm text-slate-400">
           We sent a sign-in link to <strong className="text-slate-300">{email}</strong>. Click the link to sign in.
         </p>
-        <Link to="/" className="mt-6 text-emerald-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="mt-6 text-accent-400 hover:underline">Back to For You</Link>
       </div>
     );
   }
@@ -269,14 +269,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Sending…' : 'Send reset link'}
           </button>
@@ -299,7 +299,7 @@ export default function SignIn({ onSuccess, currentUser }) {
         <p className="mt-2 text-sm text-slate-400">
           We sent a password reset link to <strong className="text-slate-300">{email}</strong>. Click the link to set a new password.
         </p>
-        <button type="button" onClick={() => { setSentReset(false); setForgotPassword(false); }} className="mt-6 text-emerald-400 hover:underline">Back to sign in</button>
+        <button type="button" onClick={() => { setSentReset(false); setForgotPassword(false); }} className="mt-6 text-accent-400 hover:underline">Back to sign in</button>
       </div>
     );
   }
@@ -321,7 +321,7 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               minLength={6}
               autoComplete="new-password"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           <div>
@@ -335,14 +335,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               minLength={6}
               autoComplete="new-password"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Updating…' : 'Update password'}
           </button>
@@ -364,14 +364,14 @@ export default function SignIn({ onSuccess, currentUser }) {
         <button
           type="button"
           onClick={() => { setMode('password'); setError(''); }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${isPassword ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-slate-300'}`}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${isPassword ? 'bg-accent-500/20 text-accent-400' : 'text-slate-400 hover:text-slate-300'}`}
         >
           Password
         </button>
         <button
           type="button"
           onClick={() => { setMode('link'); setError(''); }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${!isPassword ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-slate-300'}`}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${!isPassword ? 'bg-accent-500/20 text-accent-400' : 'text-slate-400 hover:text-slate-300'}`}
         >
           Email link
         </button>
@@ -389,7 +389,7 @@ export default function SignIn({ onSuccess, currentUser }) {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           <div>
@@ -403,14 +403,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               autoComplete="current-password"
               minLength={6}
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
@@ -425,7 +425,7 @@ export default function SignIn({ onSuccess, currentUser }) {
           <button
             type="button"
             onClick={() => { setForgotPassword(true); setError(''); }}
-            className="w-full py-2 text-sm text-slate-500 hover:text-emerald-400"
+            className="w-full py-2 text-sm text-slate-500 hover:text-accent-400"
           >
             Forgot password?
           </button>
@@ -441,14 +441,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Sending…' : 'Send sign-in link'}
           </button>
@@ -456,7 +456,7 @@ export default function SignIn({ onSuccess, currentUser }) {
       )}
 
       <p className="mt-6 text-center text-sm text-slate-500">
-        <Link to="/" className="text-emerald-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="text-accent-400 hover:underline">Back to For You</Link>
       </p>
     </div>
   );

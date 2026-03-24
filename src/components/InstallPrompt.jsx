@@ -60,8 +60,8 @@ export default function InstallPrompt() {
   if (!visible || installed) return null;
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-emerald-500/20 bg-emerald-950/40 px-4 py-2.5 backdrop-blur">
-      <p className="text-sm font-medium text-emerald-200">
+    <div className="flex items-center justify-between gap-3 border-b border-accent-500/20 bg-accent-950/40 px-4 py-2.5 backdrop-blur">
+      <p className="text-sm font-medium text-accent-200">
         Install SnapMap for quick access and offline spots.
       </p>
       <div className="flex shrink-0 gap-2">
@@ -75,7 +75,7 @@ export default function InstallPrompt() {
         <button
           type="button"
           onClick={handleInstall}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+          className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-400"
         >
           <Download className="h-3.5 w-3.5" />
           Install

@@ -53,7 +53,7 @@ export default function ChangePassword({ currentUser }) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
         <p className="text-slate-400">Sign in to change your password.</p>
-        <Link to="/signin" className="mt-4 text-emerald-400 hover:underline">Sign in</Link>
+        <Link to="/signin" className="mt-4 text-accent-400 hover:underline">Sign in</Link>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function ChangePassword({ currentUser }) {
       <div className="mx-auto max-w-sm px-4 py-12 text-center">
         <p className="text-lg font-medium text-white">Password updated</p>
         <p className="mt-2 text-sm text-slate-400">Your password has been changed. Use it next time you sign in.</p>
-        <Link to="/" className="mt-6 inline-block text-emerald-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="mt-6 inline-block text-accent-400 hover:underline">Back to For You</Link>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function ChangePassword({ currentUser }) {
             placeholder="••••••••"
             required
             autoComplete="current-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -97,7 +97,7 @@ export default function ChangePassword({ currentUser }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -111,20 +111,20 @@ export default function ChangePassword({ currentUser }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         {error && <p className="text-sm text-amber-400">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-50"
+          className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
         >
           {loading ? 'Updating…' : 'Update password'}
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        <Link to="/" className="text-emerald-400 hover:underline">Back to For You</Link>
+        <Link to="/" className="text-accent-400 hover:underline">Back to For You</Link>
       </p>
     </div>
   );

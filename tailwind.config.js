@@ -8,23 +8,34 @@ export default {
     extend: {
       colors: {
         surface: {
-          700: '#151a18',
-          800: '#0f1412',
-          900: '#080c0a',
+          700: '#1a191f',
+          800: '#15141a',
+          900: '#0f0e12',
         },
         accent: {
-          DEFAULT: '#10b981',
-          light: '#34d399',
-          glow: '#34d399',
-          dark: '#059669',
+          DEFAULT: '#e8a735',
+          400: '#f0b84d',
+          500: '#e8a735',
+          600: '#c4932a',
+          light: '#f0b84d',
+          glow: '#e8a735',
+          dark: '#c4932a',
+          muted: 'rgba(232, 167, 53, 0.2)',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      borderRadius: {
+        'card': '14px',
+        'card-lg': '18px',
       },
       boxShadow: {
-        'glow': '0 0 24px -4px rgba(52, 211, 153, 0.25)',
-        'glow-sm': '0 0 16px -4px rgba(52, 211, 153, 0.2)',
+        'glow': '0 0 24px -4px rgba(232, 167, 53, 0.25)',
+        'glow-sm': '0 0 16px -4px rgba(232, 167, 53, 0.2)',
+      },
+      transitionDuration: {
+        'smooth': '220ms',
       },
       keyframes: {
         'fade-in': {

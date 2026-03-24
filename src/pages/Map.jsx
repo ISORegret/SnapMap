@@ -93,7 +93,7 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
       const marker = L.marker([spot.latitude, spot.longitude], { icon })
         .bindPopup(
           `<div class="min-w-[140px] text-slate-200">
-            <a href="#/spot/${spot.id}" class="font-semibold text-emerald-400 hover:underline">${escapeHtml(spot.name)}</a>
+            <a href="#/spot/${spot.id}" class="font-semibold text-accent-400 hover:underline">${escapeHtml(spot.name)}</a>
             <br><small class="text-slate-400">${escapeHtml(spot.bestTime || '—')}</small>
           </div>`,
           { className: 'snapmap-popup' }
@@ -271,10 +271,10 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151a18] p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a191f] p-5 shadow-xl">
             <div className="flex justify-center">
-              <div className="rounded-full bg-emerald-500/20 p-3">
-                <MapPin className="h-8 w-8 text-emerald-400" />
+              <div className="rounded-full bg-accent-500/20 p-3">
+                <MapPin className="h-8 w-8 text-accent-400" />
               </div>
             </div>
             <h2 id="map-location-prompt-title" className="mt-4 text-center text-lg font-semibold text-white">
@@ -294,7 +294,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
               <button
                 type="button"
                 onClick={onLocationPromptAllow}
-                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                className="flex-1 rounded-xl bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-400"
               >
                 Allow
               </button>
@@ -311,7 +311,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           <button
             type="button"
             onClick={() => navigate('/add')}
-            className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-600"
+            className="flex items-center gap-2 rounded-xl bg-accent-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-accent-600"
           >
             <MapPin className="h-4 w-4" />
             Add a spot
@@ -391,7 +391,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
             <button
               type="button"
               onClick={goToAddSpot}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white bg-emerald-600"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-500 px-3 py-2 text-sm font-semibold text-white bg-accent-600"
             >
               <MapPin className="h-4 w-4" />
               Add spot
@@ -403,7 +403,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
 
       {/* List + map link: spot list panel */}
       <div
-        className="shrink-0 border-t border-white/10 bg-[#0c0c0f]/95 backdrop-blur flex flex-col"
+        className="shrink-0 border-t border-white/10 bg-[#0f0e12]/95 backdrop-blur flex flex-col"
         style={{ height: LIST_PANEL_HEIGHT_PX }}
       >
         <p className="shrink-0 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -422,7 +422,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                     onClick={() => onListSpotTap(spot)}
                     className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
                       selectedSpotId === spot.id
-                        ? 'border-emerald-500 bg-emerald-500/20'
+                        ? 'border-accent-500 bg-accent-500/20'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
@@ -458,7 +458,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           <button
             type="button"
             onClick={() => setSettingsOpen((o) => !o)}
-            className="rounded-full bg-black/70 p-2 text-slate-400 backdrop-blur transition hover:bg-black/80 hover:text-emerald-400"
+            className="rounded-full bg-black/70 p-2 text-slate-400 backdrop-blur transition hover:bg-black/80 hover:text-accent-400"
             aria-label="Settings"
             aria-expanded={settingsOpen}
           >
@@ -467,7 +467,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {settingsOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
-              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
                 {downloadCount != null && (
                   <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400" aria-hidden>
                     <Download className="h-4 w-4 shrink-0" />
@@ -478,7 +478,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                   <button
                     type="button"
                     onClick={() => { setUnits(units === 'mi' ? 'km' : 'mi'); setSettingsOpen(false); }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                   >
                     <MapPin className="h-4 w-4" />
                     Distance: {units === 'mi' ? 'Miles' : 'km'}
@@ -487,7 +487,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                 <button
                   type="button"
                   onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                 >
                   {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                   {theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -495,7 +495,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                 <a
                   href="#/saved"
                   onClick={() => setSettingsOpen(false)}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-emerald-400"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
                 >
                   <Heart className="h-4 w-4" />
                   Saved
@@ -511,7 +511,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         <button
           type="button"
           onClick={goBack}
-          className="shrink-0 rounded-xl border border-white/10 bg-black/70 p-2.5 text-slate-300 backdrop-blur transition hover:bg-black/80 hover:text-emerald-400 hover:border-emerald-500/30"
+          className="shrink-0 rounded-xl border border-white/10 bg-black/70 p-2.5 text-slate-300 backdrop-blur transition hover:bg-black/80 hover:text-accent-400 hover:border-accent-500/30"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -525,13 +525,13 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
               onChange={(e) => { setMapSearchQuery(e.target.value); setMapSearchError(null); }}
               onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
               placeholder="Search address or place…"
-              className="w-full rounded-xl border border-white/10 bg-black/70 py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 backdrop-blur focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/25"
+              className="w-full rounded-xl border border-white/10 bg-black/70 py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 backdrop-blur focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/25"
             />
           </div>
           <button
             type="submit"
             disabled={mapSearchLoading || !mapSearchQuery.trim()}
-            className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
+            className="shrink-0 rounded-xl bg-accent-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-600 disabled:opacity-50"
           >
             {mapSearchLoading ? '…' : 'Go'}
           </button>
@@ -555,18 +555,18 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {filterDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setFilterDropdownOpen(false)} aria-hidden />
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
                 {FILTER_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => { setFilter(opt.id); setFilterDropdownOpen(false); }}
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                      filter === opt.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      filter === opt.id ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
                     {opt.label}
-                    {filter === opt.id && <span className="text-emerald-400">✓</span>}
+                    {filter === opt.id && <span className="text-accent-400">✓</span>}
                   </button>
                 ))}
               </div>
@@ -585,16 +585,16 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {distanceDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setDistanceDropdownOpen(false)} aria-hidden />
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#151a18] py-2 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
                 <button
                   type="button"
                   onClick={() => { setDistanceFilterMi(null); setDistanceDropdownOpen(false); }}
                   className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                    distanceFilterMi === null ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                    distanceFilterMi === null ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                   }`}
                 >
                   All
-                  {distanceFilterMi === null && <span className="text-emerald-400">✓</span>}
+                  {distanceFilterMi === null && <span className="text-accent-400">✓</span>}
                 </button>
                 {DISTANCE_OPTIONS_MI.map((mi) => (
                   <button
@@ -603,11 +603,11 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                     onClick={() => { setDistanceFilter(mi); setDistanceDropdownOpen(false); }}
                     disabled={positionLoading}
                     className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
-                      distanceFilterMi === mi ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5'
+                      distanceFilterMi === mi ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
                     }`}
                   >
                     Within {mi} mi
-                    {distanceFilterMi === mi && <span className="text-emerald-400">✓</span>}
+                    {distanceFilterMi === mi && <span className="text-accent-400">✓</span>}
                   </button>
                 ))}
                 {!userPosition && (distanceFilterMi != null || positionLoading) && (

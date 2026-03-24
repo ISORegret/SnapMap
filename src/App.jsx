@@ -535,8 +535,8 @@ export default function App() {
       >
         {/* Background gradient + radial glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#051009] via-[#080c0a] to-[#050a08]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_20%,rgba(52,211,153,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(16,185,129,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_20%,rgba(232,167,53,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(232,167,53,0.08),transparent_50%)]" />
         {/* Subtle grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -550,8 +550,8 @@ export default function App() {
           {/* Logo container with glow and pulse */}
           <div className="animate-splash-pulse flex flex-col items-center gap-8">
             <div className="relative">
-              <div className="absolute -inset-4 rounded-full bg-emerald-500/20 blur-2xl" />
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-emerald-500/30 bg-[#0c0c0f] shadow-[0_0_40px_-8px_rgba(52,211,153,0.4)]">
+              <div className="absolute -inset-4 rounded-full bg-accent-500/20 blur-2xl" />
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-accent-500/30 bg-[#0f0e12] shadow-[0_0_40px_-8px_rgba(232,167,53,0.4)]">
                 <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-20 w-20 object-contain" aria-hidden />
               </div>
             </div>
@@ -573,14 +573,14 @@ export default function App() {
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="h-2 w-2 rounded-full bg-emerald-500/60 animate-bounce"
+                  className="h-2 w-2 rounded-full bg-accent-500/60 animate-bounce"
                   style={{ animationDelay: `${i * 150}ms`, animationDuration: '0.6s' }}
                 />
               ))}
             </div>
             <p className="text-sm font-medium text-slate-500">Loading…</p>
             <div className="h-1 w-32 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-1/3 animate-splash-progress rounded-full bg-emerald-500" />
+              <div className="h-full w-1/3 animate-splash-progress rounded-full bg-accent-500" />
             </div>
           </div>
         </div>
@@ -589,12 +589,12 @@ export default function App() {
   }
 
   const navLinkClass = ({ isActive }) =>
-    `flex flex-col items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-      isActive ? 'text-emerald-400' : 'text-slate-500 hover:bg-emerald-500/10 hover:text-slate-300'
+    `flex flex-col items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-smooth ${
+      isActive ? 'text-accent-400' : 'text-slate-500 hover:bg-accent-500/10 hover:text-slate-300'
     }`;
   const addLinkClass = ({ isActive }) =>
-    `flex flex-col items-center gap-1 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-emerald-400 ${
-      isActive ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-[#080c0a]' : ''
+    `flex flex-col items-center gap-1 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition-all duration-smooth hover:bg-accent-400 ${
+      isActive ? 'ring-2 ring-accent-400 ring-offset-2 ring-offset-[#0f0e12]' : ''
     }`;
 
   return (
@@ -692,7 +692,7 @@ export default function App() {
       {/* Floating / compact nav: pill only, no black bar; content scrolls behind it */}
       <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 12 }}>
         <nav
-          className="flex w-full max-w-md items-center justify-around gap-1 rounded-full border border-white/10 px-2 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl"
+          className="flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-white/[0.08] px-2 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-smooth"
           style={{ backgroundColor: 'var(--bg-nav)' }}
           aria-label="Main"
         >
@@ -716,7 +716,7 @@ export default function App() {
         <p className="mt-1 text-center text-[10px] text-slate-500" aria-hidden="true">
           v{appVersion}
           {updateAvailable && (
-            <span className="block text-[9px] text-emerald-400 mt-0.5">Update available</span>
+            <span className="block text-[9px] text-accent-400 mt-0.5">Update available</span>
           )}
         </p>
       </div>

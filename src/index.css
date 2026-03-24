@@ -3,21 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --bg-page: #080c0a;
-  --bg-card: #18181b;
-  --bg-nav: rgba(8, 12, 10, 0.95);
-  --text-primary: #f4f4f5;
-  --text-muted: #71717a;
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  --bg-page: #0f0e12;
+  --bg-card: #1a191f;
+  --bg-nav: rgba(15, 14, 18, 0.95);
+  --text-primary: #f4f3f6;
+  --text-muted: #8b8896;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --accent: #e8a735;
+  --accent-hover: #f0b84d;
+  --accent-muted: rgba(232, 167, 53, 0.2);
 }
 
 [data-theme="light"] {
-  --bg-page: #f8fafc;
+  --bg-page: #faf9f6;
   --bg-card: #ffffff;
-  --bg-nav: rgba(248, 250, 252, 0.95);
-  --text-primary: #0f172a;
-  --text-muted: #475569;
+  --bg-nav: rgba(250, 249, 246, 0.95);
+  --text-primary: #1a191f;
+  --text-muted: #6b6778;
   --border-subtle: rgba(0, 0, 0, 0.08);
+  --accent: #c4932a;
+  --accent-hover: #b88620;
+  --accent-muted: rgba(196, 147, 42, 0.15);
 }
 
 * {
@@ -31,7 +37,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background: var(--bg-page);
   background-attachment: fixed;
   color: var(--text-primary);
@@ -51,13 +57,19 @@ body {
 }
 
 a {
-  color: #34d399;
+  color: var(--accent);
   text-decoration: none;
 }
 
 @layer utilities {
+  .bg-page {
+    background-color: var(--bg-page);
+  }
+  .bg-card {
+    background-color: var(--bg-card);
+  }
   .text-gradient {
-    background: linear-gradient(135deg, #f0fdf4 0%, #a7f3d0 50%, #34d399 100%);
+    background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 50%, #e8a735 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -76,7 +88,7 @@ a:hover {
   height: 100% !important;
   width: 100% !important;
   min-height: 100%;
-  background: #1a1a24;
+  background: #18171c;
   z-index: 0;
   font-family: inherit;
 }
@@ -86,14 +98,14 @@ a:hover {
 }
 
 .leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  background: #18181b;
-  color: #f4f4f5;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 .leaflet-popup-tip {
-  background: #18181b;
+  background: var(--bg-card);
 }
 
 /* Hide scrollbar for horizontal category row */
