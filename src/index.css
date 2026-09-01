@@ -232,6 +232,29 @@ a:hover { text-decoration: none; }
 }
 
 .leaflet-tile-pane { z-index: 1; }
+
+.map-style-midnight .leaflet-tile-pane {
+  filter: saturate(0.72) contrast(1.1) brightness(0.88);
+}
+
+.map-style-street .leaflet-tile-pane {
+  filter: saturate(0.82) contrast(1.025) brightness(0.98);
+}
+
+.map-style-terrain .leaflet-tile-pane {
+  filter: saturate(0.78) contrast(1.04) brightness(0.94);
+}
+
+.map-style-satellite .leaflet-tile-pane {
+  filter: saturate(0.92) contrast(1.06) brightness(0.9);
+}
+
+.map-vignette {
+  background:
+    linear-gradient(180deg, rgba(5, 7, 10, 0.16), transparent 22%, transparent 76%, rgba(5, 7, 10, 0.2)),
+    radial-gradient(ellipse at center, transparent 52%, rgba(5, 7, 10, 0.12) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
 .leaflet-control-zoom, .leaflet-control-layers {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.13) !important;
@@ -245,7 +268,6 @@ a:hover { text-decoration: none; }
   background: transparent !important;
   color: #f7f8fa !important;
 }
-.leaflet-control-layers-toggle { filter: invert(1); opacity: 0.82; }
 .leaflet-popup-content-wrapper {
   border: 1px solid var(--border-subtle);
   border-radius: 18px;

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEvents, LayersControl, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw, Layers as LayersIcon, Check } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
@@ -44,6 +44,41 @@ const FILTER_OPTIONS = [
   { id: 'all', label: 'All' },
   { id: 'hasParking', label: 'Has parking' },
   ...CATEGORIES.filter((c) => c.id !== 'all'),
+];
+
+const MAP_STYLES = [
+  {
+    id: 'midnight',
+    label: 'Midnight',
+    description: 'Low-light driving',
+    preview: 'linear-gradient(135deg, #202a35, #080b10)',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+  {
+    id: 'street',
+    label: 'Street',
+    description: 'Clean and detailed',
+    preview: 'linear-gradient(135deg, #d9e5dc, #f4efe3)',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+  {
+    id: 'satellite',
+    label: 'Satellite',
+    description: 'Real-world detail',
+    preview: 'linear-gradient(135deg, #52664f, #1b2b28)',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; Esri',
+  },
+  {
+    id: 'terrain',
+    label: 'Terrain',
+    description: 'Elevation and trails',
+    preview: 'linear-gradient(135deg, #91a981, #d6ceb0)',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+  },
 ];
 
 function FitBounds({ spots }) {
@@ -146,6 +181,14 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [stylePickerOpen, setStylePickerOpen] = useState(false);
+  const [mapStyle, setMapStyleState] = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('snapmap_map_style');
+      if (MAP_STYLES.some((style) => style.id === saved)) return saved;
+    }
+    return theme === 'light' ? 'street' : 'midnight';
+  });
   const [downloadCount, setDownloadCount] = useState(null);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [distanceDropdownOpen, setDistanceDropdownOpen] = useState(false);
@@ -236,6 +279,14 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
+  const activeMapStyle = MAP_STYLES.find((style) => style.id === mapStyle) || MAP_STYLES[0];
+
+  const setMapStyle = useCallback((styleId) => {
+    if (!MAP_STYLES.some((style) => style.id === styleId)) return;
+    setMapStyleState(styleId);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('snapmap_map_style', styleId);
+    setStylePickerOpen(false);
+  }, []);
 
   useEffect(() => {
     fetchDownloadCount().then(setDownloadCount);
@@ -325,7 +376,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           </button>
         </div>
       )}
-      <div className="flex-1 min-h-[200px] relative overflow-hidden">
+      <div className={`map-style-${mapStyle} relative min-h-[200px] flex-1 overflow-hidden`}>
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
@@ -335,32 +386,12 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         zoomControl={false}
       >
         <ZoomControl position="bottomleft" />
-        <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="Map">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Satellite">
-            <TileLayer
-              attribution="&copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Terrain">
-            <TileLayer
-              attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Dark">
-            <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        <TileLayer
+          key={activeMapStyle.id}
+          attribution={activeMapStyle.attribution}
+          url={activeMapStyle.url}
+          maxZoom={activeMapStyle.id === 'terrain' ? 17 : 20}
+        />
         <FitBounds spots={filteredSpots} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
@@ -394,6 +425,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           setSelectedSpotId={() => {}}
         />
       </MapContainer>
+      <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
 
       <div className="surface-card absolute bottom-[7.1rem] left-3 right-3 z-[1000] flex items-center justify-between gap-3 rounded-[1.25rem] px-3.5 py-3 text-xs text-secondary sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
         <span className="font-semibold">Tap anywhere to pin a new spot</span>
@@ -493,6 +525,49 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           )}
         </div>
       )}
+
+      {/* App-native map style control */}
+      <div className="absolute right-3 top-[4.25rem] z-[1002]">
+        <button
+          type="button"
+          onClick={() => { setStylePickerOpen((open) => !open); setSettingsOpen(false); }}
+          className={`icon-button h-11 w-11 rounded-2xl ${stylePickerOpen ? 'border-accent-500/40 text-accent-400' : ''}`}
+          aria-label="Choose map style"
+          aria-expanded={stylePickerOpen}
+        >
+          <LayersIcon className="h-5 w-5" />
+        </button>
+        {stylePickerOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setStylePickerOpen(false)} aria-hidden />
+            <div className="surface-card absolute right-0 top-full z-50 mt-2 w-64 rounded-[1.4rem] p-2.5">
+              <div className="px-2 pb-2 pt-1">
+                <p className="eyebrow">Map appearance</p>
+                <p className="mt-1 text-xs font-medium text-muted">Choose the view that fits the shoot.</p>
+              </div>
+              <div className="space-y-1">
+                {MAP_STYLES.map((style) => (
+                  <button
+                    key={style.id}
+                    type="button"
+                    onClick={() => setMapStyle(style.id)}
+                    className={`flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition ${
+                      mapStyle === style.id ? 'bg-accent-500/12' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="h-10 w-10 shrink-0 rounded-xl border border-white/10 shadow-inner" style={{ background: style.preview }} />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block text-sm font-extrabold ${mapStyle === style.id ? 'text-accent-400' : 'text-primary'}`}>{style.label}</span>
+                      <span className="block text-[11px] font-medium text-muted">{style.description}</span>
+                    </span>
+                    {mapStyle === style.id && <Check className="h-4 w-4 shrink-0 text-accent-400" strokeWidth={3} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Brand + location search */}
       <div className="absolute left-3 right-16 top-3 z-[1000] flex flex-wrap items-center gap-2">
