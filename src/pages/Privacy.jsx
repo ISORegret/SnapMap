@@ -6,12 +6,12 @@ export default function Privacy() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen pb-8">
-      <header className="border-b border-white/[0.08] px-4 py-6">
+    <div className="page-shell pb-24 animate-fade-in">
+      <header className="page-header">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 mb-4 text-sm text-slate-400 hover:text-white transition"
+          className="icon-button mb-5 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -21,13 +21,14 @@ export default function Privacy() {
             <Shield className="h-6 w-6 text-accent-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Privacy Policy</h1>
+            <p className="eyebrow">Your data</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">Privacy Policy</h1>
             <p className="text-sm text-slate-500 mt-0.5">SnapMap — last updated</p>
           </div>
         </div>
       </header>
 
-      <div className="px-4 py-6 space-y-6 text-slate-400 text-sm leading-relaxed">
+      <div className="surface-card mx-4 my-6 max-w-3xl space-y-6 rounded-[1.5rem] p-5 text-sm leading-relaxed text-secondary md:mx-auto md:p-8">
         <section>
           <h2 className="text-base font-semibold text-white mb-2">Overview</h2>
           <p>

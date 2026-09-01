@@ -576,7 +576,7 @@ export default function App() {
           <div className="animate-splash-pulse flex flex-col items-center gap-8">
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-accent-500/20 blur-2xl" />
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-accent-500/30 bg-[#0f0e12] shadow-[0_0_40px_-8px_rgba(232,167,53,0.4)]">
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-accent-500/30 bg-[var(--bg-page)] shadow-[0_0_40px_-8px_rgba(232,167,53,0.4)]">
                 <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-20 w-20 object-contain" aria-hidden />
               </div>
             </div>
@@ -614,9 +614,7 @@ export default function App() {
   }
 
   const navLinkClass = ({ isActive }) =>
-    `flex flex-col items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-      isActive ? 'text-accent-400' : 'text-slate-500 hover:bg-accent-500/10 hover:text-slate-300'
-    }`;
+    `nav-item ${isActive ? 'nav-item-active' : ''}`;
 
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
@@ -628,7 +626,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(12rem + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex-1 min-h-0 flex flex-col relative">
           <Routes>
           <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} onRefreshSpots={refetchCommunitySpots} spotsLoading={communitySpotsLoading} />} />
@@ -704,45 +702,44 @@ export default function App() {
         </Routes>
         </div>
       </main>
-      {/* FAB - Add spot */}
-      <NavLink
-        to="/add"
-        className="fixed right-4 bottom-36 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent-500 text-white shadow-glow transition hover:bg-accent-400 active:scale-95"
-        aria-label="Add spot"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </NavLink>
-
-      {/* Bottom nav: Map | Explore | Saved | Profile */}
-      <div className="fixed left-0 right-0 z-20 flex flex-col items-center px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" style={{ bottom: 0 }}>
+      {/* Bottom navigation dock */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex flex-col items-center px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
         <nav
-          className="flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-white/[0.08] px-2 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
-          style={{ backgroundColor: 'var(--bg-nav)' }}
+          className="nav-dock pointer-events-auto grid w-full max-w-lg grid-cols-5 items-center rounded-[1.65rem] px-1.5 py-1.5"
           aria-label="Main"
         >
           <NavLink to="/" className={navLinkClass}>
-            <MapIcon className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Map</span>
+            <MapIcon className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Map</span>
           </NavLink>
           <NavLink to="/explore" className={navLinkClass}>
-            <Compass className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Explore</span>
+            <Compass className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Explore</span>
+          </NavLink>
+          <NavLink
+            to="/add"
+            className={({ isActive }) => `group -mt-6 flex flex-col items-center gap-1 text-[var(--text-muted)] ${isActive ? 'text-accent-400' : ''}`}
+            aria-label="Add a new spot"
+          >
+            <span className="primary-button flex h-14 w-14 rounded-[1.2rem] border border-white/20">
+              <Plus className="h-6 w-6" strokeWidth={2.7} />
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Add</span>
           </NavLink>
           <NavLink to="/saved" className={navLinkClass}>
-            <Heart className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Saved</span>
+            <Heart className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Saved</span>
           </NavLink>
           <NavLink to="/profile" className={navLinkClass}>
-            <User className="h-5 w-5" />
-            <span className="text-[10px] font-medium uppercase tracking-wider opacity-90">Profile</span>
+            <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Profile</span>
           </NavLink>
         </nav>
-        <p className="mt-1 text-center text-[10px] text-slate-500" aria-hidden="true">
-          v{appVersion}
-          {updateAvailable && (
-            <span className="block text-[9px] text-accent-400 mt-0.5">Update available</span>
-          )}
-        </p>
+        {updateAvailable && (
+          <p className="pointer-events-auto mt-1 rounded-full bg-accent-500/15 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-accent-400">
+            v{appVersion} · Update available
+          </p>
+        )}
       </div>
     </div>
   );

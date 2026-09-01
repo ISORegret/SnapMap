@@ -23,7 +23,7 @@ function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
   return (
     <Link
       to={`/spot/${spot.id}`}
-      className="group flex gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#1a191f] transition hover:border-accent-500/20 hover:bg-[#222128]"
+      className="surface-card group flex gap-3 overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/25"
     >
       <div className={`relative shrink-0 overflow-hidden rounded-lg bg-slate-800 ${compact ? 'h-14 w-16' : 'h-24 w-28'}`}>
         <img
@@ -173,14 +173,15 @@ export default function Saved({
     allSpots.filter((s) => coll.spotIds.includes(s.id)).filter((s) => matchesSearch(s, searchQuery));
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-[#0f0e12] pb-6">
-      <header className="border-b border-white/[0.06] bg-[#0f0e12] px-4 py-5">
+    <div className="page-shell pb-24 animate-fade-in">
+      <header className="page-header">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-white">
+            <p className="eyebrow">Your shortlist</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">
               {sharedIds?.length ? 'Shared list' : 'Saved'}
             </h1>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <p className="mt-2 max-w-xl text-sm font-medium text-muted">
               {sharedIds?.length
                 ? `${savedSpots.length} spot${savedSpots.length !== 1 ? 's' : ''} in this list.`
                 : 'Favorites + your lists — heart to save, or add spots to a list from the spot page.'}
@@ -190,7 +191,7 @@ export default function Saved({
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="shrink-0 rounded-full p-2 text-slate-500 transition hover:bg-white/10 hover:text-accent-400"
+              className="icon-button h-11 w-11 shrink-0 rounded-2xl"
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -202,7 +203,7 @@ export default function Saved({
       {!sharedIds?.length && (
         <>
           {/* Search */}
-          <div className="border-b border-white/[0.06] px-4 py-3">
+          <div className="px-4 pb-3 pt-5 md:px-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -210,7 +211,7 @@ export default function Saved({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search saved spots…"
-                className="w-full rounded-xl border border-white/10 bg-[#1a191f] py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                className="surface-input w-full rounded-2xl py-3.5 pl-10 pr-3 text-sm font-semibold placeholder:text-[var(--text-muted)]"
               />
             </div>
           </div>
@@ -223,11 +224,11 @@ export default function Saved({
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder="New list name"
-                className="flex-1 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                className="flex-1 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
               />
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600"
+                className="flex items-center gap-1.5 rounded-2xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600"
               >
                 <FolderPlus className="h-4 w-4" />
                 Add list
@@ -253,7 +254,7 @@ export default function Saved({
                       value={importCodeValue}
                       onChange={(e) => { setImportCodeValue(e.target.value); setImportDone(false); }}
                       placeholder="Sync code from phone or other device"
-                      className="flex-1 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                      className="flex-1 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                     />
                     <button
                       type="button"
@@ -271,7 +272,7 @@ export default function Saved({
                           setImporting(false);
                         }
                       }}
-                      className="shrink-0 rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600 disabled:opacity-50"
+                      className="shrink-0 rounded-2xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600 disabled:opacity-50"
                     >
                       {importing ? 'Importing…' : 'Import'}
                     </button>
@@ -295,7 +296,7 @@ export default function Saved({
                       setSyncCode(code);
                       await pushFavoritesToSync?.(code, favoriteIds);
                     }}
-                    className="flex items-center gap-2 rounded-xl bg-accent-500/20 px-3 py-2 text-sm font-medium text-accent-400 transition hover:bg-accent-500/30"
+                    className="flex items-center gap-2 rounded-2xl bg-accent-500/20 px-3 py-2 text-sm font-medium text-accent-400 transition hover:bg-accent-500/30"
                   >
                     <Link2 className="h-4 w-4" />
                     Turn on sync
@@ -304,7 +305,7 @@ export default function Saved({
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-lg border border-white/10 bg-[#1a191f] px-3 py-2 font-mono text-sm tracking-wider text-accent-400">
+                    <code className="flex-1 rounded-lg border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 font-mono text-sm tracking-wider text-accent-400">
                       {syncCode}
                     </code>
                     <button
@@ -315,7 +316,7 @@ export default function Saved({
                           setTimeout(() => setCodeCopied(false), 2000);
                         });
                       }}
-                      className="shrink-0 rounded-lg border border-white/10 bg-[#1a191f] p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                      className="shrink-0 rounded-lg border border-white/10 bg-[var(--bg-card-solid)] p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
                       aria-label="Copy code"
                     >
                       <Copy className="h-4 w-4" />
@@ -331,7 +332,7 @@ export default function Saved({
                       value={enterCodeValue}
                       onChange={(e) => setEnterCodeValue(e.target.value)}
                       placeholder="Code from another device"
-                      className="flex-1 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                      className="flex-1 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                     />
                     <button
                       type="button"
@@ -343,7 +344,7 @@ export default function Saved({
                           refetchFavorites?.(code);
                         }
                       }}
-                      className="shrink-0 rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600"
+                      className="shrink-0 rounded-2xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600"
                     >
                       Use code
                     </button>
@@ -368,7 +369,7 @@ export default function Saved({
                     a.click();
                     URL.revokeObjectURL(a.href);
                   }}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                  className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
                 >
                   <Download className="h-4 w-4" />
                   CSV
@@ -383,7 +384,7 @@ export default function Saved({
                     a.click();
                     URL.revokeObjectURL(a.href);
                   }}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                  className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
                 >
                   <Download className="h-4 w-4" />
                   JSON
@@ -399,7 +400,7 @@ export default function Saved({
                       setTimeout(() => setExportCopied(false), 2000);
                     });
                   }}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                  className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
                 >
                   <Copy className="h-4 w-4" />
                   {exportCopied ? 'Copied!' : 'Copy link'}

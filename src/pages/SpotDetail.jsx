@@ -141,7 +141,7 @@ function WeatherAtSpot({ latitude, longitude }) {
 
   if (loading) {
     return (
-      <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1a191f] py-3 text-sm text-slate-500">
+      <div className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-3 text-sm text-slate-500">
         <Cloud className="h-4 w-4 animate-pulse" />
         Loading weather…
       </div>
@@ -149,7 +149,7 @@ function WeatherAtSpot({ latitude, longitude }) {
   }
   if (error || !weather) {
     return (
-      <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-[#1a191f] py-3">
+      <div className="mt-3 flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-3">
         <p className="text-center text-xs text-slate-500">
           Weather unavailable. Check connection or try again.
         </p>
@@ -167,7 +167,7 @@ function WeatherAtSpot({ latitude, longitude }) {
   const temp = Math.round(weather.temperature);
   const unit = '°F';
   return (
-    <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-[#1a191f] px-4 py-3">
+    <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-4 py-3">
       <div className="flex items-center gap-2 text-slate-300">
         <Cloud className="h-5 w-5 text-slate-500" />
         <span className="text-sm font-medium">{label}</span>
@@ -515,7 +515,7 @@ export default function SpotDetail({
         : null;
 
     return (
-    <div className="min-h-[calc(100vh-56px)] bg-[#0f0e12] pb-6 animate-fade-in">
+    <div className="page-shell pb-24 animate-fade-in">
       {(spot.syncError || spot.uploadError) && (
         <div className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg bg-amber-950/95 px-3 py-2 text-sm text-amber-200 backdrop-blur-sm">
           <span>{spot.syncError ? "Edit didn't sync to cloud." : `Couldn't sync: ${spot.uploadError}`}</span>
@@ -533,7 +533,7 @@ export default function SpotDetail({
       {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}
       <div
         ref={shareCardRef}
-        className="fixed left-0 top-0 z-[-1] w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[#1a191f] text-left opacity-0 pointer-events-none"
+        className="fixed left-0 top-0 z-[-1] w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] text-left opacity-0 pointer-events-none"
         style={{ fontFamily: 'system-ui, sans-serif' }}
         aria-hidden
       >
@@ -560,11 +560,11 @@ export default function SpotDetail({
         </div>
       </div>
 
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-[#0f0e12]/95 px-4 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-nav)] px-4 py-3 backdrop-blur-2xl">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
+          className="icon-button gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"
         >
           <ArrowLeft className="h-5 w-5" />
           Back
@@ -572,7 +572,7 @@ export default function SpotDetail({
         <button
           type="button"
           onClick={() => toggleFavorite(spot.id)}
-          className="rounded-full p-2 text-white transition hover:bg-white/5"
+          className="icon-button h-10 w-10 rounded-2xl"
           aria-label={isFavorite(spot.id) ? 'Unsave' : 'Save'}
         >
           <Heart
@@ -598,7 +598,7 @@ export default function SpotDetail({
             type="button"
             onClick={() => addPhotoInputRef.current?.click()}
             disabled={addPhotoLoading}
-            className="w-full rounded-xl border border-dashed border-accent-500/40 bg-accent-500/5 py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/10 disabled:opacity-50"
+            className="w-full rounded-2xl border border-dashed border-accent-500/40 bg-accent-500/5 py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/10 disabled:opacity-50"
           >
             {addPhotoLoading ? 'Adding…' : 'Add your photo to this spot'}
           </button>
@@ -750,7 +750,7 @@ export default function SpotDetail({
             {spot.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-[#222128] px-2.5 py-1 text-xs text-slate-400"
+                className="rounded-full bg-[var(--bg-card-hover)] px-2.5 py-1 text-xs text-slate-400"
               >
                 {tag}
               </span>
@@ -765,7 +765,7 @@ export default function SpotDetail({
               href={spot.linkUrl.trim()}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2 text-sm font-medium text-accent-400 transition hover:bg-[#222128]"
+              className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2 text-sm font-medium text-accent-400 transition hover:bg-[var(--bg-card-hover)]"
             >
               <ExternalLink className="h-4 w-4" />
               {spot.linkLabel && spot.linkLabel.trim() ? spot.linkLabel.trim() : 'More info'}
@@ -775,7 +775,7 @@ export default function SpotDetail({
 
         {/* Sunrise / sunset / golden / blue hour at spot */}
         {sunTimes && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-[#1a191f] p-3">
+          <div className="mt-4 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Sun className="h-4 w-4 text-amber-400" />
               Best light at this spot
@@ -784,7 +784,7 @@ export default function SpotDetail({
               type="date"
               value={sunDate}
               onChange={(e) => setSunDate(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-white/10 bg-[#0f0e12] px-2 py-1.5 text-xs text-slate-300"
+              className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-2 py-1.5 text-xs text-slate-300"
             />
             <ul className="mt-3 space-y-2 text-xs text-slate-400">
               <li>Sunrise {sunTimes.sunrise}</li>
@@ -815,7 +815,7 @@ export default function SpotDetail({
               href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-accent-400 transition hover:bg-[#222128]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-accent-400 transition hover:bg-[var(--bg-card-hover)]"
             >
               <ExternalLink className="h-4 w-4" />
               Google Maps
@@ -824,7 +824,7 @@ export default function SpotDetail({
               href={appleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#222128]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
             >
               <ExternalLink className="h-4 w-4" />
               Apple Maps
@@ -833,7 +833,7 @@ export default function SpotDetail({
               href={wazeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#222128]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
             >
               <ExternalLink className="h-4 w-4" />
               Waze
@@ -847,7 +847,7 @@ export default function SpotDetail({
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Community notes
             </p>
-            <ul className="mb-3 space-y-2 rounded-xl border border-white/10 bg-[#1a191f] p-3">
+            <ul className="mb-3 space-y-2 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
               {notes.length === 0 ? (
                 <li className="text-xs text-slate-500">No notes yet. Add one below.</li>
               ) : (
@@ -867,7 +867,7 @@ export default function SpotDetail({
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Add a note…"
-                className="flex-1 rounded-lg border border-white/10 bg-[#0f0e12] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none"
+                className="flex-1 rounded-lg border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none"
                 onKeyDown={(e) => e.key === 'Enter' && addNote()}
               />
               <button
@@ -891,7 +891,7 @@ export default function SpotDetail({
             <button
               type="button"
               onClick={copyCoords}
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#222128]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
             >
               <Copy className="h-4 w-4" />
               {copyFeedback === 'coords' ? 'Copied!' : 'Copy coordinates'}
@@ -899,7 +899,7 @@ export default function SpotDetail({
             <button
               type="button"
               onClick={shareSpot}
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#222128]"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
             >
               <Share2 className="h-4 w-4" />
               {copyFeedback === 'link' ? 'Copied!' : 'Share spot'}
@@ -908,7 +908,7 @@ export default function SpotDetail({
               type="button"
               onClick={shareAsImage}
               disabled={shareImageLoading}
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[#222128] disabled:opacity-50"
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
             >
               <Image className="h-4 w-4" />
               {shareImageLoading ? 'Creating…' : 'Share as image'}
@@ -929,20 +929,20 @@ export default function SpotDetail({
               Something wrong?
             </p>
             {reportSent ? (
-              <p className="rounded-xl border border-accent-500/30 bg-accent-500/10 py-2.5 text-center text-sm text-accent-400">
+              <p className="rounded-2xl border border-accent-500/30 bg-accent-500/10 py-2.5 text-center text-sm text-accent-400">
                 Thanks, we&apos;ll look into it.
               </p>
             ) : !reportOpen ? (
               <button
                 type="button"
                 onClick={() => setReportOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1a191f] py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-300"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-300"
               >
                 <Flag className="h-4 w-4" />
                 Report or wrong location
               </button>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-[#1a191f] p-3 space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3 space-y-3">
                 <p className="text-xs text-slate-500">What&apos;s wrong?</p>
                 <div className="flex gap-2">
                   <button
@@ -969,7 +969,7 @@ export default function SpotDetail({
                   value={reportNote}
                   onChange={(e) => setReportNote(e.target.value)}
                   placeholder="Optional note"
-                  className="w-full rounded-lg border border-white/10 bg-[#0f0e12] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -1002,7 +1002,7 @@ export default function SpotDetail({
               <button
                 type="button"
                 onClick={() => navigate('/add', { state: { editSpot: spot } })}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-accent-500/30 bg-accent-500/10 py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/20"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-accent-500/30 bg-accent-500/10 py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/20"
               >
                 <Pencil className="h-4 w-4" />
                 Edit spot
@@ -1015,7 +1015,7 @@ export default function SpotDetail({
                       onDeleteSpot(spot.id);
                     }
                   }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete

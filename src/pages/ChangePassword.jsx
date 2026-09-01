@@ -83,7 +83,7 @@ export default function ChangePassword({ currentUser }) {
             placeholder="••••••••"
             required
             autoComplete="current-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -97,7 +97,7 @@ export default function ChangePassword({ currentUser }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -111,14 +111,14 @@ export default function ChangePassword({ currentUser }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         {error && <p className="text-sm text-amber-400">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
+          className="w-full rounded-2xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
         >
           {loading ? 'Updating…' : 'Update password'}
         </button>

@@ -8,31 +8,31 @@ export default {
     extend: {
       colors: {
         surface: {
-          700: '#1a191f',
-          800: '#15141a',
-          900: '#0f0e12',
+        700: '#171c23',
+        800: '#12161c',
+        900: '#080a0d',
         },
         accent: {
-          DEFAULT: '#e8a735',
-          400: '#f0b84d',
-          500: '#e8a735',
-          600: '#c4932a',
-          light: '#f0b84d',
-          glow: '#e8a735',
-          dark: '#c4932a',
-          muted: 'rgba(232, 167, 53, 0.2)',
+          DEFAULT: '#f6b73c',
+          400: '#ffc85f',
+          500: '#f6b73c',
+          600: '#d99517',
+          light: '#ffc85f',
+          glow: '#f6b73c',
+          dark: '#bd7a05',
+          muted: 'rgba(246, 183, 60, 0.14)',
         },
       },
       fontFamily: {
-        sans: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
       },
       borderRadius: {
-        'card': '14px',
-        'card-lg': '18px',
+        'card': '18px',
+        'card-lg': '24px',
       },
       boxShadow: {
-        'glow': '0 0 24px -4px rgba(232, 167, 53, 0.25)',
-        'glow-sm': '0 0 16px -4px rgba(232, 167, 53, 0.2)',
+        'glow': '0 16px 42px -12px rgba(246, 183, 60, 0.48)',
+        'glow-sm': '0 10px 28px -10px rgba(246, 183, 60, 0.34)',
       },
       transitionDuration: {
         'smooth': '220ms',

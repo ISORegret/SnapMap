@@ -231,7 +231,7 @@ export default function SignIn({ onSuccess, currentUser }) {
           type="button"
           onClick={handleResend}
           disabled={loading}
-          className="mt-4 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
+          className="mt-4 rounded-2xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
         >
           {loading ? 'Sending…' : 'Resend link'}
         </button>
@@ -269,21 +269,21 @@ export default function SignIn({ onSuccess, currentUser }) {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
+            className="w-full rounded-2xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Sending…' : 'Send reset link'}
           </button>
           <button
             type="button"
             onClick={() => { setForgotPassword(false); setError(''); }}
-            className="w-full rounded-xl border border-white/10 py-3 font-medium text-slate-300 hover:bg-white/5"
+            className="w-full rounded-2xl border border-white/10 py-3 font-medium text-slate-300 hover:bg-white/5"
           >
             Back to sign in
           </button>
@@ -321,7 +321,7 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               minLength={6}
               autoComplete="new-password"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           <div>
@@ -335,14 +335,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               minLength={6}
               autoComplete="new-password"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
+            className="w-full rounded-2xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
           >
             {loading ? 'Updating…' : 'Update password'}
           </button>
@@ -354,13 +354,15 @@ export default function SignIn({ onSuccess, currentUser }) {
   const isPassword = mode === 'password';
 
   return (
-    <div className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="text-xl font-semibold text-white">Sign in</h1>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="page-shell-narrow flex min-h-[72vh] max-w-md flex-col justify-center py-12">
+      <div className="surface-card rounded-[1.75rem] p-6 sm:p-8">
+      <p className="eyebrow">SnapMap account</p>
+      <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">Welcome back</h1>
+      <p className="mt-2 text-sm font-medium leading-relaxed text-muted">
         {isPassword ? 'Sign in with your email and password.' : 'We&apos;ll send you a link to sign in. No password needed.'}
       </p>
 
-      <div className="mt-4 flex gap-2 rounded-xl border border-white/10 p-1">
+      <div className="mt-4 flex gap-2 rounded-2xl border border-white/10 p-1">
         <button
           type="button"
           onClick={() => { setMode('password'); setError(''); }}
@@ -389,7 +391,7 @@ export default function SignIn({ onSuccess, currentUser }) {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           <div>
@@ -403,14 +405,14 @@ export default function SignIn({ onSuccess, currentUser }) {
               required
               autoComplete="current-password"
               minLength={6}
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
+            className="primary-button w-full py-3.5 text-sm disabled:opacity-50"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
@@ -418,7 +420,7 @@ export default function SignIn({ onSuccess, currentUser }) {
             type="button"
             onClick={handleSignUp}
             disabled={loading}
-            className="w-full rounded-xl border border-white/10 py-3 font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
+            className="w-full rounded-2xl border border-white/10 py-3 font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
           >
             Create account
           </button>
@@ -441,27 +443,28 @@ export default function SignIn({ onSuccess, currentUser }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="mt-1 w-full rounded-xl border border-white/10 bg-[#1a191f] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white transition hover:bg-accent-400 disabled:opacity-50"
+            className="primary-button w-full py-3.5 text-sm disabled:opacity-50"
           >
             {loading ? 'Sending…' : 'Send sign-in link'}
           </button>
         </form>
       )}
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-xs font-semibold text-muted">
         <Link to="/" className="text-accent-400 hover:underline">Back to Map</Link>
         {' · '}
         <Link to="/about" className="text-accent-400 hover:underline">About</Link>
         {' · '}
         <Link to="/privacy" className="text-accent-400 hover:underline">Privacy Policy</Link>
       </p>
+      </div>
     </div>
   );
 }

@@ -10,23 +10,24 @@ export default function About({ allSpots = [] }) {
     .slice(0, 8);
 
   return (
-    <div className="min-h-screen pb-8">
-      <header className="border-b border-white/[0.08] px-4 py-6">
+    <div className="page-shell pb-24 animate-fade-in">
+      <header className="page-header">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 mb-4 text-sm text-slate-400 hover:text-white transition"
+          className="icon-button mb-5 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
         </button>
-        <h1 className="text-2xl font-bold tracking-tight text-white">About SnapMap</h1>
-        <p className="mt-2 text-slate-400">
+        <p className="eyebrow">Made for the next shoot</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">About SnapMap</h1>
+        <p className="mt-2 max-w-xl font-medium text-muted">
           The best places for photography and cars. Find spots, plan shoots, save favorites.
         </p>
       </header>
 
-      <div className="px-4 py-6 space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:px-6">
         {/* What is SnapMap */}
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">What is SnapMap?</h2>
@@ -40,36 +41,36 @@ export default function About({ allSpots = [] }) {
         {/* Features */}
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">What you can do</h2>
-          <ul className="space-y-3">
-            <li className="flex gap-3 items-start">
+          <ul className="surface-card space-y-1 rounded-[1.5rem] p-3">
+            <li className="flex items-start gap-3 rounded-2xl p-3">
               <Map className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
                 <span className="text-white font-medium">Map</span>
                 <p className="text-slate-400 text-sm">See all spots on an interactive map. Switch between Map, Satellite, and Terrain layers.</p>
               </div>
             </li>
-            <li className="flex gap-3 items-start">
+            <li className="flex items-start gap-3 rounded-2xl p-3">
               <Camera className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
                 <span className="text-white font-medium">Explore</span>
                 <p className="text-slate-400 text-sm">Browse by category, search, or find spots near you. Full gallery for each location.</p>
               </div>
             </li>
-            <li className="flex gap-3 items-start">
+            <li className="flex items-start gap-3 rounded-2xl p-3">
               <Sun className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
                 <span className="text-white font-medium">Best times</span>
                 <p className="text-slate-400 text-sm">Sunrise, sunset, golden hour, and blue hour times for any spot — so you know when to shoot.</p>
               </div>
             </li>
-            <li className="flex gap-3 items-start">
+            <li className="flex items-start gap-3 rounded-2xl p-3">
               <Heart className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
                 <span className="text-white font-medium">Save & sync</span>
                 <p className="text-slate-400 text-sm">Heart spots to save them. Sign in to sync favorites across your phone and web.</p>
               </div>
             </li>
-            <li className="flex gap-3 items-start">
+            <li className="flex items-start gap-3 rounded-2xl p-3">
               <Share2 className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
                 <span className="text-white font-medium">Add spots</span>
@@ -91,7 +92,7 @@ export default function About({ allSpots = [] }) {
                 <Link
                   key={spot.id}
                   to={`/spot/${spot.id}`}
-                  className="group block rounded-xl overflow-hidden border border-white/[0.08] bg-[#1a191f] transition hover:border-accent-500/30"
+                  className="surface-card group block overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/30"
                 >
                   <div className="aspect-[4/3] relative">
                     <img
@@ -122,7 +123,7 @@ export default function About({ allSpots = [] }) {
           </Link>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-400"
+            className="primary-button px-5 py-3 text-sm"
           >
             <MapPin className="h-4 w-4" />
             Explore the map

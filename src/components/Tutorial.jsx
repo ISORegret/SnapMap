@@ -76,7 +76,7 @@ export default function Tutorial({ onDone }) {
       aria-modal="true"
       aria-label="First-run tutorial"
     >
-      <div className="flex max-w-sm flex-col items-center rounded-2xl border border-white/10 bg-[#0f0e12] p-6 shadow-xl">
+      <div className="flex max-w-sm flex-col items-center rounded-2xl border border-white/10 bg-[var(--bg-page)] p-6 shadow-xl">
         {Icon && (
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
             <Icon className="h-6 w-6" />
@@ -88,14 +88,14 @@ export default function Tutorial({ onDone }) {
           <button
             type="button"
             onClick={handleSkip}
-            className="rounded-xl px-4 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
+            className="rounded-2xl px-4 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
           >
             Skip
           </button>
           <button
             type="button"
             onClick={handleNext}
-            className="rounded-xl bg-accent-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-400"
+            className="rounded-2xl bg-accent-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-400"
           >
             {step < STEPS.length - 1 ? 'Next' : 'Get started'}
           </button>

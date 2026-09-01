@@ -15,15 +15,12 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 const defaultCenter = [37.8021, -122.4488];
 const defaultZoom = 6;
 
-// Fix default marker icon in react-leaflet (webpack/vite)
-const icon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+const icon = L.divIcon({
+  className: 'snapmap-marker-wrap',
+  html: '<span class="snapmap-marker"><span></span></span>',
+  iconSize: [34, 42],
+  iconAnchor: [17, 38],
+  popupAnchor: [0, -34],
 });
 
 function hasParking(spot) {
@@ -269,18 +266,19 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
 
   if (!mapReady) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-[#0f0e12] text-slate-400">
-        Loading map…
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-page text-muted">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-accent-500" />
+        <span className="text-xs font-bold uppercase tracking-[0.18em]">Loading map</span>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col min-h-0 z-10">
+    <div className="fixed inset-0 z-10 flex min-h-0 flex-col bg-page">
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a191f] p-5 shadow-xl">
+          <div className="surface-card w-full max-w-sm rounded-[1.75rem] p-6">
             <div className="flex justify-center">
               <div className="rounded-full bg-accent-500/20 p-3">
                 <MapPin className="h-8 w-8 text-accent-400" />
@@ -296,14 +294,14 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
               <button
                 type="button"
                 onClick={onLocationPromptDismiss}
-                className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5"
+                className="flex-1 rounded-2xl border border-white/10 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/5"
               >
                 Not now
               </button>
               <button
                 type="button"
                 onClick={onLocationPromptAllow}
-                className="flex-1 rounded-xl bg-accent-500 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-400"
+                className="primary-button flex-1 py-3 text-sm"
               >
                 Allow
               </button>
@@ -313,14 +311,14 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       )}
 
       {filteredSpots.length === 0 && (
-        <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[#0f0e12]/90 px-6 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[var(--bg-page)] px-6 backdrop-blur-sm">
           <p className="text-center text-sm font-medium text-slate-300">
             No spots yet. Add your first spot to see it on the map.
           </p>
           <button
             type="button"
             onClick={() => navigate('/add')}
-            className="flex items-center gap-2 rounded-xl bg-accent-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-accent-600"
+            className="primary-button px-5 py-3 text-sm"
           >
             <MapPin className="h-4 w-4" />
             Add a spot
@@ -397,15 +395,15 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         />
       </MapContainer>
 
-      <div className="absolute bottom-2 left-3 right-3 z-[1000] flex items-center justify-between gap-2 rounded-lg bg-black/70 px-3 py-2 text-xs text-slate-300 backdrop-blur">
-        <span>Tap map to pin · Save spot here</span>
-        <Link to="/explore" className="flex items-center gap-1 rounded-md px-2 py-1 text-accent-400 hover:bg-white/10 transition">
+      <div className="surface-card absolute bottom-[7.1rem] left-3 right-3 z-[1000] flex items-center justify-between gap-3 rounded-[1.25rem] px-3.5 py-3 text-xs text-secondary sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
+        <span className="font-semibold">Tap anywhere to pin a new spot</span>
+        <Link to="/explore" className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-[var(--accent-muted)] px-3 py-2 font-extrabold text-accent-400 transition hover:bg-accent-500 hover:text-[#211603]">
           <Compass className="h-3.5 w-3.5" />
           Browse spots
         </Link>
       </div>
       {pendingPin && (
-        <div className="absolute left-3 right-3 z-[1000] rounded-xl border border-white/10 bg-[#18181b] p-4 shadow-xl sm:left-auto sm:right-3 sm:max-w-sm" style={{ bottom: 'calc(9rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="surface-card absolute left-3 right-3 z-[1000] rounded-[1.5rem] p-5 sm:left-auto sm:right-3 sm:max-w-sm" style={{ bottom: 'calc(11rem + env(safe-area-inset-bottom, 0px))' }}>
           <p className="text-sm font-medium text-white">Save spot here</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}
@@ -421,7 +419,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
             <button
               type="button"
               onClick={goToAddSpot}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-500 px-3 py-2 text-sm font-semibold text-white bg-accent-600"
+              className="primary-button flex-1 px-3 py-2.5 text-sm"
             >
               <MapPin className="h-4 w-4" />
               Add spot
@@ -437,7 +435,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           <button
             type="button"
             onClick={() => setSettingsOpen((o) => !o)}
-            className="rounded-full bg-black/70 p-2 text-slate-400 backdrop-blur transition hover:bg-black/80 hover:text-accent-400"
+            className="icon-button h-11 w-11 rounded-2xl"
             aria-label="Settings"
             aria-expanded={settingsOpen}
           >
@@ -446,7 +444,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {settingsOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
-              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
+              <div className="surface-card absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-2">
                 {downloadCount != null && (
                   <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400" aria-hidden>
                     <Download className="h-4 w-4 shrink-0" />
@@ -496,16 +494,11 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         </div>
       )}
 
-      {/* Back button + Search address - leave right side for settings + layer switcher */}
-      <div className="absolute left-3 right-24 top-3 z-[1000] flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={goBack}
-          className="shrink-0 rounded-xl border border-white/10 bg-black/70 p-2.5 text-slate-300 backdrop-blur transition hover:bg-black/80 hover:text-accent-400 hover:border-accent-500/30"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
+      {/* Brand + location search */}
+      <div className="absolute left-3 right-16 top-3 z-[1000] flex flex-wrap items-center gap-2">
+        <div className="surface-card flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl p-2" aria-hidden="true">
+          <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-full w-full object-contain" />
+        </div>
         <form onSubmit={handleMapSearch} className="flex min-w-0 flex-1 gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -515,13 +508,13 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
               onChange={(e) => { setMapSearchQuery(e.target.value); setMapSearchError(null); }}
               onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
               placeholder="Search address or place…"
-              className="w-full rounded-xl border border-white/10 bg-black/70 py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-500 backdrop-blur focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/25"
+              className="surface-input h-11 w-full rounded-2xl bg-[var(--bg-nav)] pl-10 pr-3 text-sm font-semibold backdrop-blur-xl placeholder:text-[var(--text-muted)]"
             />
           </div>
           <button
             type="submit"
             disabled={mapSearchLoading || !mapSearchQuery.trim()}
-            className="shrink-0 rounded-xl bg-accent-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-600 disabled:opacity-50"
+            className="primary-button h-11 shrink-0 px-4 text-sm disabled:opacity-50"
           >
             {mapSearchLoading ? '…' : 'Go'}
           </button>
@@ -532,12 +525,12 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       </div>
 
       {/* Filter + Distance dropdowns */}
-      <div className="absolute left-3 top-[4.25rem] right-24 z-[1000] flex gap-2">
+      <div className="absolute left-3 top-[4.25rem] right-16 z-[1000] flex gap-2 sm:max-w-md">
         <div className="relative flex-1">
           <button
             type="button"
             onClick={() => { setFilterDropdownOpen((o) => !o); setDistanceDropdownOpen(false); }}
-            className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-medium text-slate-300 backdrop-blur hover:bg-black/80"
+            className="surface-card flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-secondary"
           >
             <span className="truncate">Filter: {filterLabel}</span>
             <ChevronDown className={`h-4 w-4 shrink-0 transition ${filterDropdownOpen ? 'rotate-180' : ''}`} />
@@ -545,7 +538,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {filterDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setFilterDropdownOpen(false)} aria-hidden />
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
+              <div className="surface-card absolute left-0 top-full z-50 mt-2 max-h-56 w-full overflow-auto rounded-2xl py-2">
                 {FILTER_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
@@ -567,7 +560,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           <button
             type="button"
             onClick={() => { setDistanceDropdownOpen((o) => !o); setFilterDropdownOpen(false); }}
-            className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-medium text-slate-300 backdrop-blur hover:bg-black/80"
+            className="surface-card flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-secondary"
           >
             <span className="truncate">Distance: {distanceLabel}</span>
             <ChevronDown className={`h-4 w-4 shrink-0 transition ${distanceDropdownOpen ? 'rotate-180' : ''}`} />
@@ -575,7 +568,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           {distanceDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setDistanceDropdownOpen(false)} aria-hidden />
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#1a191f] py-2 shadow-xl">
+              <div className="surface-card absolute left-0 top-full z-50 mt-2 max-h-56 w-full overflow-auto rounded-2xl py-2">
                 <button
                   type="button"
                   onClick={() => { setDistanceFilterMi(null); setDistanceDropdownOpen(false); }}

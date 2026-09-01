@@ -185,12 +185,13 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   };
 
   return (
-    <div className="mx-auto max-w-md bg-[#0f0e12] px-4 pb-20 pt-5 animate-fade-in">
-      <header className="border-b border-white/[0.06] pb-5">
-        <h1 className="text-xl font-semibold tracking-tight text-white">
+    <div className="page-shell-narrow pb-24 animate-fade-in">
+      <header className="pb-6 pt-2">
+        <p className="eyebrow">Community map</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">
           {editSpot ? 'Edit spot' : 'Add a spot'}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-muted">
           {editSpot
             ? "Update name, description, location, photos, and more. All changes sync across devices."
             : hasSupabase
@@ -198,7 +199,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
-      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="block text-xs font-medium text-slate-500">Name *</label>
           <input
@@ -210,7 +211,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             }}
             placeholder="Spot name"
             required
-            className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+            className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
               fieldErrors.name ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
             }`}
           />
@@ -225,7 +226,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Iconic overlook with city views"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -235,7 +236,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Street, city"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -245,7 +246,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={parking}
             onChange={(e) => setParking(e.target.value)}
             placeholder="e.g. Street, free · Lot nearby"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -256,7 +257,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={howToAccess}
             onChange={(e) => setHowToAccess(e.target.value)}
             placeholder="e.g. Dirt road 2 mi from Hwy 1; 4WD recommended"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         {fromMap && (
@@ -264,13 +265,13 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             Location set from map pin — add a name and save.
           </p>
         )}
-        <div className="rounded-xl border border-white/10 bg-[#1a191f]/50 p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Location</p>
+        <div className="surface-card rounded-[1.5rem] p-5">
+          <p className="eyebrow mb-3">Location</p>
           <button
             type="button"
             onClick={useMyLocation}
             disabled={locationLoading}
-            className="mb-3 flex w-full items-center justify-center gap-3 rounded-xl bg-accent-500 py-3.5 text-base font-semibold text-white shadow-lg shadow-accent-500/25 transition hover:bg-accent-400 active:scale-[0.98] disabled:opacity-60"
+            className="primary-button mb-3 w-full py-3.5 text-sm disabled:opacity-60"
           >
             <MapPin className="h-5 w-5 shrink-0" />
             {locationLoading ? 'Getting location…' : 'Use my location'}
@@ -289,7 +290,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   if (fieldErrors.latitude) setFieldErrors((prev) => ({ ...prev, latitude: '' }));
                 }}
                 placeholder="37.8021"
-                className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.latitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
               />
@@ -307,7 +308,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   if (fieldErrors.longitude) setFieldErrors((prev) => ({ ...prev, longitude: '' }));
                 }}
                 placeholder="-122.4488"
-                className={`mt-1 w-full rounded-xl border bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.longitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
               />
@@ -322,7 +323,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           {currentUserProfile?.username ? (
             <>
               <p className="mt-0.5 text-[11px] text-slate-500">This spot will show as added by your profile.</p>
-              <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
+              <div className="mt-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2">
                 <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
                   {currentUserProfile?.avatar_url ? (
                     <img src={currentUserProfile.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -338,7 +339,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           ) : (
             <>
               <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
-              <div className="mt-1 flex items-center gap-3 rounded-xl border border-white/10 bg-[#18181b] px-3 py-2">
+              <div className="mt-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2">
                 <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
                   <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-4 w-4" /></div>
                 </div>
@@ -361,7 +362,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={bestTime}
             onChange={(e) => setBestTime(e.target.value)}
             placeholder="e.g. Morning & evening, Sunset"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -372,10 +373,10 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                 key={level}
                 type="button"
                 onClick={() => setCrowdLevel(crowdLevel === level ? '' : level)}
-                className={`flex-1 rounded-xl border py-2 text-xs font-medium capitalize transition ${
+                className={`flex-1 rounded-2xl border py-2 text-xs font-medium capitalize transition ${
                   crowdLevel === level
                     ? 'border-accent-500 bg-accent-500/20 text-accent-400'
-                    : 'border-white/10 bg-[#18181b] text-slate-400 hover:bg-white/5'
+                    : 'border-white/10 bg-[var(--bg-input)] text-slate-400 hover:bg-white/5'
                 }`}
               >
                 {level}
@@ -390,7 +391,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="automotive, urban, sunset"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -401,14 +402,14 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://…"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
           <input
             type="text"
             value={linkLabel}
             onChange={(e) => setLinkLabel(e.target.value)}
             placeholder="Link label (e.g. Webcam, More info)"
-            className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#18181b] px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1.5 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -428,7 +429,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           />
           <div className="mt-1 flex flex-col gap-3">
             {images.map((img, index) => (
-              <div key={index} className="rounded-xl border border-white/10 bg-[#18181b] p-2">
+              <div key={index} className="rounded-2xl border border-white/10 bg-[var(--bg-input)] p-2">
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
                   <img src={img.uri} alt="" className="h-full w-full object-cover" />
                   <button
@@ -444,14 +445,14 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   value={img.photoBy || ''}
                   onChange={(e) => setPhotoBy(index, e.target.value)}
                   placeholder="Photo by (e.g. You, @handle)"
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[#0f0e12] px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500"
+                  className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500"
                 />
               </div>
             ))}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#18181b] py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[var(--bg-input)] py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
             >
               <ImagePlus className="h-5 w-5" />
               {images.length === 0 ? 'Choose from phone' : 'Add another photo'}
@@ -464,7 +465,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-xl bg-accent-500 py-3 font-semibold text-white shadow-lg shadow-accent-500/20 transition hover:bg-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-2 focus:ring-offset-[#0f0e12] disabled:opacity-60 disabled:pointer-events-none"
+          className="primary-button w-full py-4 text-sm disabled:pointer-events-none disabled:opacity-60"
         >
           {submitting ? (editSpot ? 'Saving…' : 'Adding…') : editSpot ? 'Save changes' : 'Add spot'}
         </button>
