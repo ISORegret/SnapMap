@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEve
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw, Layers as LayersIcon, Check } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
@@ -83,13 +83,16 @@ const MAP_STYLES = [
   },
 ];
 
-function FitBounds({ spots }) {
+function FitBounds({ spots, fitKey }) {
   const map = useMap();
+  const lastFitKeyRef = useRef(null);
   React.useEffect(() => {
     if (!spots?.length) return;
+    if (lastFitKeyRef.current === fitKey) return;
+    lastFitKeyRef.current = fitKey;
     const bounds = L.latLngBounds(spots.map((s) => [s.latitude, s.longitude]));
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-  }, [map, spots]);
+  }, [map, spots, fitKey]);
   return null;
 }
 
@@ -98,7 +101,7 @@ function FlyToCenter({ center, zoom = 14 }) {
   React.useEffect(() => {
     if (center?.lat == null || center?.lng == null) return;
     map.flyTo([center.lat, center.lng], zoom, { duration: 0.8 });
-  }, [map, center?.lat, center?.lng, zoom]);
+  }, [map, center?.lat, center?.lng, center?.key, zoom]);
   return null;
 }
 
@@ -248,6 +251,10 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
     [byFilter, userPosition, distanceFilterMi]
   );
+  const fitBoundsKey = useMemo(
+    () => `${filter}|${distanceFilterMi ?? 'all'}|${filteredSpots.map((spot) => spot.id).sort().join(',')}`,
+    [filter, distanceFilterMi, filteredSpots]
+  );
 
   const onMapClick = useCallback(({ lat, lng }) => {
     setPendingPin({ lat, lng });
@@ -268,7 +275,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     try {
       const result = await geocodeAddress(q);
       if (result) {
-        setSearchCenter({ lat: result.lat, lng: result.lng });
+        setSearchCenter({ lat: result.lat, lng: result.lng, key: Date.now() });
       } else {
         setMapSearchError('Address not found. Try a different search.');
       }
@@ -278,6 +285,19 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       setMapSearchLoading(false);
     }
   }, [mapSearchQuery]);
+
+  const handleLocateMe = useCallback(async () => {
+    setMapSearchError(null);
+    setPositionLoading(true);
+    const pos = await getCurrentPosition();
+    setPositionLoading(false);
+    if (!pos) {
+      setMapSearchError('Location unavailable. Check location permission and try again.');
+      return;
+    }
+    setUserPosition(pos);
+    setSearchCenter({ lat: pos.lat, lng: pos.lng, key: Date.now() });
+  }, []);
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
@@ -403,7 +423,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
             zIndex={2}
           />
         )}
-        <FitBounds spots={filteredSpots} />
+        <FitBounds spots={filteredSpots} fitKey={fitBoundsKey} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
 
@@ -536,6 +556,17 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={handleLocateMe}
+        disabled={positionLoading}
+        className="icon-button absolute bottom-[11.35rem] right-3 z-[1002] h-12 w-12 rounded-2xl text-primary transition hover:border-accent-500/40 hover:text-accent-400 disabled:opacity-60"
+        aria-label="Center map on my location"
+        title="My location"
+      >
+        <LocateFixed className={`h-5 w-5 ${positionLoading ? 'animate-pulse text-accent-400' : ''}`} strokeWidth={2.4} />
+      </button>
 
       {/* App-native map style control */}
       <div className="absolute right-3 top-[4.25rem] z-[1002]">
