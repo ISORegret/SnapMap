@@ -52,16 +52,17 @@ const MAP_STYLES = [
     label: 'Midnight',
     description: 'Low-light driving',
     preview: 'linear-gradient(135deg, #202a35, #080b10)',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    labelUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
   },
   {
     id: 'street',
     label: 'Street',
     description: 'Clean and detailed',
     preview: 'linear-gradient(135deg, #d9e5dc, #f4efe3)',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
   },
   {
     id: 'satellite',
@@ -69,15 +70,16 @@ const MAP_STYLES = [
     description: 'Real-world detail',
     preview: 'linear-gradient(135deg, #52664f, #1b2b28)',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri',
+    labelUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Imagery &copy; <a href="https://www.esri.com/">Esri</a>',
   },
   {
     id: 'terrain',
     label: 'Terrain',
     description: 'Elevation and trails',
     preview: 'linear-gradient(135deg, #91a981, #d6ceb0)',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
   },
 ];
 
@@ -390,8 +392,17 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           key={activeMapStyle.id}
           attribution={activeMapStyle.attribution}
           url={activeMapStyle.url}
-          maxZoom={activeMapStyle.id === 'terrain' ? 17 : 20}
+          maxZoom={19}
+          zIndex={1}
         />
+        {activeMapStyle.labelUrl && (
+          <TileLayer
+            key={`${activeMapStyle.id}-labels`}
+            url={activeMapStyle.labelUrl}
+            maxZoom={19}
+            zIndex={2}
+          />
+        )}
         <FitBounds spots={filteredSpots} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
