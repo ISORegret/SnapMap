@@ -71,7 +71,7 @@ export default function Tutorial({ onDone }) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 px-6 py-8 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[1300] flex flex-col items-center justify-center bg-black/80 px-6 py-8 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-label="First-run tutorial"
@@ -82,7 +82,7 @@ export default function Tutorial({ onDone }) {
             <Icon className="h-6 w-6" />
           </div>
         )}
-        <h2 className="text-lg font-semibold text-white">{current?.title}</h2>
+        <h2 className="text-lg font-semibold text-primary">{current?.title}</h2>
         <p className="mt-2 text-center text-sm text-slate-400">{current?.body}</p>
         <div className="mt-6 flex w-full items-center justify-between gap-3">
           <button

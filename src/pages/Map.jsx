@@ -146,9 +146,6 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
 function ViewportTracker({ onViewportChange }) {
   const userMoveRef = useRef(false);
   const map = useMapEvents({
-    movestart: (event) => {
-      userMoveRef.current = Boolean(event.originalEvent);
-    },
     moveend: () => {
       if (!userMoveRef.current) return;
       userMoveRef.current = false;
@@ -156,6 +153,18 @@ function ViewportTracker({ onViewportChange }) {
       onViewportChange({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
     },
   });
+  useEffect(() => {
+    const container = map.getContainer();
+    const markUserMove = () => { userMoveRef.current = true; };
+    container.addEventListener('pointerdown', markUserMove, { passive: true });
+    container.addEventListener('touchstart', markUserMove, { passive: true });
+    container.addEventListener('wheel', markUserMove, { passive: true });
+    return () => {
+      container.removeEventListener('pointerdown', markUserMove);
+      container.removeEventListener('touchstart', markUserMove);
+      container.removeEventListener('wheel', markUserMove);
+    };
+  }, [map]);
   return null;
 }
 
@@ -172,12 +181,12 @@ async function geocodeAddress(query) {
   return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
 }
 
-export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, onRefreshSpots, spotsLoading = false }) {
+export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
-  const [userPosition, setUserPosition] = useState(null);
+  const [userPosition, setUserPosition] = useState(sharedUserPosition);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [stylePickerOpen, setStylePickerOpen] = useState(false);
   const [mapStyle, setMapStyleState] = useState(() => {
@@ -206,14 +215,18 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const [candidateBounds, setCandidateBounds] = useState(null);
   const [appliedBounds, setAppliedBounds] = useState(null);
 
-  const requestPosition = useCallback(async () => {
-    if (userPosition) return userPosition;
+  const requestPosition = useCallback(async (force = false) => {
+    if (userPosition && !force) return userPosition;
     setPositionLoading(true);
-    const pos = await getCurrentPosition();
+    const pos = requestSharedPosition ? await requestSharedPosition() : await getCurrentPosition();
     setPositionLoading(false);
     if (pos) setUserPosition(pos);
     return pos;
-  }, [userPosition]);
+  }, [userPosition, requestSharedPosition]);
+
+  useEffect(() => {
+    if (sharedUserPosition) setUserPosition(sharedUserPosition);
+  }, [sharedUserPosition]);
 
   const setDistanceFilter = useCallback((mi) => {
     if (mi === null) {
@@ -233,13 +246,13 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
     setShowLocationPrompt(false);
     setLocationPromptMi(null);
     setPositionLoading(true);
-    const pos = await getCurrentPosition();
+    const pos = await requestPosition();
     setPositionLoading(false);
     if (pos) {
       setUserPosition(pos);
       if (mi != null) setDistanceFilterMi(mi);
     }
-  }, [locationPromptMi]);
+  }, [locationPromptMi, requestPosition]);
 
   const onLocationPromptDismiss = useCallback(() => {
     setShowLocationPrompt(false);
@@ -263,8 +276,8 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
     [displayedSpots, selectedSpotId]
   );
   const fitBoundsKey = useMemo(
-    () => `${filter}|${distanceFilterMi ?? 'all'}|${filteredSpots.map((spot) => spot.id).sort().join(',')}`,
-    [filter, distanceFilterMi, filteredSpots]
+    () => `${filter}|${distanceFilterMi ?? 'all'}`,
+    [filter, distanceFilterMi]
   );
 
   const onMapClick = useCallback(({ lat, lng }) => {
@@ -306,7 +319,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const handleLocateMe = useCallback(async () => {
     setMapSearchError(null);
     setPositionLoading(true);
-    const pos = await getCurrentPosition();
+    const pos = await requestPosition(true);
     setPositionLoading(false);
     if (!pos) {
       setMapSearchError('Location unavailable. Check location permission and try again.');
@@ -316,7 +329,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
     setAppliedBounds(null);
     setCandidateBounds(null);
     setSearchCenter({ lat: pos.lat, lng: pos.lng, key: Date.now() });
-  }, []);
+  }, [requestPosition]);
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
   const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
@@ -376,7 +389,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
                 <MapPin className="h-8 w-8 text-accent-400" />
               </div>
             </div>
-            <h2 id="map-location-prompt-title" className="mt-4 text-center text-lg font-semibold text-white">
+            <h2 id="map-location-prompt-title" className="mt-4 text-center text-lg font-semibold text-primary">
               Use your location?
             </h2>
             <p className="mt-2 text-center text-sm text-slate-400">
@@ -530,7 +543,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
       )}
       {pendingPin && (
         <div className="surface-card absolute left-3 right-3 z-[1000] rounded-[1.5rem] p-5 sm:left-auto sm:right-3 sm:max-w-sm" style={{ bottom: 'calc(11rem + env(safe-area-inset-bottom, 0px))' }}>
-          <p className="text-sm font-medium text-white">Save spot here</p>
+          <p className="text-sm font-medium text-primary">Save spot here</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}
           </p>
@@ -696,7 +709,6 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
               onChange={(e) => { setMapSearchQuery(e.target.value); setMapSearchError(null); }}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-              onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
               placeholder="Search address or place…"
               className="surface-input h-11 w-full rounded-2xl bg-[var(--bg-nav)] pl-10 pr-3 text-sm font-semibold backdrop-blur-xl placeholder:text-[var(--text-muted)]"
             />

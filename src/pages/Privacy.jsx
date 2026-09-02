@@ -23,14 +23,14 @@ export default function Privacy() {
           <div>
             <p className="eyebrow">Your data</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">Privacy Policy</h1>
-            <p className="text-sm text-slate-500 mt-0.5">SnapMap — last updated</p>
+            <p className="text-sm text-slate-500 mt-0.5">Last updated September 2, 2026</p>
           </div>
         </div>
       </header>
 
       <div className="surface-card mx-4 my-6 max-w-3xl space-y-6 rounded-[1.5rem] p-5 text-sm leading-relaxed text-secondary md:mx-auto md:p-8">
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">Overview</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">Overview</h2>
           <p>
             SnapMap (&quot;we&quot;, &quot;our&quot;, &quot;the app&quot;) respects your privacy. This policy describes
             what data we collect and how we use it.
@@ -38,7 +38,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">Data we collect</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">Data we collect</h2>
           <ul className="list-disc list-inside space-y-2">
             <li><strong className="text-slate-300">Account data</strong> — If you sign in, we store your email and
               profile (username, display name) via Supabase Auth.</li>
@@ -52,7 +52,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">How we use data</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">How we use data</h2>
           <p>
             We use your data to run the app: display spots, sync favorites, and let you add and edit spots. We use
             Supabase for auth and cloud storage. We do not sell or share your data with third parties for advertising.
@@ -60,12 +60,12 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">Third‑party services</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">Third‑party services</h2>
           <ul className="list-disc list-inside space-y-2">
             <li><strong className="text-slate-300">Supabase</strong> — Auth and database (see <a
               href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer"
               className="text-accent-400 hover:underline">Supabase Privacy</a>).</li>
-            <li><strong className="text-slate-300">OpenStreetMap</strong> — Map tiles (see <a
+            <li><strong className="text-slate-300">Esri and OpenStreetMap</strong> — Esri provides map imagery and tiles; OpenStreetMap&apos;s Nominatim service provides place search (see <a
               href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
               className="text-accent-400 hover:underline">OSM Copyright</a>).</li>
             <li><strong className="text-slate-300">Open‑Meteo</strong> — Weather data for spots (no account required).</li>
@@ -73,7 +73,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">Your choices</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">Your choices</h2>
           <p>
             You can use SnapMap without signing in; data stays on your device. You can delete your account and data
             via your profile settings. To request deletion or ask questions, contact us using the link in the app.
@@ -81,7 +81,7 @@ export default function Privacy() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-white mb-2">Changes</h2>
+          <h2 className="text-base font-semibold text-primary mb-2">Changes</h2>
           <p>
             We may update this policy. We&apos;ll note the last update date at the top. Continued use after changes
             means you accept the updated policy.

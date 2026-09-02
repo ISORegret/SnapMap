@@ -9,7 +9,7 @@ function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
-export default function Profile({ allSpots = [], currentUser }) {
+export default function Profile({ allSpots = [], currentUser, onProfileUpdated }) {
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +123,7 @@ export default function Profile({ allSpots = [], currentUser }) {
       setEditAvatarUrl(url);
       setProfile((p) => (p ? { ...p, avatar_url: url } : p));
       await updateProfile({ avatarUrl: url });
+      onProfileUpdated?.({ ...profile, avatar_url: url });
     } else {
       setEditError('Upload failed. Try another image.');
     }
@@ -145,12 +146,17 @@ export default function Profile({ allSpots = [], currentUser }) {
     const ok = await updateProfile(payload);
     setEditSaving(false);
     if (ok) {
-      setProfile((p) => ({
-        ...p,
+      const nextProfile = {
+        ...profile,
         display_name: editDisplayName.trim() || profile.username,
         bio: editBio.trim().slice(0, 500),
-        avatar_url: editAvatarUrl.trim() || p?.avatar_url,
+        avatar_url: editAvatarUrl.trim() || profile.avatar_url,
+      };
+      setProfile((p) => ({
+        ...p,
+        ...nextProfile,
       }));
+      onProfileUpdated?.(nextProfile);
       setEditing(false);
     } else {
       setEditError('Could not save. Try again.');
@@ -211,7 +217,7 @@ export default function Profile({ allSpots = [], currentUser }) {
         {isOwnProfile && editing && (
           <form onSubmit={saveProfile} className="surface-card mt-6 rounded-[1.5rem] p-5">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-white">Edit profile</h2>
+              <h2 className="text-sm font-semibold text-primary">Edit profile</h2>
               <button type="button" onClick={cancelEditing} className="rounded p-1 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Cancel">
                 <X className="h-5 w-5" />
               </button>
@@ -320,7 +326,7 @@ export default function Profile({ allSpots = [], currentUser }) {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-white">{spot.name}</p>
+                    <p className="font-medium text-primary">{spot.name}</p>
                     {spot.address && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                         <MapPin className="h-3 w-3 shrink-0" />

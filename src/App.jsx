@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
@@ -38,6 +38,14 @@ import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
+
+function RouteScrollReset() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+  return null;
+}
 
 export default function App() {
   const [userSpots, setUserSpots] = useState([]);
@@ -501,8 +509,17 @@ export default function App() {
     [userSpots, currentUserProfile?.username]
   );
 
-  const deleteSpot = useCallback((spotId) => {
-    deleteCommunitySpot(spotId);
+  const deleteSpot = useCallback(async (spotId) => {
+    const isCloudId = spotId && !String(spotId).startsWith('user-');
+    if (isCloudId) {
+      setSyncStatus('syncing');
+      const deleted = await deleteCommunitySpot(spotId);
+      if (!deleted) {
+        setSyncStatus('failed');
+        showToast('Could not delete this spot. Check your connection or permissions.');
+        return false;
+      }
+    }
     const nextSpots = userSpots.filter((s) => s.id !== spotId);
     setUserSpots(nextSpots);
     saveUserSpots(nextSpots);
@@ -516,8 +533,11 @@ export default function App() {
     }));
     setCollections(nextColls);
     saveCollections(nextColls);
+    setSyncStatus(isOnline ? 'saved' : 'offline');
+    showToast('Spot deleted.');
     navigate('/');
-  }, [userSpots, favoriteIds, collections, navigate]);
+    return true;
+  }, [userSpots, favoriteIds, collections, navigate, isOnline, showToast]);
 
   const toggleFavorite = useCallback(
     async (spotId) => {
@@ -649,6 +669,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
+      <RouteScrollReset />
       <InstallPrompt />
       <Tutorial />
       <ToastHost toast={toast} onDismiss={dismissToast} />
@@ -683,7 +704,7 @@ export default function App() {
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
-          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
+          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} />} />
           <Route
             path="/saved"
             element={
@@ -732,6 +753,7 @@ export default function App() {
               />
             }
           />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </div>
       </main>

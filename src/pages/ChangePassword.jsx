@@ -61,7 +61,7 @@ export default function ChangePassword({ currentUser }) {
   if (success) {
     return (
       <div className="mx-auto max-w-sm px-4 py-12 text-center">
-        <p className="text-lg font-medium text-white">Password updated</p>
+        <p className="text-lg font-medium text-primary">Password updated</p>
         <p className="mt-2 text-sm text-slate-400">Your password has been changed. Use it next time you sign in.</p>
         <Link to="/" className="mt-6 inline-block text-accent-400 hover:underline">Back to Map</Link>
       </div>
@@ -70,7 +70,7 @@ export default function ChangePassword({ currentUser }) {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="text-xl font-semibold text-white">Change password</h1>
+      <h1 className="text-xl font-semibold text-primary">Change password</h1>
       <p className="mt-1 text-sm text-slate-500">Enter your current password, then choose a new one.</p>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>

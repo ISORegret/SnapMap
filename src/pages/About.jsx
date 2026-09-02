@@ -30,7 +30,7 @@ export default function About({ allSpots = [] }) {
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:px-6">
         {/* What is SnapMap */}
         <section>
-          <h2 className="text-lg font-semibold text-white mb-3">What is SnapMap?</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">What is SnapMap?</h2>
           <p className="text-slate-400 leading-relaxed">
             SnapMap is a community-driven app for discovering photo locations. Get exact coordinates,
             best times to shoot (golden hour, blue hour, sunset), directions, and weather — so you can
@@ -40,40 +40,40 @@ export default function About({ allSpots = [] }) {
 
         {/* Features */}
         <section>
-          <h2 className="text-lg font-semibold text-white mb-3">What you can do</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">What you can do</h2>
           <ul className="surface-card space-y-1 rounded-[1.5rem] p-3">
             <li className="flex items-start gap-3 rounded-2xl p-3">
               <Map className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
-                <span className="text-white font-medium">Map</span>
+                <span className="text-primary font-medium">Map</span>
                 <p className="text-slate-400 text-sm">See all spots on an interactive map. Switch between Map, Satellite, and Terrain layers.</p>
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-2xl p-3">
               <Camera className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
-                <span className="text-white font-medium">Explore</span>
+                <span className="text-primary font-medium">Explore</span>
                 <p className="text-slate-400 text-sm">Browse by category, search, or find spots near you. Full gallery for each location.</p>
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-2xl p-3">
               <Sun className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
-                <span className="text-white font-medium">Best times</span>
+                <span className="text-primary font-medium">Best times</span>
                 <p className="text-slate-400 text-sm">Sunrise, sunset, golden hour, and blue hour times for any spot — so you know when to shoot.</p>
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-2xl p-3">
               <Heart className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
-                <span className="text-white font-medium">Save & sync</span>
+                <span className="text-primary font-medium">Save & sync</span>
                 <p className="text-slate-400 text-sm">Heart spots to save them. Sign in to sync favorites across your phone and web.</p>
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-2xl p-3">
               <Share2 className="h-5 w-5 shrink-0 text-accent-400 mt-0.5" />
               <div>
-                <span className="text-white font-medium">Add spots</span>
+                <span className="text-primary font-medium">Add spots</span>
                 <p className="text-slate-400 text-sm">Contribute your own spots. Add photos, directions, and tips for other photographers.</p>
               </div>
             </li>
@@ -82,7 +82,7 @@ export default function About({ allSpots = [] }) {
 
         {/* Gallery - example spots from the app */}
         <section>
-          <h2 className="text-lg font-semibold text-white mb-3">Spots from the community</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">Spots from the community</h2>
           <p className="text-slate-400 text-sm mb-4">
             Real locations added by photographers. Tap any to explore.
           </p>

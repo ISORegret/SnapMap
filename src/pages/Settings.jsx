@@ -52,7 +52,10 @@ export default function Settings({
   showToast,
 }) {
   const navigate = useNavigate();
-  const [mapStyle, setMapStyle] = useState(() => localStorage.getItem('snapmap_map_style') || 'streets');
+  const [mapStyle, setMapStyle] = useState(() => {
+    const saved = localStorage.getItem('snapmap_map_style');
+    return MAP_STYLES.some((style) => style.id === saved) ? saved : (theme === 'light' ? 'street' : 'midnight');
+  });
   const [busy, setBusy] = useState('');
 
   const chooseMapStyle = (value) => {

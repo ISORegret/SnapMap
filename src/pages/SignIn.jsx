@@ -196,7 +196,7 @@ export default function SignIn({ onSuccess, currentUser }) {
   if (currentUser) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
-        <p className="text-white">You&apos;re signed in.</p>
+        <p className="text-primary">You&apos;re signed in.</p>
         <Link to="/" className="mt-4 text-accent-400 hover:underline">Go to Map</Link>
       </div>
     );
@@ -222,7 +222,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     };
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-        <p className="text-lg font-medium text-white">Confirm your email</p>
+        <p className="text-lg font-medium text-primary">Confirm your email</p>
         <p className="mt-2 text-sm text-slate-400">
           We sent a confirmation link to <strong className="text-slate-300">{email}</strong>. Click it to activate your account, then sign in with your password.
         </p>
@@ -244,7 +244,7 @@ export default function SignIn({ onSuccess, currentUser }) {
   if (sent) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-        <p className="text-lg font-medium text-white">Check your email</p>
+        <p className="text-lg font-medium text-primary">Check your email</p>
         <p className="mt-2 text-sm text-slate-400">
           We sent a sign-in link to <strong className="text-slate-300">{email}</strong>. Click the link to sign in.
         </p>
@@ -256,7 +256,7 @@ export default function SignIn({ onSuccess, currentUser }) {
   if (forgotPassword && !sentReset) {
     return (
       <div className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="text-xl font-semibold text-white">Forgot password</h1>
+        <h1 className="text-xl font-semibold text-primary">Forgot password</h1>
         <p className="mt-1 text-sm text-slate-500">Enter your email and we&apos;ll send a link to reset your password.</p>
         <form onSubmit={handleForgotPassword} className="mt-6 space-y-4">
           <div>
@@ -295,7 +295,7 @@ export default function SignIn({ onSuccess, currentUser }) {
   if (sentReset) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-        <p className="text-lg font-medium text-white">Check your email</p>
+        <p className="text-lg font-medium text-primary">Check your email</p>
         <p className="mt-2 text-sm text-slate-400">
           We sent a password reset link to <strong className="text-slate-300">{email}</strong>. Click the link to set a new password.
         </p>
@@ -307,7 +307,7 @@ export default function SignIn({ onSuccess, currentUser }) {
   if (showSetNewPassword) {
     return (
       <div className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="text-xl font-semibold text-white">Set new password</h1>
+        <h1 className="text-xl font-semibold text-primary">Set new password</h1>
         <p className="mt-1 text-sm text-slate-500">Enter your new password below.</p>
         <form onSubmit={handleSetNewPassword} className="mt-6 space-y-4">
           <div>

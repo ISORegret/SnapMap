@@ -19,18 +19,13 @@ function matchesSearch(spot, q) {
   return name.includes(lower) || address.includes(lower) || desc.includes(lower);
 }
 
-function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
+function SpotCard({ spot, onUnsave, onDismissSpotError, compact, showRemove = true }) {
   return (
-    <Link
-      to={`/spot/${spot.id}`}
-      className="surface-card group flex gap-3 overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/25"
-    >
+    <div className="surface-card group flex gap-3 overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/25">
       <div className={`relative shrink-0 overflow-hidden rounded-lg bg-slate-800 ${compact ? 'h-14 w-16' : 'h-24 w-28'}`}>
-        <img
-          src={getSpotPrimaryImage(spot)}
-          alt=""
-          className="h-full w-full object-cover transition group-hover:scale-105"
-        />
+        <Link to={`/spot/${spot.id}`} className="block h-full w-full" aria-label={`Open ${spot.name}`}>
+          <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+        </Link>
         {(spot.uploadError || spot.syncError) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
             <p className="text-[10px] font-medium leading-tight text-amber-200 line-clamp-3">
@@ -40,7 +35,7 @@ function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault();
+                  e.stopPropagation();
                   onDismissSpotError(spot.id);
                 }}
                 className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
@@ -50,36 +45,34 @@ function SpotCard({ spot, onUnsave, onDismissSpotError, compact }) {
             )}
           </div>
         )}
-        <button
+        {showRemove && <button
           type="button"
           onClick={(e) => {
-            e.preventDefault();
+            e.stopPropagation();
             onUnsave(spot.id);
           }}
           className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white backdrop-blur-sm hover:bg-black/70"
           aria-label="Unsave"
         >
           <Heart className="h-3 w-3" fill="#f43f5e" stroke="#f43f5e" strokeWidth={2} />
-        </button>
+        </button>}
       </div>
-      <div className="min-w-0 flex-1 py-2 pr-2">
-        <h2 className="font-medium text-white truncate group-hover:text-accent-400">{spot.name}</h2>
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
-          <MapPin className="h-3 w-3 shrink-0" />
-          {(spot.address && spot.address !== 'Not specified')
-            ? spot.address
-            : (spot.latitude != null && spot.longitude != null
-              ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
-              : '—')}
-        </p>
-        {!compact && spot.bestTime && spot.bestTime !== 'Not specified' && (
-          <p className="mt-1 text-xs text-slate-500">{spot.bestTime}</p>
-        )}
-      </div>
-      <div className="flex items-center pr-2 text-slate-500 group-hover:text-accent-400">
-        <ChevronRight className="h-5 w-5" />
-      </div>
-    </Link>
+      <Link to={`/spot/${spot.id}`} className="flex min-w-0 flex-1" aria-label={`Open ${spot.name}`}>
+        <div className="min-w-0 flex-1 py-2 pr-2">
+          <h2 className="font-medium text-primary truncate group-hover:text-accent-400">{spot.name}</h2>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
+            <MapPin className="h-3 w-3 shrink-0" />
+            {(spot.address && spot.address !== 'Not specified')
+              ? spot.address
+              : (spot.latitude != null && spot.longitude != null
+                ? `${Number(spot.latitude).toFixed(2)}, ${Number(spot.longitude).toFixed(2)}`
+                : '—')}
+          </p>
+          {!compact && spot.bestTime && spot.bestTime !== 'Not specified' && <p className="mt-1 text-xs text-slate-500">{spot.bestTime}</p>}
+        </div>
+        <div className="flex items-center pr-2 text-slate-500 group-hover:text-accent-400"><ChevronRight className="h-5 w-5" /></div>
+      </Link>
+    </div>
   );
 }
 
@@ -419,7 +412,7 @@ export default function Saved({
             <ul className="space-y-3">
               {savedSpotsFiltered.map((spot) => (
                 <li key={spot.id}>
-                  <SpotCard spot={spot} onUnsave={() => {}} onDismissSpotError={onDismissSpotError} compact={false} />
+                  <SpotCard spot={spot} onUnsave={() => {}} onDismissSpotError={onDismissSpotError} compact={false} showRemove={false} />
                 </li>
               ))}
             </ul>
@@ -465,7 +458,9 @@ export default function Saved({
                   </h2>
                   <button
                     type="button"
-                    onClick={() => deleteCollection(coll.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete “${coll.name}”? The spots will stay in SnapMap.`)) deleteCollection(coll.id);
+                    }}
                     className="rounded p-1 text-slate-500 hover:bg-white/5 hover:text-red-400"
                     aria-label={`Delete ${coll.name}`}
                   >

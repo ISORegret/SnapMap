@@ -107,7 +107,7 @@ function weatherLabel(code) {
   return '—';
 }
 
-function WeatherAtSpot({ latitude, longitude }) {
+function WeatherAtSpot({ latitude, longitude, units = 'mi' }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -117,7 +117,9 @@ function WeatherAtSpot({ latitude, longitude }) {
     let cancelled = false;
     setLoading(true);
     setError(false);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&temperature_unit=fahrenheit`;
+    const temperatureUnit = units === 'km' ? 'celsius' : 'fahrenheit';
+    const windUnit = units === 'km' ? 'kmh' : 'mph';
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&temperature_unit=${temperatureUnit}&wind_speed_unit=${windUnit}`;
     fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error(res.status);
@@ -165,7 +167,7 @@ function WeatherAtSpot({ latitude, longitude }) {
   }
   const label = weatherLabel(weather.weather_code);
   const temp = Math.round(weather.temperature);
-  const unit = '°F';
+  const unit = units === 'km' ? '°C' : '°F';
   return (
     <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-4 py-3">
       <div className="flex items-center gap-2 text-slate-300">
@@ -173,9 +175,9 @@ function WeatherAtSpot({ latitude, longitude }) {
         <span className="text-sm font-medium">{label}</span>
       </div>
       <div className="text-right">
-        <span className="text-lg font-semibold text-white">{temp}{unit}</span>
+        <span className="text-lg font-semibold text-primary">{temp}{unit}</span>
         {weather.wind_speed != null && (
-          <p className="text-[10px] text-slate-500">Wind {Math.round(weather.wind_speed * 0.621371)} mph</p>
+          <p className="text-[10px] text-slate-500">Wind {Math.round(weather.wind_speed)} {units === 'km' ? 'km/h' : 'mph'}</p>
         )}
       </div>
     </div>
@@ -606,7 +608,7 @@ export default function SpotDetail({
         </div>
       )}
       <div className="px-4 pt-4">
-        <h1 className="text-xl font-semibold text-white">{spot.name}</h1>
+        <h1 className="text-xl font-semibold text-primary">{spot.name}</h1>
         {userPosition && spot.latitude != null && spot.longitude != null && (
           <p className="mt-1 text-sm text-accent-400">
             {units === 'km'
@@ -785,7 +787,7 @@ export default function SpotDetail({
           </div>
         {sunTimes && (
           <div className="rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
               <Sun className="h-4 w-4 text-amber-400" />
               Best light at this spot
             </div>
@@ -813,7 +815,7 @@ export default function SpotDetail({
             </ul>
           </div>
         )}
-        <WeatherAtSpot latitude={latitude} longitude={longitude} />
+        <WeatherAtSpot latitude={latitude} longitude={longitude} units={units} />
         </section>
 
         {/* Directions */}

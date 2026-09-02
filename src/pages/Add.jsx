@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ImagePlus, MapPin, User, ChevronDown, FileClock, X } from 'lucide-react';
-import { resizeImageToDataUrl } from '../utils/spotImages';
+import { getSpotImages, resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
 import { getCurrentPosition } from '../utils/geo';
 
@@ -58,7 +58,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setLng(editSpot.longitude != null ? String(editSpot.longitude) : '-122.4488');
     setBestTime(editSpot.bestTime ?? '');
     setCrowdLevel(editSpot.crowdLevel ?? '');
-    setImages(Array.isArray(editSpot.images) && editSpot.images.length ? editSpot.images : []);
+    setImages(getSpotImages(editSpot));
     setTags(Array.isArray(editSpot.tags) ? editSpot.tags.join(', ') : (editSpot.tags ?? ''));
     setLinkUrl(editSpot.linkUrl ?? '');
     setLinkLabel(editSpot.linkLabel ?? 'More info');
@@ -411,7 +411,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                     <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-4 w-4" /></div>
                   )}
                 </div>
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-primary">
                   {(currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || `@${currentUserProfile.username}`}
                 </span>
               </div>

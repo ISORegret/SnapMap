@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
@@ -35,11 +35,16 @@ export default function Explore({
   const [parkingOnly, setParkingOnly] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [bestTime, setBestTime] = useState('any');
+  const sortChosenRef = useRef(false);
   const userPosition = userPositionProp;
 
   useEffect(() => {
     requestPositionProp?.();
   }, [requestPositionProp]);
+
+  useEffect(() => {
+    if (userPosition && !sortChosenRef.current) setSortMode('nearest');
+  }, [userPosition]);
 
   const matchedSpots = useMemo(
     () => allSpots.filter((spot) => matchesCategory(spot, category) && matchesSearch(spot, searchQuery)),
@@ -60,8 +65,8 @@ export default function Explore({
     });
     if (sortMode === 'nearest' && userPosition) {
       return [...list].sort((a, b) => (
-        haversineKm(userPosition.lat, userPosition.lng, a.latitude, a.longitude)
-        - haversineKm(userPosition.lat, userPosition.lng, b.latitude, b.longitude)
+        (a.latitude == null || a.longitude == null ? Infinity : haversineKm(userPosition.lat, userPosition.lng, a.latitude, a.longitude))
+        - (b.latitude == null || b.longitude == null ? Infinity : haversineKm(userPosition.lat, userPosition.lng, b.latitude, b.longitude))
       ));
     }
     if (sortMode === 'rating') {
@@ -188,7 +193,7 @@ export default function Explore({
           <div className="flex items-center gap-2">
             <select
               value={sortMode}
-              onChange={(event) => setSortMode(event.target.value)}
+              onChange={(event) => { sortChosenRef.current = true; setSortMode(event.target.value); }}
               className="surface-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-xs font-bold text-primary outline-none"
             >
               {userPosition && <option value="nearest">Nearest first</option>}

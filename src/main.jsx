@@ -24,7 +24,10 @@ class AppErrorBoundary extends React.Component {
         <div style={{ padding: 24, fontFamily: 'system-ui', color: '#e2e8f0', background: '#0f172a', minHeight: '100vh' }}>
           <h1 style={{ fontSize: 18, marginBottom: 8 }}>SnapMap failed to load</h1>
           <pre style={{ fontSize: 12, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{String(this.state.error?.message || this.state.error)}</pre>
-          <p style={{ marginTop: 16, fontSize: 14 }}>Check the browser Console (F12) for details.</p>
+          <p style={{ marginTop: 16, fontSize: 14 }}>The app hit an unexpected error. Reloading normally restores your saved data.</p>
+          <button type="button" onClick={() => window.location.reload()} style={{ marginTop: 14, border: 0, borderRadius: 12, background: '#e8a735', color: '#211603', fontWeight: 700, padding: '10px 16px' }}>
+            Reload SnapMap
+          </button>
         </div>
       );
     }
