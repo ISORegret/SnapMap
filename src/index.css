@@ -312,6 +312,28 @@ a:hover { text-decoration: none; }
   background: #211603;
   transform: translate(-50%, -50%);
 }
+.snapmap-marker b {
+  position: absolute;
+  right: -9px;
+  top: -8px;
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 2px solid #07110d;
+  border-radius: 999px;
+  background: #34d399;
+  color: #052e20;
+  font: 800 11px/1 system-ui, sans-serif;
+  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.42);
+  transform: rotate(45deg);
+}
+.snapmap-marker.is-live { border-color: #6ee7b7; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.17), 0 8px 22px rgba(0, 0, 0, 0.38); }
+.snapmap-marker.is-live span { background: #34d399; }
+.snapmap-marker.is-busy { border-color: #fbbf24; box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.17), 0 8px 22px rgba(0, 0, 0, 0.38); }
+.snapmap-marker.is-busy span, .snapmap-marker.is-busy b { background: #fbbf24; color: #422006; }
+.snapmap-marker.is-alert { border-color: #fb7185; box-shadow: 0 0 0 6px rgba(251, 113, 133, 0.2), 0 8px 22px rgba(0, 0, 0, 0.38); }
+.snapmap-marker.is-alert span, .snapmap-marker.is-alert b { background: #fb7185; color: #4c0519; }
 
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }

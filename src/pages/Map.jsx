@@ -9,6 +9,7 @@ import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
 import { getSpotPrimaryImage } from '../utils/spotImages';
+import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -23,6 +24,19 @@ const icon = L.divIcon({
   iconAnchor: [17, 38],
   popupAnchor: [0, -34],
 });
+
+function liveSpotIcon(summary) {
+  if (!summary) return icon;
+  const alertCondition = ['restricted', 'closed', 'unsafe'].includes(summary.condition);
+  const markerClass = alertCondition ? 'is-alert' : summary.condition === 'busy' ? 'is-busy' : 'is-live';
+  return L.divIcon({
+    className: 'snapmap-marker-wrap',
+    html: `<span class="snapmap-marker ${markerClass}"><span></span><b>${Math.min(summary.count, 9)}${summary.count > 9 ? '+' : ''}</b></span>`,
+    iconSize: [40, 46],
+    iconAnchor: [20, 42],
+    popupAnchor: [0, -38],
+  });
+}
 
 function hasParking(spot) {
   return Boolean(spot.parking && String(spot.parking).trim());
@@ -115,7 +129,7 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
+function SpotMarkersCluster({ spots, icon, activityBySpot, setSelectedSpotId }) {
   const map = useMap();
   const groupRef = useRef(null);
 
@@ -125,7 +139,7 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
     groupRef.current = group;
 
     spots.forEach((spot) => {
-      const marker = L.marker([spot.latitude, spot.longitude], { icon });
+      const marker = L.marker([spot.latitude, spot.longitude], { icon: activityBySpot[spot.id] ? liveSpotIcon(activityBySpot[spot.id]) : icon });
       marker.on('click', (event) => {
         L.DomEvent.stopPropagation(event);
         setSelectedSpotId(spot.id);
@@ -138,7 +152,7 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
       map.removeLayer(group);
       groupRef.current = null;
     };
-  }, [map, spots, icon, setSelectedSpotId]);
+  }, [map, spots, icon, activityBySpot, setSelectedSpotId]);
 
   return null;
 }
@@ -219,6 +233,22 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   });
   const [candidateBounds, setCandidateBounds] = useState(null);
   const [appliedBounds, setAppliedBounds] = useState(null);
+  const [activityBySpot, setActivityBySpot] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => fetchActiveSpotActivity().then((next) => {
+      if (!cancelled) setActivityBySpot(next);
+    });
+    refresh();
+    const unsubscribe = subscribeToMapActivity(refresh);
+    const interval = window.setInterval(refresh, 60000);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const requestPosition = useCallback(async (force = false) => {
     if (userPosition && !force) return userPosition;
@@ -491,6 +521,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
         <SpotMarkersCluster
           spots={displayedSpots}
           icon={icon}
+          activityBySpot={activityBySpot}
           setSelectedSpotId={setSelectedSpotId}
         />
       </MapContainer>
@@ -533,6 +564,17 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
                 <button type="button" onClick={() => setSelectedSpotId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close spot preview"><X className="h-4 w-4" /></button>
               </div>
               {selectedSpot.bestTime && <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-accent-400"><Clock3 className="h-3.5 w-3.5" />{selectedSpot.bestTime}</p>}
+              {activityBySpot[selectedSpot.id] && (
+                <p className={`mt-2 flex items-center gap-1.5 text-[11px] font-extrabold ${['restricted', 'closed', 'unsafe'].includes(activityBySpot[selectedSpot.id].condition) ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-current" />
+                  {activityBySpot[selectedSpot.id].condition
+                    ? `${SPOT_CONDITIONS.find((item) => item.id === activityBySpot[selectedSpot.id].condition)?.label || 'Live update'} · `
+                    : ''}
+                  {activityBySpot[selectedSpot.id].checkIns > 0
+                    ? `${activityBySpot[selectedSpot.id].checkIns} here now`
+                    : 'Updated recently'}
+                </p>
+              )}
               <div className="mt-2 flex gap-2">
                 <button type="button" onClick={() => toggleFavorite?.(selectedSpot.id)} className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold ${favoriteIds.includes(selectedSpot.id) ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.06] text-slate-300'}`}>
                   <Heart className="h-3.5 w-3.5" fill={favoriteIds.includes(selectedSpot.id) ? 'currentColor' : 'none'} />
