@@ -17,6 +17,8 @@ Shared spots are stored in Supabase so anyone can post and others can see them.
    select id from public.profiles where username = 'your_username';
    ```
 
+   SnapMap v2.9.0 adds creator events, RSVPs, and event notifications with `032_events_and_meetups.sql`.
+
 3. **Get your API keys**  
    **Settings** → **API** → copy **Project URL** and **anon public** key.
 

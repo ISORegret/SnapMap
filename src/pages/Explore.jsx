@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, Camera } from 'lucide-react';
+import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, Camera, CalendarDays } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
@@ -10,6 +10,7 @@ import { searchProfiles } from '../api/profiles';
 import { getFriendConnections, sendFriendRequest, acceptFriendRequest, removeFriend } from '../api/follows';
 import { getBlockedUserIds } from '../api/safety';
 import SpotFeed from '../components/SpotFeed';
+import EventHub from '../components/EventHub';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -35,7 +36,7 @@ export default function Explore({
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
-  const [viewMode, setViewMode] = useState(['feed', 'spots', 'creators'].includes(requestedView) ? requestedView : 'feed');
+  const [viewMode, setViewMode] = useState(['feed', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
@@ -200,10 +201,10 @@ export default function Explore({
             <div>
               <p className="eyebrow">Explore SnapMap</p>
               <h1 className="mt-1 text-[2rem] font-extrabold leading-none tracking-[-0.045em] text-primary sm:text-4xl">
-                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'spots' ? 'Find the frame.' : 'Meet the creators.'}
+                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'creators' ? 'Meet the creators.' : 'Meet at the frame.'}
               </h1>
               <p className="mt-2 text-sm font-medium text-muted">
-                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : `${allSpots.length} community locations ready to explore`}
+                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : `${allSpots.length} community locations ready to explore`}
               </p>
             </div>
             <Link to="/about" className="icon-button h-11 w-11 shrink-0 rounded-2xl" aria-label="About SnapMap">
@@ -211,7 +212,7 @@ export default function Explore({
             </Link>
           </div>
 
-          {viewMode !== 'feed' && <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
+          {['spots', 'creators'].includes(viewMode) && <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
             <Search className="absolute left-5 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-muted" />
             <input
               type="search"
@@ -221,15 +222,18 @@ export default function Explore({
               className="surface-input w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-sm font-semibold placeholder:text-[var(--text-muted)] focus:shadow-none"
             />
           </div>}
-          <div className="mt-3 grid grid-cols-3 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
-            <button type="button" onClick={() => selectView('feed')} className={`rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <Camera className="mr-1.5 inline h-4 w-4" /> Feed
+          <div className="mt-3 grid grid-cols-4 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+            <button type="button" onClick={() => selectView('feed')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Camera className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Feed
             </button>
-            <button type="button" onClick={() => selectView('spots')} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <MapPin className="mr-1.5 inline h-4 w-4" /> Spots
+            <button type="button" onClick={() => selectView('spots')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <MapPin className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Spots
             </button>
-            <button type="button" onClick={() => selectView('creators')} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <Users className="mr-1.5 inline h-4 w-4" /> Creators
+            <button type="button" onClick={() => selectView('creators')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Users className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Creators
+            </button>
+            <button type="button" onClick={() => selectView('events')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'events' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <CalendarDays className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Events
             </button>
           </div>
         </div>
@@ -238,6 +242,8 @@ export default function Explore({
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-6">
         {viewMode === 'feed' ? (
           <SpotFeed allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
+        ) : viewMode === 'events' ? (
+          <EventHub allSpots={allSpots} currentUser={currentUser} showToast={showToast} />
         ) : viewMode === 'creators' ? (
           <section>
             <div className="mb-4 flex items-end justify-between gap-4">

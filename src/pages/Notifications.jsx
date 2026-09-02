@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, CheckCheck, Heart, MessageCircle, User, UserCheck, UserPlus } from 'lucide-react';
+import { ArrowLeft, Bell, CalendarDays, CheckCheck, Heart, MessageCircle, User, UserCheck, UserPlus } from 'lucide-react';
 import { fetchNotifications, markAllNotificationsRead } from '../api/notifications';
 
 function notificationCopy(item) {
@@ -9,6 +9,7 @@ function notificationCopy(item) {
   if (item.type === 'friend_accepted') return { icon: UserCheck, text: `${name} accepted your friend request`, href: item.actor?.username ? `/user/${item.actor.username}` : '/profile' };
   if (item.type === 'post_like') return { icon: Heart, text: `${name} liked your post`, href: item.postId ? `/explore?post=${item.postId}` : '/explore' };
   if (item.type === 'post_comment') return { icon: MessageCircle, text: `${name} commented on your post`, href: item.postId ? `/explore?post=${item.postId}` : '/explore' };
+  if (item.type === 'event_rsvp') return { icon: CalendarDays, text: `${name} is going to ${item.event?.title || 'your event'}`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
   if (item.type === 'comment_reply') return { icon: MessageCircle, text: `${name} replied to your comment`, href: item.spotId ? `/spot/${item.spotId}` : '/' };
   return { icon: MessageCircle, text: `${name} commented on ${item.spot?.name || 'your location'}`, href: item.spotId ? `/spot/${item.spotId}` : '/' };
 }

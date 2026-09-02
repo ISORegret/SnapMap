@@ -48,13 +48,15 @@ export default function Privacy() {
             <li><strong className="text-slate-300">Location</strong> — Your device location is used only with your
               permission to show spots near you and to filter by distance. We do not track or store your location
               beyond what your device provides for the &quot;near me&quot; features.</li>
+            <li><strong className="text-slate-300">Community activity</strong> — Posts, comments, friendships, public
+              check-ins, event details, and RSVPs are stored in Supabase and shown to other SnapMap users.</li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-primary mb-2">How we use data</h2>
           <p>
-            We use your data to run the app: display spots, sync favorites, and let you add and edit spots. We use
+            We use your data to run the app: display spots, sync favorites, support the creator feed, and organize events. We use
             Supabase for auth and cloud storage. We do not sell or share your data with third parties for advertising.
           </p>
         </section>
