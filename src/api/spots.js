@@ -154,7 +154,7 @@ export async function fetchSpotNotes(spotId) {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('spot_notes')
-    .select('id, body, created_at')
+    .select('id, body, created_at, user_id, parent_id, profile:profiles!spot_notes_user_id_fkey(id, username, display_name, avatar_url)')
     .eq('spot_id', spotId)
     .order('created_at', { ascending: true });
   if (error) {
@@ -165,24 +165,36 @@ export async function fetchSpotNotes(spotId) {
     id: row.id,
     body: row.body ?? '',
     createdAt: row.created_at,
+    userId: row.user_id ?? null,
+    parentId: row.parent_id ?? null,
+    profile: row.profile ?? null,
   }));
 }
 
-export async function insertSpotNote(spotId, body) {
+export async function insertSpotNote(spotId, body, parentId = null) {
   if (!hasSupabase) return { note: null, error: 'Supabase not configured' };
   const trimmed = (body || '').trim().slice(0, 1000);
   if (!trimmed) return { note: null, error: 'Empty note' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { note: null, error: 'Sign in to comment' };
   const { data, error } = await supabase
     .from('spot_notes')
-    .insert({ spot_id: spotId, body: trimmed })
-    .select()
+    .insert({ spot_id: spotId, body: trimmed, user_id: user.id, parent_id: parentId || null })
+    .select('id, body, created_at, user_id, parent_id, profile:profiles!spot_notes_user_id_fkey(id, username, display_name, avatar_url)')
     .single();
   if (error) {
     console.warn('SnapMap: insert spot note failed', error);
     return { note: null, error: error.message };
   }
   return {
-    note: { id: data.id, body: data.body, createdAt: data.created_at },
+    note: { id: data.id, body: data.body, createdAt: data.created_at, userId: data.user_id, parentId: data.parent_id, profile: data.profile ?? null },
     error: null,
   };
+}
+
+export async function deleteSpotNote(noteId) {
+  if (!hasSupabase || !noteId) return false;
+  const { error } = await supabase.from('spot_notes').delete().eq('id', noteId);
+  if (error) console.warn('SnapMap: delete spot comment failed', error);
+  return !error;
 }

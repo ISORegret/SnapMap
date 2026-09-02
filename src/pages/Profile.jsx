@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, User, Pencil, X, Settings } from 'lucide-react';
+import { MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
-import { getFollowerCount, getFollowingCount, isFollowing, follow, unfollow } from '../api/follows';
+import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
 function normalizeHandle(s) {
@@ -13,9 +13,8 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [following, setFollowing] = useState(false);
+  const [friendState, setFriendState] = useState('none');
+  const [connections, setConnections] = useState({ friends: [], incoming: [], outgoing: [] });
   const [followLoading, setFollowLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState('');
@@ -51,34 +50,47 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
   useEffect(() => {
     if (!profile?.id) return;
     let cancelled = false;
-    Promise.all([getFollowerCount(profile.id), getFollowingCount(profile.id)]).then(([fc, fg]) => {
-      if (!cancelled) {
-        setFollowerCount(fc);
-        setFollowingCount(fg);
-      }
-    });
+    getFriendConnections(profile.id).then((result) => { if (!cancelled) setConnections(result); });
     return () => { cancelled = true; };
   }, [profile?.id]);
 
   useEffect(() => {
     if (!profile?.id || !currentUser?.id || currentUser.id === profile.id) return;
     let cancelled = false;
-    isFollowing(currentUser.id, profile.id).then((v) => {
-      if (!cancelled) setFollowing(v);
+    getFriendState(currentUser.id, profile.id).then((state) => {
+      if (!cancelled) setFriendState(state);
     });
     return () => { cancelled = true; };
   }, [profile?.id, currentUser?.id]);
 
-  const handleFollow = async () => {
-    if (!profile?.id || followLoading) return;
-    setFollowLoading(true);
-    const ok = following ? await unfollow(profile.id) : await follow(profile.id);
-    setFollowLoading(false);
-    if (ok) {
-      setFollowing(!following);
-      setFollowerCount((c) => (following ? c - 1 : c + 1));
+  const refreshConnections = async () => {
+    if (!profile?.id) return;
+    const result = await getFriendConnections(profile.id);
+    setConnections(result);
+    if (currentUser?.id && currentUser.id !== profile.id) {
+      setFriendState(await getFriendState(currentUser.id, profile.id));
     }
   };
+
+  const handleFriend = async () => {
+    if (!profile?.id || followLoading) return;
+    setFollowLoading(true);
+    let ok = false;
+    if (friendState === 'none') ok = await sendFriendRequest(profile.id);
+    else if (friendState === 'incoming') ok = await acceptFriendRequest(profile.id);
+    else if (friendState === 'outgoing') ok = await removeFriend(profile.id);
+    else if (friendState === 'friends' && window.confirm(`Remove ${profile.display_name || profile.username} from your friends?`)) ok = await removeFriend(profile.id);
+    setFollowLoading(false);
+    if (ok) await refreshConnections();
+  };
+
+  const friendButton = {
+    none: { label: 'Add friend', icon: UserPlus },
+    outgoing: { label: 'Request sent', icon: Clock3 },
+    incoming: { label: 'Accept request', icon: UserPlus },
+    friends: { label: 'Friends', icon: UserCheck },
+  }[friendState] || { label: 'Add friend', icon: UserPlus };
+  const FriendButtonIcon = friendButton.icon;
 
   if (loading) {
     return (
@@ -189,8 +201,8 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
               <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
             )}
             <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-              <span>{followerCount} followers</span>
-              <span>{followingCount} following</span>
+              <span>{connections.friends.length} friend{connections.friends.length === 1 ? '' : 's'}</span>
+              {isOwnProfile && connections.incoming.length > 0 && <span className="font-semibold text-accent-400">{connections.incoming.length} request{connections.incoming.length === 1 ? '' : 's'}</span>}
             </div>
             {isOwnProfile && (
               <button
@@ -205,11 +217,12 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
             {!isOwnProfile && currentUser && (
               <button
                 type="button"
-                onClick={handleFollow}
+                onClick={handleFriend}
                 disabled={followLoading}
                 className="primary-button mt-3 px-5 py-2.5 text-sm disabled:opacity-50"
               >
-                {followLoading ? '…' : following ? 'Following' : 'Follow'}
+                {!followLoading && <FriendButtonIcon className="h-4 w-4" />}
+                {followLoading ? '…' : friendButton.label}
               </button>
             )}
           </div>
@@ -303,6 +316,55 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
           </form>
         )}
       </header>
+
+      {(connections.friends.length > 0 || (isOwnProfile && (connections.incoming.length > 0 || connections.outgoing.length > 0))) && (
+        <section className="px-4 pt-5">
+          {isOwnProfile && connections.incoming.length > 0 && (
+            <div className="surface-card mb-5 rounded-[1.5rem] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-accent-400" />
+                <h2 className="text-sm font-extrabold text-primary">Friend requests</h2>
+                <span className="ml-auto rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-extrabold text-[#211603]">{connections.incoming.length}</span>
+              </div>
+              <div className="space-y-2">
+                {connections.incoming.map((creator) => (
+                  <div key={creator.id} className="flex items-center gap-3 rounded-2xl bg-black/10 p-2.5">
+                    <Link to={`/user/${creator.username}`} className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                        {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0"><p className="truncate text-sm font-bold text-primary">{creator.display_name || creator.username}</p><p className="truncate text-xs text-slate-500">@{creator.username}</p></div>
+                    </Link>
+                    <button type="button" onClick={async () => { await acceptFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl bg-accent-500 px-3 py-2 text-xs font-extrabold text-[#211603]">Accept</button>
+                    <button type="button" onClick={async () => { await declineFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl border border-white/10 px-2.5 py-2 text-xs font-bold text-slate-500">Decline</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {connections.friends.length > 0 && (
+            <div>
+              <div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-accent-400" /><h2 className="text-sm font-extrabold text-primary">Friends</h2></div>
+              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+                {connections.friends.map((creator) => (
+                  <Link key={creator.id} to={`/user/${creator.username}`} className="surface-card w-28 shrink-0 rounded-[1.35rem] p-3 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                      {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
+                    </div>
+                    <p className="mt-2 truncate text-xs font-extrabold text-primary">{creator.display_name || creator.username}</p>
+                    <p className="truncate text-[10px] text-slate-500">@{creator.username}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isOwnProfile && connections.outgoing.length > 0 && (
+            <p className="mt-3 text-xs text-slate-500">Pending requests: {connections.outgoing.map((creator) => `@${creator.username}`).join(', ')}</p>
+          )}
+        </section>
+      )}
 
       <div className="px-4 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">

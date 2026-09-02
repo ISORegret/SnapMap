@@ -1,15 +1,15 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, Navigation, Trash2, Image, Flag, Pencil, Star } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
-import { insertSpotReport, fetchSpotNotes, insertSpotNote } from '../api/spots';
+import { insertSpotReport, fetchSpotNotes, insertSpotNote, deleteSpotNote } from '../api/spots';
 import { getCheckInCount, hasCheckedIn, addCheckIn } from '../api/checkIns';
 import { getSpotRating, getUserRating, setSpotRating } from '../api/ratings';
 import { getDeviceId } from '../data/spotStore';
-import { hasSupabase } from '../api/supabase';
+import { hasSupabase, supabase } from '../api/supabase';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -226,6 +226,7 @@ export default function SpotDetail({
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState('');
   const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const [checkInCount, setCheckInCount] = useState(0);
   const [userHasCheckedIn, setUserHasCheckedIn] = useState(false);
   const [checkInLoading, setCheckInLoading] = useState(false);
@@ -235,6 +236,15 @@ export default function SpotDetail({
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
   const conditionsRef = useRef(null);
+  const rootNotes = useMemo(() => notes.filter((note) => !note.parentId), [notes]);
+  const repliesByParent = useMemo(() => {
+    const grouped = {};
+    notes.filter((note) => note.parentId).forEach((note) => {
+      if (!grouped[note.parentId]) grouped[note.parentId] = [];
+      grouped[note.parentId].push(note);
+    });
+    return grouped;
+  }, [notes]);
 
   useEffect(() => {
     if (!spot?.id || !hasSupabase) return;
@@ -286,7 +296,20 @@ export default function SpotDetail({
   const canAddNotes = spot?.id && !String(spot.id).startsWith('user-');
   useEffect(() => {
     if (!canAddNotes) return;
-    fetchSpotNotes(spot.id).then(setNotes);
+    let cancelled = false;
+    const refreshNotes = () => fetchSpotNotes(spot.id).then((nextNotes) => {
+      if (!cancelled) setNotes(nextNotes);
+    });
+    refreshNotes();
+    if (!hasSupabase) return () => { cancelled = true; };
+    const channel = supabase
+      .channel(`spot-discussion-${spot.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spot_notes', filter: `spot_id=eq.${spot.id}` }, refreshNotes)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [spot?.id, canAddNotes]);
 
   if (!spot) {
@@ -468,14 +491,21 @@ export default function SpotDetail({
     if (!canAddNotes || !noteText.trim() || noteSubmitting) return;
     setNoteSubmitting(true);
     try {
-      const { note, error } = await insertSpotNote(spot.id, noteText.trim());
+      const { note } = await insertSpotNote(spot.id, noteText.trim(), replyTo?.id || null);
       if (note) {
         setNotes((prev) => [...prev, note]);
         setNoteText('');
+        setReplyTo(null);
       }
     } finally {
       setNoteSubmitting(false);
     }
+  };
+
+  const removeComment = async (noteId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    const ok = await deleteSpotNote(noteId);
+    if (ok) setNotes((prev) => prev.filter((note) => note.id !== noteId && note.parentId !== noteId));
   };
 
   const sendReport = async () => {
@@ -854,44 +884,55 @@ export default function SpotDetail({
           </div>
         </div>
 
-        {/* Community notes (cloud spots only) */}
+        {/* Creator discussion (cloud spots only) */}
         {canAddNotes && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Community notes
-            </p>
-            <ul className="mb-3 space-y-2 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
-              {notes.length === 0 ? (
-                <li className="text-xs text-slate-500">No notes yet. Add one below.</li>
-              ) : (
-                notes.map((n) => (
-                  <li key={n.id} className="border-b border-white/5 pb-2 last:border-0 last:pb-0 text-sm text-slate-300">
-                    {n.body}
-                    <span className="ml-1 text-[10px] text-slate-500">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}
-                    </span>
-                  </li>
-                ))
-              )}
-            </ul>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Add a note…"
-                className="flex-1 rounded-lg border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none"
-                onKeyDown={(e) => e.key === 'Enter' && addNote()}
-              />
-              <button
-                type="button"
-                onClick={addNote}
-                disabled={!noteText.trim() || noteSubmitting}
-                className="rounded-lg bg-accent-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-accent-600 disabled:opacity-50"
-              >
-                {noteSubmitting ? '…' : 'Add'}
-              </button>
+          <div className="mt-5">
+            <div className="mb-3 flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-accent-400" />
+              <div><p className="eyebrow">At this location</p><h2 className="mt-0.5 text-base font-extrabold text-primary">Creator discussion</h2></div>
+              <span className="ml-auto rounded-full border border-white/10 px-2.5 py-1 text-xs font-bold text-slate-500">{notes.length}</span>
             </div>
+            <div className="surface-card mb-3 space-y-3 rounded-[1.5rem] p-3">
+              {rootNotes.length === 0 ? (
+                <p className="px-2 py-5 text-center text-xs text-slate-500">No comments yet. Start the conversation about access, lighting, or current conditions.</p>
+              ) : rootNotes.map((note) => {
+                const creator = note.profile;
+                const replies = repliesByParent[note.id] || [];
+                const renderComment = (comment, nested = false) => {
+                  const author = comment.profile;
+                  return (
+                    <div key={comment.id} className={`flex gap-3 ${nested ? 'ml-8 border-l border-white/10 pl-3 pt-2' : 'border-b border-white/[0.06] pb-3 last:border-0'}`}>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                        {author?.avatar_url ? <img src={author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          {author?.username ? <Link to={`/user/${author.username}`} className="text-xs font-extrabold text-primary hover:text-accent-400">{author.display_name || author.username}</Link> : <span className="text-xs font-extrabold text-primary">Community member</span>}
+                          <span className="text-[10px] text-slate-500">{comment.createdAt ? new Date(comment.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}</span>
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-secondary">{comment.body}</p>
+                        <div className="mt-1.5 flex items-center gap-3">
+                          {!nested && currentUser && <button type="button" onClick={() => { setReplyTo(note); setNoteText(''); }} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-accent-400"><Reply className="h-3 w-3" />Reply</button>}
+                          {comment.userId === currentUser?.id && <button type="button" onClick={() => removeComment(comment.id)} className="text-[11px] font-bold text-slate-500 hover:text-rose-400">Delete</button>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+                return <div key={note.id}>{renderComment(note)}{replies.map((reply) => renderComment(reply, true))}</div>;
+              })}
+            </div>
+            {currentUser ? (
+              <div className="surface-card rounded-[1.35rem] p-3">
+                {replyTo && <div className="mb-2 flex items-center justify-between rounded-xl bg-accent-500/10 px-3 py-2 text-xs text-accent-400"><span>Replying to {replyTo.profile?.display_name || replyTo.profile?.username || 'comment'}</span><button type="button" onClick={() => setReplyTo(null)} className="font-extrabold">Cancel</button></div>}
+                <div className="flex gap-2">
+                  <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder={replyTo ? 'Write a reply…' : 'Share access tips, conditions, or a question…'} rows={2} maxLength={1000} className="min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none" />
+                  <button type="button" onClick={addNote} disabled={!noteText.trim() || noteSubmitting} className="primary-button self-end px-4 py-2.5 text-xs disabled:opacity-50">{noteSubmitting ? '…' : replyTo ? 'Reply' : 'Post'}</button>
+                </div>
+              </div>
+            ) : (
+              <Link to="/signin" className="surface-card block rounded-[1.35rem] px-4 py-3 text-center text-sm font-bold text-accent-400">Sign in to join the discussion</Link>
+            )}
           </div>
         )}
 
