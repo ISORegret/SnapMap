@@ -4,18 +4,40 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEve
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3 } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
+import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
-const defaultCenter = [37.8021, -122.4488];
-const defaultZoom = 6;
+const defaultCenter = [30.3322, -81.6557];
+const defaultZoom = 10;
+const VIEWPORT_STORAGE_KEY = 'snapmap_last_viewport';
+
+function isValidCoordinate(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+    && !(lat === 0 && lng === 0);
+}
+
+function readSavedViewport() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'null');
+    if (isValidCoordinate(saved?.lat, saved?.lng) && Number.isFinite(Number(saved?.zoom))) {
+      return { center: [Number(saved.lat), Number(saved.lng)], zoom: Math.min(19, Math.max(2, Number(saved.zoom))) };
+    }
+  } catch {
+    // Ignore an old or damaged saved viewport.
+  }
+  return null;
+}
 
 const icon = L.divIcon({
   className: 'snapmap-marker-wrap',
@@ -25,7 +47,24 @@ const icon = L.divIcon({
   popupAnchor: [0, -34],
 });
 
-function liveSpotIcon(summary) {
+function safeImageUrl(value) {
+  const url = String(value || '');
+  if (!/^https?:\/\//i.test(url)) return '';
+  return url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function liveSpotIcon(summary, post = null) {
+  if (post?.imageUrl) {
+    const alertCondition = ['restricted', 'closed', 'unsafe'].includes(summary?.condition);
+    const markerClass = alertCondition ? 'is-alert' : summary ? 'is-live' : '';
+    return L.divIcon({
+      className: 'snapmap-marker-wrap',
+      html: `<span class="snapmap-photo-marker ${markerClass}"><img src="${safeImageUrl(post.imageUrl)}" alt="" /><i></i></span>`,
+      iconSize: [46, 52],
+      iconAnchor: [23, 48],
+      popupAnchor: [0, -44],
+    });
+  }
   if (!summary) return icon;
   const alertCondition = ['restricted', 'closed', 'unsafe'].includes(summary.condition);
   const markerClass = alertCondition ? 'is-alert' : summary.condition === 'busy' ? 'is-busy' : 'is-live';
@@ -129,7 +168,7 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-function SpotMarkersCluster({ spots, icon, activityBySpot, setSelectedSpotId }) {
+function SpotMarkersCluster({ spots, icon, activityBySpot, recentPostBySpot, setSelectedSpotId }) {
   const map = useMap();
   const groupRef = useRef(null);
 
@@ -139,7 +178,7 @@ function SpotMarkersCluster({ spots, icon, activityBySpot, setSelectedSpotId }) 
     groupRef.current = group;
 
     spots.forEach((spot) => {
-      const marker = L.marker([spot.latitude, spot.longitude], { icon: activityBySpot[spot.id] ? liveSpotIcon(activityBySpot[spot.id]) : icon });
+      const marker = L.marker([spot.latitude, spot.longitude], { icon: liveSpotIcon(activityBySpot[spot.id], recentPostBySpot[spot.id]) || icon });
       marker.on('click', (event) => {
         L.DomEvent.stopPropagation(event);
         setSelectedSpotId(spot.id);
@@ -152,19 +191,21 @@ function SpotMarkersCluster({ spots, icon, activityBySpot, setSelectedSpotId }) 
       map.removeLayer(group);
       groupRef.current = null;
     };
-  }, [map, spots, icon, activityBySpot, setSelectedSpotId]);
+  }, [map, spots, icon, activityBySpot, recentPostBySpot, setSelectedSpotId]);
 
   return null;
 }
 
-function ViewportTracker({ onViewportChange }) {
+function ViewportTracker({ onViewportChange, onUserViewportChange }) {
   const userMoveRef = useRef(false);
   const map = useMapEvents({
     moveend: () => {
+      const center = map.getCenter();
+      onViewportChange({ lat: center.lat, lng: center.lng, zoom: map.getZoom() });
       if (!userMoveRef.current) return;
-      userMoveRef.current = false;
       const bounds = map.getBounds();
-      onViewportChange({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+      userMoveRef.current = false;
+      onUserViewportChange({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
     },
   });
   useEffect(() => {
@@ -198,6 +239,18 @@ async function geocodeAddress(query) {
 export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryLatitude = searchParams.has('lat') ? Number(searchParams.get('lat')) : null;
+  const queryLongitude = searchParams.has('lng') ? Number(searchParams.get('lng')) : null;
+  const hasQueryLocation = isValidCoordinate(queryLatitude, queryLongitude);
+  const initialViewport = useMemo(() => {
+    if (hasQueryLocation) return { center: [queryLatitude, queryLongitude], zoom: 15 };
+    const saved = readSavedViewport();
+    if (saved) return saved;
+    if (isValidCoordinate(sharedUserPosition?.lat, sharedUserPosition?.lng)) {
+      return { center: [sharedUserPosition.lat, sharedUserPosition.lng], zoom: 13 };
+    }
+    return { center: defaultCenter, zoom: defaultZoom };
+  }, []);
   const [mapReady, setMapReady] = useState(false);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -221,12 +274,9 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const [mapSearchQuery, setMapSearchQuery] = useState('');
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [mapSearchError, setMapSearchError] = useState(null);
-  const [searchCenter, setSearchCenter] = useState(() => {
-    const lat = Number(searchParams.get('lat'));
-    const lng = Number(searchParams.get('lng'));
-    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng, key: 'shared-location' } : null;
-  }); // { lat, lng } to fly map to
-  const [selectedSpotId, setSelectedSpotId] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(() => hasQueryLocation ? { lat: queryLatitude, lng: queryLongitude, key: 'shared-location' } : null);
+  const [selectedSpotId, setSelectedSpotId] = useState(() => searchParams.get('spot'));
+  const [selectedPostId, setSelectedPostId] = useState(() => searchParams.get('post'));
   const [searchFocused, setSearchFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => {
     try { return JSON.parse(localStorage.getItem('snapmap_recent_searches') || '[]'); } catch { return []; }
@@ -234,6 +284,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const [candidateBounds, setCandidateBounds] = useState(null);
   const [appliedBounds, setAppliedBounds] = useState(null);
   const [activityBySpot, setActivityBySpot] = useState({});
+  const [mapPosts, setMapPosts] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,6 +298,19 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
       cancelled = true;
       unsubscribe();
       window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => fetchMapPosts().then((posts) => {
+      if (!cancelled) setMapPosts(posts);
+    });
+    refresh();
+    const unsubscribe = subscribeToFeed(refresh);
+    return () => {
+      cancelled = true;
+      unsubscribe();
     };
   }, []);
 
@@ -294,7 +358,8 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
     setLocationPromptMi(null);
   }, []);
 
-  const byFilter = useMemo(() => applyFilter(allSpots, filter), [allSpots, filter]);
+  const validSpots = useMemo(() => allSpots.filter((spot) => isValidCoordinate(spot.latitude, spot.longitude)), [allSpots]);
+  const byFilter = useMemo(() => applyFilter(validSpots, filter), [validSpots, filter]);
   const filteredSpots = useMemo(
     () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
     [byFilter, userPosition, distanceFilterMi]
@@ -310,12 +375,21 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
     () => displayedSpots.find((spot) => String(spot.id) === String(selectedSpotId)) || null,
     [displayedSpots, selectedSpotId]
   );
-  const fitBoundsKey = useMemo(
-    () => `${filter}|${distanceFilterMi ?? 'all'}`,
-    [filter, distanceFilterMi]
-  );
+  const recentPostBySpot = useMemo(() => mapPosts.reduce((grouped, post) => {
+    if (post.spotId && !grouped[post.spotId]) grouped[post.spotId] = post;
+    return grouped;
+  }, {}), [mapPosts]);
+  const standalonePosts = useMemo(() => mapPosts.filter((post) => !post.spotId && post.imageUrl && isValidCoordinate(post.latitude, post.longitude)), [mapPosts]);
+  const selectedPost = useMemo(() => mapPosts.find((post) => String(post.id) === String(selectedPostId)) || null, [mapPosts, selectedPostId]);
+
+  const saveViewport = useCallback((viewport) => {
+    if (!isValidCoordinate(viewport.lat, viewport.lng)) return;
+    localStorage.setItem(VIEWPORT_STORAGE_KEY, JSON.stringify(viewport));
+  }, []);
 
   const onMapClick = useCallback(({ lat, lng }) => {
+    setSelectedPostId(null);
+    setSelectedSpotId(null);
     setPendingPin({ lat, lng });
   }, []);
 
@@ -467,8 +541,8 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
       )}
       <div className={`map-style-${mapStyle} relative min-h-[200px] flex-1 overflow-hidden`}>
       <MapContainer
-        center={defaultCenter}
-        zoom={defaultZoom}
+        center={initialViewport.center}
+        zoom={initialViewport.zoom}
         className="h-full w-full"
         style={{ height: '100%', minHeight: 200 }}
         scrollWheelZoom
@@ -490,10 +564,9 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
             zIndex={2}
           />
         )}
-        <FitBounds spots={filteredSpots} fitKey={fitBoundsKey} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
-        <ViewportTracker onViewportChange={setCandidateBounds} />
+        <ViewportTracker onViewportChange={saveViewport} onUserViewportChange={setCandidateBounds} />
 
         {userPosition && (
           <CircleMarker
@@ -522,8 +595,18 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           spots={displayedSpots}
           icon={icon}
           activityBySpot={activityBySpot}
-          setSelectedSpotId={setSelectedSpotId}
+          recentPostBySpot={recentPostBySpot}
+          setSelectedSpotId={(spotId) => { setSelectedPostId(null); setPendingPin(null); setSelectedSpotId(spotId); }}
         />
+        {standalonePosts.map((post) => (
+          <Marker
+            key={`post-${post.id}`}
+            position={[post.latitude, post.longitude]}
+            icon={liveSpotIcon(null, post)}
+            zIndexOffset={700}
+            eventHandlers={{ click: () => { setSelectedSpotId(null); setPendingPin(null); setSelectedPostId(post.id); } }}
+          />
+        ))}
       </MapContainer>
       <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
 
@@ -583,6 +666,34 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
                 <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedSpot.latitude},${selectedSpot.longitude}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-bold text-slate-300">
                   <Navigation className="h-3.5 w-3.5" /> Directions
                 </a>
+                {recentPostBySpot[selectedSpot.id] && (
+                  <Link to={`/explore?post=${recentPostBySpot[selectedSpot.id].id}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-2.5 py-1.5 text-[11px] font-bold text-accent-400">
+                    <Camera className="h-3.5 w-3.5" /> Post
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedPost && !selectedSpot && !pendingPin && (
+        <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-2.5 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
+          <div className="flex gap-3">
+            <Link to={`/explore?post=${selectedPost.id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-[1.1rem] bg-black/20">
+              <img src={selectedPost.imageUrl} alt="" className="h-full w-full object-cover" />
+            </Link>
+            <div className="min-w-0 flex-1 py-1">
+              <div className="flex items-start gap-2">
+                <Link to={`/explore?post=${selectedPost.id}`} className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-extrabold text-primary">{selectedPost.locationName}</p>
+                  <p className="mt-1 truncate text-xs text-slate-500">Photo by {selectedPost.author?.display_name || selectedPost.author?.username || 'a creator'}</p>
+                </Link>
+                <button type="button" onClick={() => setSelectedPostId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close post preview"><X className="h-4 w-4" /></button>
+              </div>
+              {selectedPost.locationPrecision === 'approximate' && <p className="mt-2 text-[11px] font-bold text-amber-400">Approximate location</p>}
+              <div className="mt-3 flex gap-2">
+                <Link to={`/explore?post=${selectedPost.id}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500 px-3 py-2 text-[11px] font-extrabold text-[#211603]"><Camera className="h-3.5 w-3.5" />Open post</Link>
+                {selectedPost.spotId && <Link to={`/spot/${selectedPost.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] font-bold text-slate-300"><MapPin className="h-3.5 w-3.5" />Spot details</Link>}
               </div>
             </div>
           </div>

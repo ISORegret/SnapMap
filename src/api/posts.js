@@ -53,6 +53,35 @@ export async function fetchPosts({ mode = 'newest', profileId = null, limit = 40
   return posts.map((post) => normalizePost(post, user?.id));
 }
 
+export async function fetchMapPosts(limit = 100) {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('posts')
+    .select(`
+      id, user_id, spot_id, location_name, latitude, longitude, location_precision, created_at,
+      author:profiles!posts_user_id_fkey(username, display_name),
+      images:post_images(public_url, position)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 150));
+  if (error) {
+    console.warn('SnapMap: map posts fetch failed', error);
+    return [];
+  }
+  return (data || []).map((post) => ({
+    id: post.id,
+    userId: post.user_id,
+    spotId: post.spot_id,
+    locationName: post.location_name,
+    latitude: post.latitude,
+    longitude: post.longitude,
+    locationPrecision: post.location_precision,
+    createdAt: post.created_at,
+    author: post.author,
+    imageUrl: [...(post.images || [])].sort((a, b) => a.position - b.position)[0]?.public_url || null,
+  }));
+}
+
 function loadImage(file, src) {
   return new Promise((resolve, reject) => {
     const image = new Image();

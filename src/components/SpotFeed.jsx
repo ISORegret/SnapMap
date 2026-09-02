@@ -25,6 +25,9 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
   const distance = post.distanceKm != null
     ? (units === 'km' ? `${post.distanceKm.toFixed(1)} km away` : `${kmToMi(post.distanceKm).toFixed(1)} mi away`)
     : null;
+  const mapUrl = post.latitude != null && post.longitude != null
+    ? `/?post=${encodeURIComponent(post.id)}${post.spotId ? `&spot=${encodeURIComponent(post.spotId)}` : ''}&lat=${encodeURIComponent(post.latitude)}&lng=${encodeURIComponent(post.longitude)}`
+    : null;
 
   const handleLike = async () => {
     if (!currentUser) return showToast?.('Sign in to like posts.');
@@ -59,7 +62,7 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
         </Link>
         <div className="min-w-0 flex-1">
           <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>
-          <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted"><MapPin className="h-3 w-3 shrink-0 text-accent-400" /><span className="truncate">{post.locationName}</span><span>·</span><span className="shrink-0">{timeAgo(post.createdAt)}</span></p>
+          <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted"><MapPin className="h-3 w-3 shrink-0 text-accent-400" />{mapUrl ? <Link to={mapUrl} className="truncate hover:text-accent-400">{post.locationName}</Link> : <span className="truncate">{post.locationName}</span>}<span>·</span><span className="shrink-0">{timeAgo(post.createdAt)}</span></p>
         </div>
         <div className="relative">
           <button type="button" onClick={() => setMenuOpen((open) => !open)} className="icon-button h-9 w-9 rounded-xl" aria-label="Post options"><MoreHorizontal className="h-4 w-4" /></button>
@@ -87,7 +90,8 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
           <button type="button" onClick={() => setCommentsOpen((open) => !open)} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary"><MessageCircle className="h-5 w-5" />{post.comments.length || ''}</button>
           <div className="ml-auto flex items-center gap-2">
             {distance && <span className="hidden text-[11px] font-bold text-muted sm:inline">{distance}</span>}
-            {post.spotId ? <Link to={`/spot/${post.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />View spot</Link> : post.latitude != null && <Link to={`/?lat=${post.latitude}&lng=${post.longitude}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />Map</Link>}
+            {post.spotId && <Link to={`/spot/${post.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2 text-xs font-extrabold text-secondary"><MapPin className="h-3.5 w-3.5" />Details</Link>}
+            {mapUrl && <Link to={mapUrl} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />Map</Link>}
           </div>
         </div>
         {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="mr-1 font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>{post.caption}</p>}
