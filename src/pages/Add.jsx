@@ -248,9 +248,11 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-muted">
           {editSpot
             ? "Update name, description, location, photos, and more. All changes sync across devices."
-            : hasSupabase
-              ? 'Spots will be shared with everyone (saved to cloud).'
-              : 'Data stays on your device. Add Supabase in .env to share spots.'}
+            : currentUser && hasSupabase
+              ? 'This spot will be published to the community map.'
+              : hasSupabase
+                ? 'This spot will stay on this device. Sign in first to publish it to the community map.'
+                : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
       {draftAvailable && !editSpot && (
@@ -497,8 +499,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           <label className="block text-xs font-medium text-slate-500">Photos {editSpot ? '(optional)' : '*'}</label>
           <p className="mt-0.5 text-[11px] text-slate-500">
             {editSpot
-              ? 'Add one or more shots; others can add theirs to the same spot later.'
-              : 'Add at least one photo of the spot. Others can add more later.'}
+              ? 'Add one or more shots; you can return and add more later.'
+              : 'Add at least one photo of the spot. You can add more later.'}
           </p>
           <input
             ref={fileInputRef}

@@ -435,7 +435,9 @@ export default function App() {
           };
         }
       }
-      const result = await insertCommunitySpot(payload);
+      const result = currentUser
+        ? await insertCommunitySpot(payload)
+        : { spot: null, error: null };
       if (result.spot) {
         setUserSpots((prev) => {
           const next = [result.spot, ...prev];
@@ -457,8 +459,10 @@ export default function App() {
         return next;
       });
       hapticLight();
-      setSyncStatus(isOnline ? 'failed' : 'offline');
-      showToast(isOnline ? 'Spot saved on this device. Cloud sync needs attention.' : 'Spot saved offline.');
+      setSyncStatus(!currentUser ? 'saved' : (isOnline ? 'failed' : 'offline'));
+      showToast(!currentUser
+        ? 'Spot saved on this device. Sign in to publish community spots.'
+        : (isOnline ? 'Spot saved on this device. Cloud sync needs attention.' : 'Spot saved offline.'));
       navigate('/');
     },
     [currentUser, navigate, isOnline, showToast]
@@ -582,10 +586,13 @@ export default function App() {
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
   const isUserSpot = (spotId) => {
-    if (userSpots.some((s) => s.id === spotId)) return true;
     const spot = allSpots.find((s) => s.id === spotId);
-    if (!spot || !currentUserProfile?.username) return false;
-    return (spot.createdBy || '').trim() === (currentUserProfile.username || '').trim();
+    if (!spot) return false;
+    if (String(spot.id).startsWith('user-')) return userSpots.some((s) => s.id === spotId);
+    if (!currentUser?.id) return false;
+    if (spot.ownerId) return spot.ownerId === currentUser.id;
+    return Boolean(currentUserProfile?.username)
+      && (spot.createdBy || '').trim() === (currentUserProfile.username || '').trim();
   };
   const isFavorite = (spotId) => favoriteIds.includes(spotId);
 

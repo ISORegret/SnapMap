@@ -493,7 +493,7 @@ export default function SpotDetail({
   const crowdLevel = spot.crowdLevel && CROWD_LABELS[spot.crowdLevel] ? spot.crowdLevel : null;
   const spotImages = getSpotImages(spot);
 
-  const canAddPhoto = isUserSpot(spot.id) || (spot.id && !String(spot.id).startsWith('user-'));
+  const canAddPhoto = isUserSpot(spot.id);
   const handleAddPhoto = (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';

@@ -24,6 +24,7 @@ function rowToSpot(row) {
     createdBy: row.created_by ?? '',
     createdByDisplayName: row.created_by_display_name ?? row.created_by ?? '',
     lastEditedBy: row.last_edited_by ?? '',
+    ownerId: row.owner_id ?? null,
   };
 }
 
@@ -126,7 +127,7 @@ export async function updateCommunitySpot(id, updates) {
 }
 
 export async function deleteCommunitySpot(id) {
-  if (!hasSupabase) return false;
+  if (!hasSupabase || !isLikelyUuid(String(id || ''))) return false;
   const { error } = await supabase.from('spots').delete().eq('id', id);
   if (error) {
     console.warn('SnapMap: delete spot failed', error);

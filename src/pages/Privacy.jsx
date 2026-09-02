@@ -42,9 +42,9 @@ export default function Privacy() {
           <ul className="list-disc list-inside space-y-2">
             <li><strong className="text-slate-300">Account data</strong> — If you sign in, we store your email and
               profile (username, display name) via Supabase Auth.</li>
-            <li><strong className="text-slate-300">Spots & favorites</strong> — Spots you add, favorite, or save to
-              collections are stored locally on your device and, when signed in, synced to Supabase so you can access
-              them on other devices.</li>
+            <li><strong className="text-slate-300">Spots & favorites</strong> — Unsigned spot drafts and collections stay
+              on your device. When signed in, community spots and favorites are stored in Supabase so they can sync
+              across devices. Only the account that publishes a community spot can edit or delete it.</li>
             <li><strong className="text-slate-300">Location</strong> — Your device location is used only with your
               permission to show spots near you and to filter by distance. We do not track or store your location
               beyond what your device provides for the &quot;near me&quot; features.</li>
