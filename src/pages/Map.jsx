@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap,
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, Milestone as Route } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
@@ -13,6 +13,7 @@ import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
+import { fetchUpcomingEvents, subscribeToEvents } from '../api/events';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -20,6 +21,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 const defaultCenter = [30.3322, -81.6557];
 const defaultZoom = 10;
 const VIEWPORT_STORAGE_KEY = 'snapmap_last_viewport';
+const EVENT_GEOCODE_STORAGE_KEY = 'snapmap_event_geocodes_v1';
 
 function isValidCoordinate(latitude, longitude) {
   const lat = Number(latitude);
@@ -47,6 +49,14 @@ const icon = L.divIcon({
   iconSize: [34, 42],
   iconAnchor: [17, 38],
   popupAnchor: [0, -34],
+});
+
+const eventIcon = L.divIcon({
+  className: 'snapmap-marker-wrap',
+  html: '<span class="snapmap-event-marker"><b>◆</b></span>',
+  iconSize: [38, 46],
+  iconAnchor: [19, 42],
+  popupAnchor: [0, -38],
 });
 
 function safeImageUrl(value) {
@@ -220,6 +230,35 @@ function SpotMarkersCluster({ spots, icon, activityBySpot, recentPostBySpot, set
   return null;
 }
 
+function EventMarkersCluster({ events, onSelect }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || typeof L.MarkerClusterGroup !== 'function' || !events.length) return undefined;
+    const group = new L.MarkerClusterGroup({
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: (cluster) => L.divIcon({
+        className: 'snapmap-event-cluster-wrap',
+        html: `<span class="snapmap-event-cluster">${cluster.getChildCount()}</span>`,
+        iconSize: [40, 40],
+      }),
+    });
+    events.forEach((event) => {
+      const marker = L.marker([event.mapLatitude, event.mapLongitude], { icon: eventIcon, zIndexOffset: 650 });
+      marker.on('click', (leafletEvent) => {
+        L.DomEvent.stopPropagation(leafletEvent);
+        onSelect(event.id);
+      });
+      group.addLayer(marker);
+    });
+    map.addLayer(group);
+    return () => map.removeLayer(group);
+  }, [map, events, onSelect]);
+
+  return null;
+}
+
 function ViewportTracker({ onViewportChange, onUserViewportChange }) {
   const userMoveRef = useRef(false);
   const map = useMapEvents({
@@ -310,6 +349,9 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const [appliedBounds, setAppliedBounds] = useState(null);
   const [activityBySpot, setActivityBySpot] = useState({});
   const [mapPosts, setMapPosts] = useState([]);
+  const [mapEvents, setMapEvents] = useState([]);
+  const [eventCoordinates, setEventCoordinates] = useState({});
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -325,6 +367,66 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
       window.clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => fetchUpcomingEvents(100).then((result) => {
+      if (!cancelled) setMapEvents(result.events || []);
+    });
+    refresh();
+    const unsubscribe = subscribeToEvents(refresh);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let cache = {};
+    try { cache = JSON.parse(localStorage.getItem(EVENT_GEOCODE_STORAGE_KEY) || '{}'); } catch { cache = {}; }
+
+    const direct = {};
+    const unresolved = new Map();
+    mapEvents.forEach((event) => {
+      const latitude = event.spot?.latitude;
+      const longitude = event.spot?.longitude;
+      if (isValidCoordinate(latitude, longitude)) {
+        direct[event.id] = { lat: Number(latitude), lng: Number(longitude) };
+        return;
+      }
+      const key = String(event.address || '').trim().toLowerCase();
+      if (!key) return;
+      if (isValidCoordinate(cache[key]?.lat, cache[key]?.lng)) direct[event.id] = cache[key];
+      else if (!unresolved.has(key)) unresolved.set(key, event.address);
+    });
+    setEventCoordinates(direct);
+
+    const resolveAddresses = async () => {
+      for (const [key, address] of unresolved) {
+        if (cancelled) return;
+        try {
+          const result = await geocodeAddress(address);
+          if (result && !cancelled) {
+            cache[key] = { lat: result.lat, lng: result.lng };
+            localStorage.setItem(EVENT_GEOCODE_STORAGE_KEY, JSON.stringify(cache));
+            setEventCoordinates((current) => {
+              const next = { ...current };
+              mapEvents.forEach((event) => {
+                if (String(event.address || '').trim().toLowerCase() === key) next[event.id] = cache[key];
+              });
+              return next;
+            });
+          }
+        } catch {
+          // Keep the event in the Events list if its address cannot be mapped.
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1050));
+      }
+    };
+    resolveAddresses();
+    return () => { cancelled = true; };
+  }, [mapEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -408,6 +510,11 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   }, {}), [mapPosts]);
   const standalonePosts = useMemo(() => mapPosts.filter((post) => !post.spotId && post.imageUrl && isValidCoordinate(post.latitude, post.longitude)), [mapPosts]);
   const selectedPost = useMemo(() => mapPosts.find((post) => String(post.id) === String(selectedPostId)) || null, [mapPosts, selectedPostId]);
+  const positionedEvents = useMemo(() => mapEvents.map((event) => {
+    const coordinates = eventCoordinates[event.id];
+    return coordinates ? { ...event, mapLatitude: coordinates.lat, mapLongitude: coordinates.lng } : null;
+  }).filter(Boolean), [mapEvents, eventCoordinates]);
+  const selectedEvent = useMemo(() => positionedEvents.find((event) => String(event.id) === String(selectedEventId)) || null, [positionedEvents, selectedEventId]);
 
   const saveViewport = useCallback((viewport) => {
     if (!isValidCoordinate(viewport.lat, viewport.lng)) return;
@@ -417,6 +524,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const onMapClick = useCallback(({ lat, lng }) => {
     setSelectedPostId(null);
     setSelectedSpotId(null);
+    setSelectedEventId(null);
     setPendingPin({ lat, lng });
   }, []);
 
@@ -624,7 +732,11 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           icon={icon}
           activityBySpot={activityBySpot}
           recentPostBySpot={recentPostBySpot}
-          setSelectedSpotId={(spotId) => { setSelectedPostId(null); setPendingPin(null); setSelectedSpotId(spotId); }}
+          setSelectedSpotId={(spotId) => { setSelectedPostId(null); setSelectedEventId(null); setPendingPin(null); setSelectedSpotId(spotId); }}
+        />
+        <EventMarkersCluster
+          events={positionedEvents}
+          onSelect={(eventId) => { setSelectedPostId(null); setSelectedSpotId(null); setPendingPin(null); setSelectedEventId(eventId); }}
         />
         {routeSpots.length > 1 && (
           <Polyline positions={routeSpots.map((spot) => [spot.latitude, spot.longitude])} pathOptions={{ color: '#f6b73c', weight: 4, opacity: 0.85, dashArray: '8 8' }} />
@@ -638,11 +750,18 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
             position={[post.latitude, post.longitude]}
             icon={liveSpotIcon(null, post)}
             zIndexOffset={700}
-            eventHandlers={{ click: () => { setSelectedSpotId(null); setPendingPin(null); setSelectedPostId(post.id); } }}
+            eventHandlers={{ click: () => { setSelectedSpotId(null); setSelectedEventId(null); setPendingPin(null); setSelectedPostId(post.id); } }}
           />
         ))}
       </MapContainer>
       <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
+
+      {!selectedSpot && !selectedPost && !selectedEvent && !pendingPin && positionedEvents.length > 0 && (
+        <div className="surface-card absolute bottom-[11.1rem] left-3 z-[1001] flex items-center gap-3 rounded-full px-3 py-2 text-[10px] font-extrabold text-secondary">
+          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-accent-500" />Spots</span>
+          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-cyan-400" />Events</span>
+        </div>
+      )}
 
       {routeSpots.length > 0 && (
         <div className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-xs font-extrabold text-primary shadow-xl">
@@ -735,6 +854,29 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
               <div className="mt-3 flex gap-2">
                 <Link to={`/explore?post=${selectedPost.id}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500 px-3 py-2 text-[11px] font-extrabold text-[#211603]"><Camera className="h-3.5 w-3.5" />Open post</Link>
                 {selectedPost.spotId && <Link to={`/spot/${selectedPost.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] font-bold text-slate-300"><MapPin className="h-3.5 w-3.5" />Spot details</Link>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedEvent && !selectedSpot && !selectedPost && !pendingPin && (
+        <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-3 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
+          <div className="flex gap-3">
+            <Link to={`/event/${selectedEvent.id}`} className="grid h-24 w-20 shrink-0 place-items-center rounded-[1.1rem] bg-cyan-400/10 text-cyan-300">
+              <CalendarDays className="h-8 w-8" />
+            </Link>
+            <div className="min-w-0 flex-1 py-1">
+              <div className="flex items-start gap-2">
+                <Link to={`/event/${selectedEvent.id}`} className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-sm font-extrabold text-primary">{selectedEvent.title}</p>
+                  <p className="mt-1 truncate text-xs text-slate-500">{selectedEvent.venueName || selectedEvent.address}</p>
+                </Link>
+                <button type="button" onClick={() => setSelectedEventId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close event preview"><X className="h-4 w-4" /></button>
+              </div>
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-cyan-300"><Clock3 className="h-3.5 w-3.5" />{new Date(selectedEvent.startsAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+              <div className="mt-2 flex gap-2">
+                <Link to={`/event/${selectedEvent.id}`} className="flex items-center gap-1.5 rounded-xl bg-cyan-400 px-3 py-2 text-[11px] font-extrabold text-slate-950"><CalendarDays className="h-3.5 w-3.5" />Event details</Link>
+                <DirectionsLauncher googleUrl={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address)}`} appleUrl={`https://maps.apple.com/?daddr=${encodeURIComponent(selectedEvent.address)}`} className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] font-bold text-slate-300"><Navigation className="h-3.5 w-3.5" />Directions</DirectionsLauncher>
               </div>
             </div>
           </div>
