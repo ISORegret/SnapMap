@@ -11,6 +11,8 @@ import { fetchDownloadCount } from '../utils/stats';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
+import DirectionsLauncher from '../components/DirectionsLauncher';
+import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -702,9 +704,9 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
                   <Heart className="h-3.5 w-3.5" fill={favoriteIds.includes(selectedSpot.id) ? 'currentColor' : 'none'} />
                   {favoriteIds.includes(selectedSpot.id) ? 'Saved' : 'Save'}
                 </button>
-                <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedSpot.latitude},${selectedSpot.longitude}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-bold text-slate-300">
+                <DirectionsLauncher googleUrl={googleDirectionsUrl(selectedSpot.latitude, selectedSpot.longitude)} appleUrl={appleDirectionsUrl(selectedSpot.latitude, selectedSpot.longitude)} className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-bold text-slate-300">
                   <Navigation className="h-3.5 w-3.5" /> Directions
-                </a>
+                </DirectionsLauncher>
                 {recentPostBySpot[selectedSpot.id] && (
                   <Link to={`/explore?post=${recentPostBySpot[selectedSpot.id].id}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-2.5 py-1.5 text-[11px] font-bold text-accent-400">
                     <Camera className="h-3.5 w-3.5" /> Post

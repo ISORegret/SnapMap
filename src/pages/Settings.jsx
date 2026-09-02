@@ -17,9 +17,11 @@ import {
   User,
   Wifi,
   WifiOff,
+  Navigation,
 } from 'lucide-react';
 import { supabase, hasSupabase } from '../api/supabase';
 import { isCurrentUserAdmin } from '../api/moderation';
+import { getMapAppPreference, MAP_APP_OPTIONS, setMapAppPreference } from '../utils/mapNavigation';
 
 const MAP_STYLES = [
   { id: 'streets', label: 'Streets' },
@@ -60,6 +62,7 @@ export default function Settings({
   });
   const [busy, setBusy] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mapsApp, setMapsApp] = useState(getMapAppPreference);
 
   useEffect(() => {
     if (!currentUser) { setIsAdmin(false); return; }
@@ -70,6 +73,14 @@ export default function Settings({
     setMapStyle(value);
     localStorage.setItem('snapmap_map_style', value);
     showToast?.(`Default map changed to ${MAP_STYLES.find((style) => style.id === value)?.label}.`);
+  };
+
+  const chooseMapsApp = (value) => {
+    setMapsApp(value);
+    setMapAppPreference(value);
+    showToast?.(value === 'ask'
+      ? 'SnapMap will ask which maps app to use.'
+      : `${MAP_APP_OPTIONS.find((option) => option.id === value)?.label} set as your default.`);
   };
 
   const clearTemporaryData = () => {
@@ -175,6 +186,11 @@ export default function Settings({
             <SettingRow icon={Map} title="Default map" subtitle="Used when the map opens.">
               <select value={mapStyle} onChange={(event) => chooseMapStyle(event.target.value)} className="rounded-xl border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-xs font-semibold text-primary outline-none">
                 {MAP_STYLES.map((style) => <option key={style.id} value={style.id}>{style.label}</option>)}
+              </select>
+            </SettingRow>
+            <SettingRow icon={Navigation} title="Preferred maps app" subtitle="Used when you tap Directions or start a route.">
+              <select value={mapsApp} onChange={(event) => chooseMapsApp(event.target.value)} className="max-w-[9.5rem] rounded-xl border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-xs font-semibold text-primary outline-none">
+                {MAP_APP_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
               </select>
             </SettingRow>
           </div>

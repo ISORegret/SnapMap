@@ -12,6 +12,8 @@ import { getDeviceId } from '../data/spotStore';
 import { hasSupabase, supabase } from '../api/supabase';
 import { getBlockedUserIds, reportComment } from '../api/safety';
 import { SPOT_CONDITIONS, checkInNow, fetchSpotActivity, shareSpotCondition, subscribeToSpotActivity } from '../api/spotActivity';
+import DirectionsLauncher from '../components/DirectionsLauncher';
+import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -368,8 +370,8 @@ export default function SpotDetail({
   }
 
   const { latitude, longitude } = spot;
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-  const appleMapsUrl = `https://maps.apple.com/?q=${latitude},${longitude}`;
+  const googleMapsUrl = googleDirectionsUrl(latitude, longitude);
+  const appleMapsUrl = appleDirectionsUrl(latitude, longitude);
   const wazeUrl = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
   const otherCollections = collections.filter((c) => c.id !== 'favorites');
   const isInCollection = (collId) => collections.find((c) => c.id === collId)?.spotIds?.includes(spot.id) ?? false;
@@ -1280,10 +1282,10 @@ export default function SpotDetail({
             <Heart className="h-4 w-4" fill={isFavorite(spot.id) ? 'currentColor' : 'none'} />
             {isFavorite(spot.id) ? 'Saved' : 'Save'}
           </button>
-          <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
+          <DirectionsLauncher googleUrl={googleMapsUrl} appleUrl={appleMapsUrl} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
             <Navigation className="h-4 w-4" />
             Directions
-          </a>
+          </DirectionsLauncher>
           <button type="button" onClick={() => conditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
             <Sun className="h-4 w-4" />
             Plan

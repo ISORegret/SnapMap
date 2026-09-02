@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone as Route, ArrowUp, ArrowDown, Sparkles, Navigation, Share2, X } from 'lucide-react';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
+import DirectionsLauncher from '../components/DirectionsLauncher';
+import { appleDirectionsUrl } from '../utils/mapNavigation';
 
 function generateSyncCode() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -155,6 +157,11 @@ function googleRouteUrl(spots, start = null) {
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
 }
 
+function appleRouteUrl(spots) {
+  if (!spots.length) return null;
+  return appleDirectionsUrl(spots[0].latitude, spots[0].longitude);
+}
+
 function RoutePlanner({ collection, spots, reorderCollectionSpots, removeFromCollection, userPosition, requestPosition, units, onClose }) {
   const [optimizing, setOptimizing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -218,10 +225,10 @@ function RoutePlanner({ collection, spots, reorderCollectionSpots, removeFromCol
           <div className="grid grid-cols-2 gap-2 p-4">
             <button type="button" onClick={optimize} disabled={optimizing || routeSpots.length < 2} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary disabled:opacity-40"><Sparkles className="h-4 w-4 text-accent-400" />{optimizing ? 'Optimizing…' : 'Optimize order'}</button>
             <Link to={`/?route=${encodeURIComponent(routeIds.join(','))}`} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><MapPin className="h-4 w-4 text-accent-400" />Preview map</Link>
-            <a href={googleRouteUrl(routeSpots, userPosition)} target="_blank" rel="noreferrer" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</a>
+            <DirectionsLauncher googleUrl={googleRouteUrl(routeSpots, userPosition)} appleUrl={appleRouteUrl(routeSpots)} title="Start shoot route" googleDescription={`Open all ${routeSpots.length} ordered stops`} appleDescription="Navigate to stop 1" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</DirectionsLauncher>
             <button type="button" onClick={shareRoute} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><Share2 className="h-4 w-4" />{copied ? 'Copied' : 'Share route'}</button>
           </div>
-          <p className="px-4 pb-4 text-[11px] leading-relaxed text-muted">Distance is a quick estimate. Google Maps calculates the actual roads and drive time when you start.</p>
+          <p className="px-4 pb-4 text-[11px] leading-relaxed text-muted">Distance is a quick estimate. Google Maps opens the full route; Apple Maps opens the next stop.</p>
         </>
       )}
     </div>
@@ -543,7 +550,7 @@ export default function Saved({
               <p className="mt-1 text-xs text-muted">About {units === 'km' ? `${routeDistanceKm(savedSpots.filter(validRouteSpot), userPosition).toFixed(1)} km` : `${kmToMi(routeDistanceKm(savedSpots.filter(validRouteSpot), userPosition)).toFixed(1)} mi`} point to point</p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link to={`/?route=${encodeURIComponent(savedSpots.filter(validRouteSpot).map((spot) => spot.id).join(','))}`} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><MapPin className="h-4 w-4 text-accent-400" />Preview map</Link>
-                <a href={googleRouteUrl(savedSpots.filter(validRouteSpot), userPosition)} target="_blank" rel="noreferrer" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</a>
+                <DirectionsLauncher googleUrl={googleRouteUrl(savedSpots.filter(validRouteSpot), userPosition)} appleUrl={appleRouteUrl(savedSpots.filter(validRouteSpot))} title="Start shared route" googleDescription={`Open all ${savedSpots.filter(validRouteSpot).length} ordered stops`} appleDescription="Navigate to stop 1" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</DirectionsLauncher>
               </div>
             </div>
           )}
