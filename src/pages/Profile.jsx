@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban } from 'lucide-react';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -13,6 +13,8 @@ function normalizeHandle(s) {
 
 export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0 }) {
   const { username } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [friendState, setFriendState] = useState('none');
@@ -144,6 +146,13 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
 
   const isOwnProfile = currentUser?.id === profile.id;
 
+  const goBack = () => {
+    const returnTo = location.state?.from;
+    if (returnTo) navigate(returnTo);
+    else if (Number(window.history.state?.idx) > 0) navigate(-1);
+    else navigate(isOwnProfile ? '/' : '/explore?view=creators');
+  };
+
   const startEditing = () => {
     setEditDisplayName(profile.display_name || profile.username || '');
     setEditBio(profile.bio || '');
@@ -207,6 +216,9 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   return (
     <div className="page-shell pb-24 animate-fade-in">
       <header className="page-header">
+        <button type="button" onClick={goBack} className="icon-button mb-4 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold" aria-label="Go back">
+          <ArrowLeft className="h-5 w-5" /> Back
+        </button>
         <div className="flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.55rem] border border-accent-500/20 bg-accent-500/10 text-accent-400 shadow-glow-sm">
             {profile.avatar_url ? (
@@ -359,7 +371,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
               <div className="space-y-2">
                 {connections.incoming.map((creator) => (
                   <div key={creator.id} className="flex items-center gap-3 rounded-2xl bg-black/10 p-2.5">
-                    <Link to={`/user/${creator.username}`} className="flex min-w-0 flex-1 items-center gap-3">
+                    <Link to={`/user/${creator.username}`} state={{ from: location.pathname }} className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                         {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
                       </div>
@@ -378,7 +390,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
               <div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-accent-400" /><h2 className="text-sm font-extrabold text-primary">Friends</h2></div>
               <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
                 {connections.friends.map((creator) => (
-                  <Link key={creator.id} to={`/user/${creator.username}`} className="surface-card w-28 shrink-0 rounded-[1.35rem] p-3 text-center">
+                  <Link key={creator.id} to={`/user/${creator.username}`} state={{ from: location.pathname }} className="surface-card w-28 shrink-0 rounded-[1.35rem] p-3 text-center">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                       {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
                     </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, Camera } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -33,7 +33,9 @@ export default function Explore({
   currentUser = null,
   showToast,
 }) {
-  const [viewMode, setViewMode] = useState('feed');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const [viewMode, setViewMode] = useState(['feed', 'spots', 'creators'].includes(requestedView) ? requestedView : 'feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
@@ -49,6 +51,14 @@ export default function Explore({
   const [blockedUserIds, setBlockedUserIds] = useState([]);
   const sortChosenRef = useRef(false);
   const userPosition = userPositionProp;
+
+  const selectView = (nextView) => {
+    setViewMode(nextView);
+    setSearchQuery('');
+    const nextParams = new URLSearchParams();
+    if (nextView !== 'feed') nextParams.set('view', nextView);
+    setSearchParams(nextParams, { replace: true });
+  };
 
   useEffect(() => {
     requestPositionProp?.();
@@ -212,13 +222,13 @@ export default function Explore({
             />
           </div>}
           <div className="mt-3 grid grid-cols-3 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
-            <button type="button" onClick={() => { setViewMode('feed'); setSearchQuery(''); }} className={`rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+            <button type="button" onClick={() => selectView('feed')} className={`rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <Camera className="mr-1.5 inline h-4 w-4" /> Feed
             </button>
-            <button type="button" onClick={() => { setViewMode('spots'); setSearchQuery(''); }} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+            <button type="button" onClick={() => selectView('spots')} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <MapPin className="mr-1.5 inline h-4 w-4" /> Spots
             </button>
-            <button type="button" onClick={() => { setViewMode('creators'); setSearchQuery(''); }} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+            <button type="button" onClick={() => selectView('creators')} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <Users className="mr-1.5 inline h-4 w-4" /> Creators
             </button>
           </div>
@@ -254,12 +264,12 @@ export default function Explore({
                   const nearby = Number.isFinite(creator.closestKm) && creator.closestKm <= 80;
                   return (
                     <article key={creator.id} className="surface-card flex gap-3 rounded-[1.5rem] p-4">
-                      <Link to={`/user/${creator.username}`} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                      <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=creators' }} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                         {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
                       </Link>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
-                          <Link to={`/user/${creator.username}`} className="min-w-0 flex-1">
+                          <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=creators' }} className="min-w-0 flex-1">
                             <h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || creator.username}</h3>
                             <p className="truncate text-xs text-muted">@{creator.username}</p>
                           </Link>
