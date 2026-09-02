@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Moon,
   Palette,
   Shield,
+  ShieldCheck,
   Sun,
   Trash2,
   User,
@@ -18,6 +19,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { supabase, hasSupabase } from '../api/supabase';
+import { isCurrentUserAdmin } from '../api/moderation';
 
 const MAP_STYLES = [
   { id: 'streets', label: 'Streets' },
@@ -57,6 +59,12 @@ export default function Settings({
     return MAP_STYLES.some((style) => style.id === saved) ? saved : (theme === 'light' ? 'street' : 'midnight');
   });
   const [busy, setBusy] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) { setIsAdmin(false); return; }
+    isCurrentUserAdmin().then(setIsAdmin);
+  }, [currentUser?.id]);
 
   const chooseMapStyle = (value) => {
     setMapStyle(value);
@@ -129,6 +137,13 @@ export default function Settings({
             {currentUser && (
               <Link to="/change-password" className="block">
                 <SettingRow icon={KeyRound} title="Change password">
+                  <ChevronRight className="h-4 w-4 text-slate-600" />
+                </SettingRow>
+              </Link>
+            )}
+            {isAdmin && (
+              <Link to="/admin" className="block">
+                <SettingRow icon={ShieldCheck} title="Moderation" subtitle="Review reports and manage community safety.">
                   <ChevronRight className="h-4 w-4 text-slate-600" />
                 </SettingRow>
               </Link>

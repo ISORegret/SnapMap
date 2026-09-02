@@ -34,6 +34,7 @@ import SignIn from './pages/SignIn';
 import ChangePassword from './pages/ChangePassword';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
+import Admin from './pages/Admin';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -732,6 +733,7 @@ export default function App() {
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} />} />
           <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
+          <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />
           <Route
             path="/saved"
             element={

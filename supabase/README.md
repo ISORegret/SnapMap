@@ -11,6 +11,12 @@ Shared spots are stored in Supabase so anyone can post and others can see them.
 
    Existing projects should run every newer migration once, in numeric order. SnapMap v2.4.0 adds the location photo feed with `029_spot_feed.sql`; it creates the feed tables, notification triggers, and the public `post-images` Storage bucket.
 
+   SnapMap v2.5.0 adds the private moderation center with `030_moderation_admin.sql`. After running it, assign the first admin once in SQL Editor, replacing the username if needed:
+   ```sql
+   insert into public.app_admins(user_id)
+   select id from public.profiles where username = 'your_username';
+   ```
+
 3. **Get your API keys**  
    **Settings** → **API** → copy **Project URL** and **anon public** key.
 

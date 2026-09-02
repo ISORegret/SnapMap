@@ -138,8 +138,11 @@ export async function deleteCommunitySpot(id) {
 
 export async function insertSpotReport(spotId, reportType = 'wrong_location', note = '') {
   if (!hasSupabase) return { ok: false, error: 'Supabase not configured' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sign in to report a location' };
   const { error } = await supabase.from('spot_reports').insert({
     spot_id: spotId,
+    reporter_id: user.id,
     report_type: reportType,
     note: (note || '').trim().slice(0, 500),
   });
