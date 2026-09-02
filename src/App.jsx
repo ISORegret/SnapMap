@@ -32,8 +32,10 @@ import About from './pages/About';
 import Privacy from './pages/Privacy';
 import SignIn from './pages/SignIn';
 import ChangePassword from './pages/ChangePassword';
+import Settings from './pages/Settings';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
+import ToastHost from './components/ToastHost';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
 
@@ -56,8 +58,14 @@ export default function App() {
   );
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [userPosition, setUserPosition] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(isOnline ? 'saved' : 'offline');
   const navigate = useNavigate();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+  const showToast = useCallback((message, options = {}) => {
+    setToast({ id: Date.now(), message, ...options });
+  }, []);
+  const dismissToast = useCallback(() => setToast(null), []);
 
   const requestPosition = useCallback(async () => {
     const pos = await getCurrentPosition();
@@ -79,8 +87,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onOnline = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
+    const onOnline = () => { setIsOnline(true); setSyncStatus('saved'); };
+    const onOffline = () => { setIsOnline(false); setSyncStatus('offline'); };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     return () => {
@@ -211,9 +219,11 @@ export default function App() {
 
   const refetchCommunitySpots = useCallback(() => {
     if (!isOnline) return Promise.resolve();
+    setSyncStatus('syncing');
     setCommunitySpotsLoading(true);
     return fetchCommunitySpots()
-      .then(setCommunitySpots)
+      .then((spots) => { setCommunitySpots(spots); setSyncStatus('saved'); })
+      .catch((error) => { setSyncStatus('failed'); throw error; })
       .finally(() => setCommunitySpotsLoading(false));
   }, [isOnline]);
 
@@ -426,6 +436,8 @@ export default function App() {
         });
         setCommunitySpots((prev) => [result.spot, ...prev]);
         hapticLight();
+        setSyncStatus('saved');
+        showToast('Spot published.');
         navigate('/');
         return;
       }
@@ -437,9 +449,11 @@ export default function App() {
         return next;
       });
       hapticLight();
+      setSyncStatus(isOnline ? 'failed' : 'offline');
+      showToast(isOnline ? 'Spot saved on this device. Cloud sync needs attention.' : 'Spot saved offline.');
       navigate('/');
     },
-    [currentUser, navigate]
+    [currentUser, navigate, isOnline, showToast]
   );
 
   const updateSpot = useCallback(
@@ -514,19 +528,36 @@ export default function App() {
       setFavoriteIds(next);
       saveFavorites(next);
       if (isAdding) hapticLight();
+      showToast(isAdding ? 'Spot saved.' : 'Removed from saved.', {
+        actionLabel: 'Undo',
+        onAction: () => {
+          setFavoriteIds(favoriteIds);
+          saveFavorites(favoriteIds);
+          if (effectiveSyncCode && hasSupabase) {
+            if (isAdding) removeFavoriteApi(effectiveSyncCode, spotId);
+            else addFavoriteApi(effectiveSyncCode, spotId);
+          }
+        },
+      });
       if (effectiveSyncCode && hasSupabase) {
+        setSyncStatus('syncing');
         if (isAdding) {
           const ok = await addFavoriteApi(effectiveSyncCode, spotId);
           if (!ok) {
             setFavoriteIds(favoriteIds);
             saveFavorites(favoriteIds);
+            setSyncStatus('failed');
+            showToast('Could not sync saved spot.');
+          } else {
+            setSyncStatus('saved');
           }
         } else {
-          removeFavoriteApi(effectiveSyncCode, spotId);
+          const ok = await removeFavoriteApi(effectiveSyncCode, spotId);
+          setSyncStatus(ok ? 'saved' : 'failed');
         }
       }
     },
-    [favoriteIds, effectiveSyncCode]
+    [favoriteIds, effectiveSyncCode, showToast]
   );
 
   const getSpotById = (id) => allSpots.find((s) => s.id === id);
@@ -620,6 +651,7 @@ export default function App() {
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <InstallPrompt />
       <Tutorial />
+      <ToastHost toast={toast} onDismiss={dismissToast} />
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">
           <WifiOff className="h-4 w-4 shrink-0" />
@@ -629,7 +661,7 @@ export default function App() {
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex-1 min-h-0 flex flex-col relative">
           <Routes>
-          <Route path="/" element={<MapPage allSpots={allSpots} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} onRefreshSpots={refetchCommunitySpots} spotsLoading={communitySpotsLoading} />} />
+          <Route path="/" element={<MapPage allSpots={allSpots} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} onRefreshSpots={refetchCommunitySpots} spotsLoading={communitySpotsLoading} />} />
           <Route
             path="/explore"
             element={
@@ -650,6 +682,7 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
+          <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} />} />
           <Route
             path="/saved"
@@ -731,7 +764,10 @@ export default function App() {
             <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Saved</span>
           </NavLink>
           <NavLink to="/profile" className={navLinkClass}>
-            <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+            <span className="relative">
+              <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
+              <span className={`absolute -right-1 -top-1 h-2 w-2 rounded-full border border-[var(--bg-nav)] ${syncStatus === 'offline' ? 'bg-amber-400' : syncStatus === 'failed' ? 'bg-rose-400' : syncStatus === 'syncing' ? 'animate-pulse bg-sky-400' : 'bg-emerald-400'}`} title={`Sync: ${syncStatus}`} />
+            </span>
             <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Profile</span>
           </NavLink>
         </nav>

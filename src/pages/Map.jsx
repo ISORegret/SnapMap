@@ -4,10 +4,11 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEve
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, ArrowLeft, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3 } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
+import { getSpotPrimaryImage } from '../utils/spotImages';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -123,34 +124,17 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
     const group = new L.MarkerClusterGroup({ showCoverageOnHover: false, zoomToBoundsOnClick: true });
     groupRef.current = group;
 
-    const container = map.getContainer();
-    const handlePopupLinkClick = (e) => {
-      const a = e.target?.closest?.('a[data-spot-id]');
-      if (a) {
-        e.preventDefault();
-        const id = a.getAttribute('data-spot-id');
-        if (id) window.location.hash = `#/spot/${id}`;
-      }
-    };
-    container.addEventListener('click', handlePopupLinkClick);
-
     spots.forEach((spot) => {
-      const marker = L.marker([spot.latitude, spot.longitude], { icon })
-        .bindPopup(
-          `<div class="min-w-[140px] text-slate-200">
-            <a href="#/spot/${escapeHtml(spot.id)}" data-spot-id="${escapeHtml(spot.id)}" class="font-semibold text-accent-400 hover:underline">${escapeHtml(spot.name)}</a>
-            <br><small class="text-slate-400">${escapeHtml(spot.bestTime || '—')}</small>
-          </div>`,
-          { className: 'snapmap-popup' }
-        );
-      marker.on('popupopen', () => setSelectedSpotId(spot.id));
-      marker.on('popupclose', () => setSelectedSpotId(null));
+      const marker = L.marker([spot.latitude, spot.longitude], { icon });
+      marker.on('click', (event) => {
+        L.DomEvent.stopPropagation(event);
+        setSelectedSpotId(spot.id);
+      });
       group.addLayer(marker);
     });
 
     map.addLayer(group);
     return () => {
-      container.removeEventListener('click', handlePopupLinkClick);
       map.removeLayer(group);
       groupRef.current = null;
     };
@@ -159,11 +143,20 @@ function SpotMarkersCluster({ spots, icon, setSelectedSpotId }) {
   return null;
 }
 
-function escapeHtml(s) {
-  if (s == null) return '';
-  const div = document.createElement('div');
-  div.textContent = s;
-  return div.innerHTML;
+function ViewportTracker({ onViewportChange }) {
+  const userMoveRef = useRef(false);
+  const map = useMapEvents({
+    movestart: (event) => {
+      userMoveRef.current = Boolean(event.originalEvent);
+    },
+    moveend: () => {
+      if (!userMoveRef.current) return;
+      userMoveRef.current = false;
+      const bounds = map.getBounds();
+      onViewportChange({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+    },
+  });
+  return null;
 }
 
 async function geocodeAddress(query) {
@@ -179,7 +172,7 @@ async function geocodeAddress(query) {
   return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
 }
 
-export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', setUnits, onRefreshSpots, spotsLoading = false }) {
+export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
   const [pendingPin, setPendingPin] = useState(null);
@@ -205,6 +198,13 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [mapSearchError, setMapSearchError] = useState(null);
   const [searchCenter, setSearchCenter] = useState(null); // { lat, lng } to fly map to
+  const [selectedSpotId, setSelectedSpotId] = useState(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('snapmap_recent_searches') || '[]'); } catch { return []; }
+  });
+  const [candidateBounds, setCandidateBounds] = useState(null);
+  const [appliedBounds, setAppliedBounds] = useState(null);
 
   const requestPosition = useCallback(async () => {
     if (userPosition) return userPosition;
@@ -251,6 +251,17 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
     [byFilter, userPosition, distanceFilterMi]
   );
+  const displayedSpots = useMemo(() => {
+    if (!appliedBounds) return filteredSpots;
+    return filteredSpots.filter((spot) => (
+      spot.latitude >= appliedBounds.south && spot.latitude <= appliedBounds.north
+      && spot.longitude >= appliedBounds.west && spot.longitude <= appliedBounds.east
+    ));
+  }, [filteredSpots, appliedBounds]);
+  const selectedSpot = useMemo(
+    () => displayedSpots.find((spot) => String(spot.id) === String(selectedSpotId)) || null,
+    [displayedSpots, selectedSpotId]
+  );
   const fitBoundsKey = useMemo(
     () => `${filter}|${distanceFilterMi ?? 'all'}|${filteredSpots.map((spot) => spot.id).sort().join(',')}`,
     [filter, distanceFilterMi, filteredSpots]
@@ -276,6 +287,12 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       const result = await geocodeAddress(q);
       if (result) {
         setSearchCenter({ lat: result.lat, lng: result.lng, key: Date.now() });
+        setAppliedBounds(null);
+        setCandidateBounds(null);
+        const next = [q, ...recentSearches.filter((item) => item.toLowerCase() !== q.toLowerCase())].slice(0, 5);
+        setRecentSearches(next);
+        localStorage.setItem('snapmap_recent_searches', JSON.stringify(next));
+        setSearchFocused(false);
       } else {
         setMapSearchError('Address not found. Try a different search.');
       }
@@ -284,7 +301,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
     } finally {
       setMapSearchLoading(false);
     }
-  }, [mapSearchQuery]);
+  }, [mapSearchQuery, recentSearches]);
 
   const handleLocateMe = useCallback(async () => {
     setMapSearchError(null);
@@ -296,6 +313,8 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
       return;
     }
     setUserPosition(pos);
+    setAppliedBounds(null);
+    setCandidateBounds(null);
     setSearchCenter({ lat: pos.lat, lng: pos.lng, key: Date.now() });
   }, []);
 
@@ -426,6 +445,7 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
         <FitBounds spots={filteredSpots} fitKey={fitBoundsKey} />
         {searchCenter && <FlyToCenter center={searchCenter} />}
         <MapClickHandler onMapClick={onMapClick} />
+        <ViewportTracker onViewportChange={setCandidateBounds} />
 
         {userPosition && (
           <CircleMarker
@@ -451,9 +471,9 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           />
         )}
         <SpotMarkersCluster
-          spots={filteredSpots}
+          spots={displayedSpots}
           icon={icon}
-          setSelectedSpotId={() => {}}
+          setSelectedSpotId={setSelectedSpotId}
         />
       </MapContainer>
       <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
@@ -465,6 +485,49 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
           Browse spots
         </Link>
       </div>
+      {candidateBounds && (
+        <button
+          type="button"
+          onClick={() => { setAppliedBounds(candidateBounds); setCandidateBounds(null); setSelectedSpotId(null); }}
+          className="primary-button absolute left-1/2 top-[7.55rem] z-[1003] -translate-x-1/2 whitespace-nowrap px-4 py-2.5 text-xs shadow-xl"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Search this area
+        </button>
+      )}
+      {appliedBounds && !candidateBounds && (
+        <button type="button" onClick={() => setAppliedBounds(null)} className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] -translate-x-1/2 rounded-full px-4 py-2 text-xs font-bold text-accent-400">
+          Show all spots
+        </button>
+      )}
+      {selectedSpot && !pendingPin && (
+        <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-2.5 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
+          <div className="flex gap-3">
+            <Link to={`/spot/${selectedSpot.id}`} className="h-24 w-28 shrink-0 overflow-hidden rounded-[1.1rem] bg-black/20">
+              <img src={getSpotPrimaryImage(selectedSpot)} alt="" className="h-full w-full object-cover" />
+            </Link>
+            <div className="min-w-0 flex-1 py-1">
+              <div className="flex items-start gap-2">
+                <Link to={`/spot/${selectedSpot.id}`} className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-extrabold text-primary">{selectedSpot.name}</p>
+                  <p className="mt-1 line-clamp-1 text-xs text-slate-500">{selectedSpot.address || 'Pinned photography spot'}</p>
+                </Link>
+                <button type="button" onClick={() => setSelectedSpotId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close spot preview"><X className="h-4 w-4" /></button>
+              </div>
+              {selectedSpot.bestTime && <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-accent-400"><Clock3 className="h-3.5 w-3.5" />{selectedSpot.bestTime}</p>}
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={() => toggleFavorite?.(selectedSpot.id)} className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold ${favoriteIds.includes(selectedSpot.id) ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.06] text-slate-300'}`}>
+                  <Heart className="h-3.5 w-3.5" fill={favoriteIds.includes(selectedSpot.id) ? 'currentColor' : 'none'} />
+                  {favoriteIds.includes(selectedSpot.id) ? 'Saved' : 'Save'}
+                </button>
+                <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedSpot.latitude},${selectedSpot.longitude}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-bold text-slate-300">
+                  <Navigation className="h-3.5 w-3.5" /> Directions
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {pendingPin && (
         <div className="surface-card absolute left-3 right-3 z-[1000] rounded-[1.5rem] p-5 sm:left-auto sm:right-3 sm:max-w-sm" style={{ bottom: 'calc(11rem + env(safe-area-inset-bottom, 0px))' }}>
           <p className="text-sm font-medium text-white">Save spot here</p>
@@ -551,6 +614,14 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
                   <Heart className="h-4 w-4" />
                   Saved
                 </a>
+                <a
+                  href="#/settings"
+                  onClick={() => setSettingsOpen(false)}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
+                >
+                  <Settings className="h-4 w-4" />
+                  All settings
+                </a>
               </div>
             </>
           )}
@@ -623,10 +694,23 @@ export default function Map({ allSpots, theme = 'dark', setTheme, units = 'mi', 
               type="search"
               value={mapSearchQuery}
               onChange={(e) => { setMapSearchQuery(e.target.value); setMapSearchError(null); }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()}
               placeholder="Search address or place…"
               className="surface-input h-11 w-full rounded-2xl bg-[var(--bg-nav)] pl-10 pr-3 text-sm font-semibold backdrop-blur-xl placeholder:text-[var(--text-muted)]"
             />
+            {searchFocused && recentSearches.length > 0 && !mapSearchQuery && (
+              <div className="surface-card absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl py-2">
+                <p className="px-4 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Recent searches</p>
+                {recentSearches.map((item) => (
+                  <button key={item} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setMapSearchQuery(item)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-secondary hover:bg-white/5">
+                    <Clock3 className="h-3.5 w-3.5 text-slate-500" />
+                    <span className="truncate">{item}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             type="submit"

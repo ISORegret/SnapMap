@@ -232,6 +232,7 @@ export default function SpotDetail({
   const [ratingLoading, setRatingLoading] = useState(false);
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
+  const conditionsRef = useRef(null);
 
   useEffect(() => {
     if (!spot?.id || !hasSupabase) return;
@@ -515,7 +516,7 @@ export default function SpotDetail({
         : null;
 
     return (
-    <div className="page-shell pb-24 animate-fade-in">
+    <div className="page-shell pb-48 animate-fade-in">
       {(spot.syncError || spot.uploadError) && (
         <div className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg bg-amber-950/95 px-3 py-2 text-sm text-amber-200 backdrop-blur-sm">
           <span>{spot.syncError ? "Edit didn't sync to cloud." : `Couldn't sync: ${spot.uploadError}`}</span>
@@ -773,9 +774,17 @@ export default function SpotDetail({
           </div>
         )}
 
-        {/* Sunrise / sunset / golden / blue hour at spot */}
+        {/* Shoot planning: light and current weather */}
+        <section ref={conditionsRef} className="mt-5 scroll-mt-20">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <p className="eyebrow">Shoot planning</p>
+              <h2 className="mt-1 text-base font-extrabold text-primary">Light & conditions</h2>
+            </div>
+            <Sun className="h-5 w-5 text-amber-400" />
+          </div>
         {sunTimes && (
-          <div className="mt-4 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
+          <div className="rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Sun className="h-4 w-4 text-amber-400" />
               Best light at this spot
@@ -804,6 +813,8 @@ export default function SpotDetail({
             </ul>
           </div>
         )}
+        <WeatherAtSpot latitude={latitude} longitude={longitude} />
+        </section>
 
         {/* Directions */}
         <div className="mt-4">
@@ -918,9 +929,6 @@ export default function SpotDetail({
             )}
           </div>
         </div>
-
-        {/* Weather — in-app from Open-Meteo API (no key) */}
-        <WeatherAtSpot latitude={latitude} longitude={longitude} />
 
         {/* Report / Wrong location (community spots only) */}
         {canReport && (
@@ -1056,6 +1064,26 @@ export default function SpotDetail({
         {spot.photoBy && (
           <p className="mt-3 text-xs text-slate-500">Photo: {spot.photoBy}</p>
         )}
+      </div>
+      <div className="fixed bottom-[6.7rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-1.5 shadow-2xl backdrop-blur-2xl">
+        <div className="grid grid-cols-4 gap-1">
+          <button type="button" onClick={() => toggleFavorite(spot.id)} className={`flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold ${isFavorite(spot.id) ? 'bg-accent-500 text-[#211603]' : 'text-secondary hover:bg-white/5'}`}>
+            <Heart className="h-4 w-4" fill={isFavorite(spot.id) ? 'currentColor' : 'none'} />
+            {isFavorite(spot.id) ? 'Saved' : 'Save'}
+          </button>
+          <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
+            <Navigation className="h-4 w-4" />
+            Directions
+          </a>
+          <button type="button" onClick={() => conditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
+            <Sun className="h-4 w-4" />
+            Plan
+          </button>
+          <button type="button" onClick={shareSpot} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
+            <Share2 className="h-4 w-4" />
+            Share
+          </button>
+        </div>
       </div>
     </div>
   );

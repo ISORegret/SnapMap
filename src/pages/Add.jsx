@@ -1,12 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ImagePlus, MapPin, User } from 'lucide-react';
+import { ImagePlus, MapPin, User, ChevronDown, FileClock, X } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
 import { getCurrentPosition } from '../utils/geo';
 
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
+const DRAFT_KEY = 'snapmap_add_draft';
 
 export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }) {
   const location = useLocation();
@@ -39,6 +40,12 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const [locationError, setLocationError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({ name: '', latitude: '', longitude: '' });
   const [saveFeedback, setSaveFeedback] = useState(null); // 'success' | 'error' | null
+  const [showDetails, setShowDetails] = useState(Boolean(editSpot));
+  const [draftAvailable, setDraftAvailable] = useState(() => {
+    if (editSpot) return null;
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; }
+  });
+  const [draftReady, setDraftReady] = useState(() => Boolean(editSpot) || !localStorage.getItem(DRAFT_KEY));
 
   useEffect(() => {
     if (!editSpot) return;
@@ -67,22 +74,67 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   }, [currentUserProfile?.username, editSpot]);
 
   const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
     setPhotoError('');
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!files.length) return;
+    if (files.some((file) => !file.type.startsWith('image/'))) {
       setPhotoError('Please choose an image file.');
       return;
     }
     const defaultPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
       || (currentUserProfile?.username ? `@${currentUserProfile.username}` : 'You');
-    resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)
-      .then((dataUrl) => {
-        setImages((prev) => [...prev, { uri: dataUrl, photoBy: defaultPhotoBy }]);
+    Promise.all(files.map((file) => resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)))
+      .then((dataUrls) => {
+        setImages((prev) => [...prev, ...dataUrls.map((uri) => ({ uri, photoBy: defaultPhotoBy }))]);
       })
       .catch(() => setPhotoError('Could not load photo. Try another.'));
   };
+
+  const hydrateDraft = useCallback((draft) => {
+    if (!draft) return;
+    setName(draft.name || '');
+    setDescription(draft.description || '');
+    setAddress(draft.address || '');
+    setParking(draft.parking || '');
+    setHowToAccess(draft.howToAccess || '');
+    setLat(draft.lat || '37.8021');
+    setLng(draft.lng || '-122.4488');
+    setBestTime(draft.bestTime || '');
+    setCrowdLevel(draft.crowdLevel || '');
+    setImages(Array.isArray(draft.images) ? draft.images : []);
+    setTags(draft.tags || '');
+    setLinkUrl(draft.linkUrl || '');
+    setLinkLabel(draft.linkLabel || '');
+    setCreatedBy(draft.createdBy || '');
+    setShowDetails(Boolean(draft.showDetails));
+  }, []);
+
+  const resumeDraft = () => {
+    hydrateDraft(draftAvailable);
+    setDraftAvailable(null);
+    setDraftReady(true);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftAvailable(null);
+    setDraftReady(true);
+  };
+
+  useEffect(() => {
+    if (editSpot || !draftReady) return undefined;
+    const meaningful = name.trim() || description.trim() || address.trim() || images.length || fromMap;
+    if (!meaningful) return undefined;
+    const id = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, description, address, parking, howToAccess, lat, lng, bestTime, crowdLevel, images, tags, linkUrl, linkLabel, createdBy, showDetails, savedAt: Date.now() }));
+      } catch (_) {
+        setPhotoError('Draft is too large for this device. Your form is still open.');
+      }
+    }, 500);
+    return () => clearTimeout(id);
+  }, [editSpot, draftReady, fromMap, name, description, address, parking, howToAccess, lat, lng, bestTime, crowdLevel, images, tags, linkUrl, linkLabel, createdBy, showDetails]);
 
   const setPhotoBy = (index, photoBy) => {
     setImages((prev) => {
@@ -174,10 +226,12 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         const ok = await onUpdate(editSpot.id, payload);
         setSaveFeedback(ok ? 'success' : 'error');
         if (ok) {
+          localStorage.removeItem(DRAFT_KEY);
           setTimeout(() => navigate(`/spot/${editSpot.id}`, { replace: true }), 1500);
         }
       } else {
         await onAdd(payload);
+        localStorage.removeItem(DRAFT_KEY);
       }
     } finally {
       setSubmitting(false);
@@ -199,6 +253,22 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
+      {draftAvailable && !editSpot && (
+        <div className="surface-card mb-5 rounded-[1.5rem] p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-500/15 text-accent-400"><FileClock className="h-5 w-5" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-primary">Continue your unfinished spot?</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{draftAvailable.name || draftAvailable.address || 'Untitled draft'}</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={resumeDraft} className="primary-button px-4 py-2 text-xs">Resume</button>
+                <button type="button" onClick={discardDraft} className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-slate-400">Start fresh</button>
+              </div>
+            </div>
+            <button type="button" onClick={discardDraft} className="rounded-lg p-1 text-slate-600" aria-label="Discard draft"><X className="h-4 w-4" /></button>
+          </div>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="block text-xs font-medium text-slate-500">Name *</label>
@@ -239,6 +309,14 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
+        <button type="button" onClick={() => setShowDetails((open) => !open)} className="surface-card flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-left">
+          <span>
+            <span className="block text-sm font-extrabold text-primary">Shoot details</span>
+            <span className="mt-0.5 block text-xs text-slate-500">Parking, access, best time, crowds, tags, and links</span>
+          </span>
+          <ChevronDown className={`h-5 w-5 text-accent-400 transition ${showDetails ? 'rotate-180' : ''}`} />
+        </button>
+        {showDetails && <>
         <div>
           <label className="block text-xs font-medium text-slate-500">Parking (optional)</label>
           <input
@@ -260,6 +338,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
+        </>}
         {fromMap && (
           <p className="rounded-lg bg-accent-500/10 px-3 py-2 text-xs text-accent-400">
             Location set from map pin — add a name and save.
@@ -318,6 +397,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             </div>
           </div>
         </div>
+        {showDetails && <>
         <div>
           <label className="block text-xs font-medium text-slate-500">Added by</label>
           {currentUserProfile?.username ? (
@@ -412,6 +492,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             className="mt-1.5 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
+        </>}
         <div>
           <label className="block text-xs font-medium text-slate-500">Photos {editSpot ? '(optional)' : '*'}</label>
           <p className="mt-0.5 text-[11px] text-slate-500">
@@ -422,6 +503,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             accept="image/*"
             onChange={handlePhotoChange}
             className="hidden"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, User, Pencil, X } from 'lucide-react';
+import { MapPin, User, Pencil, X, Settings } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFollowerCount, getFollowingCount, isFollowing, follow, unfollow } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -169,6 +169,11 @@ export default function Profile({ allSpots = [], currentUser }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
+            {isOwnProfile && (
+              <Link to="/settings" className="icon-button float-right" aria-label="Open settings">
+                <Settings className="h-5 w-5" />
+              </Link>
+            )}
             <p className="eyebrow">Creator profile</p>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-primary">
               {profile.display_name || profile.username}

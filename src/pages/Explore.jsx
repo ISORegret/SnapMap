@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation } from 'lucide-react';
+import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
@@ -30,32 +30,49 @@ export default function Explore({
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
+  const [sortMode, setSortMode] = useState(userPositionProp ? 'nearest' : 'newest');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [parkingOnly, setParkingOnly] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [bestTime, setBestTime] = useState('any');
   const userPosition = userPositionProp;
 
   useEffect(() => {
     requestPositionProp?.();
   }, [requestPositionProp]);
 
+  const matchedSpots = useMemo(
+    () => allSpots.filter((spot) => matchesCategory(spot, category) && matchesSearch(spot, searchQuery)),
+    [allSpots, category, searchQuery]
+  );
+
   const filteredSpots = useMemo(() => {
-    let list = allSpots.filter((s) => matchesCategory(s, category) && matchesSearch(s, searchQuery));
-    if (userPosition) {
-      list = list
-        .filter((s) => s.latitude != null && s.longitude != null)
-        .map((s) => ({
-          spot: s,
-          km: haversineKm(userPosition.lat, userPosition.lng, s.latitude, s.longitude),
-        }))
-        .sort((a, b) => a.km - b.km)
-        .map((x) => x.spot);
-    } else {
-      list = [...list].sort((a, b) => {
-        const aAt = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bAt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return bAt - aAt;
-      });
+    let list = matchedSpots.filter((spot) => {
+      if (parkingOnly && !String(spot.parking || '').trim()) return false;
+      if (minRating > 0 && (spotRatings[spot.id]?.average || 0) < minRating) return false;
+      if (bestTime !== 'any') {
+        const time = String(spot.bestTime || '').toLowerCase();
+        if (bestTime === 'golden' && !/(golden|sunrise|sunset)/.test(time)) return false;
+        if (bestTime === 'blue' && !/(blue|dawn|dusk)/.test(time)) return false;
+        if (bestTime === 'night' && !/(night|after dark|evening)/.test(time)) return false;
+      }
+      return true;
+    });
+    if (sortMode === 'nearest' && userPosition) {
+      return [...list].sort((a, b) => (
+        haversineKm(userPosition.lat, userPosition.lng, a.latitude, a.longitude)
+        - haversineKm(userPosition.lat, userPosition.lng, b.latitude, b.longitude)
+      ));
     }
-    return list;
-  }, [allSpots, category, searchQuery, userPosition]);
+    if (sortMode === 'rating') {
+      return [...list].sort((a, b) => (spotRatings[b.id]?.average || 0) - (spotRatings[a.id]?.average || 0));
+    }
+    return [...list].sort((a, b) => {
+      const aAt = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bAt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bAt - aAt;
+    });
+  }, [matchedSpots, parkingOnly, minRating, bestTime, sortMode, userPosition, spotRatings]);
 
   const nearYouSpots = useMemo(() => {
     if (!userPosition || allSpots.length === 0) return [];
@@ -68,16 +85,23 @@ export default function Explore({
   }, [allSpots, userPosition]);
 
   useEffect(() => {
-    if (!hasSupabase || filteredSpots.length === 0) {
+    if (!hasSupabase || matchedSpots.length === 0) {
       setSpotRatings({});
       return;
     }
     let cancelled = false;
-    getSpotRatingsForSpotIds(filteredSpots.map((s) => s.id)).then((obj) => {
+    getSpotRatingsForSpotIds(matchedSpots.map((s) => s.id)).then((obj) => {
       if (!cancelled) setSpotRatings(obj);
     });
     return () => { cancelled = true; };
-  }, [filteredSpots]);
+  }, [matchedSpots]);
+
+  const advancedFilterCount = Number(parkingOnly) + Number(minRating > 0) + Number(bestTime !== 'any');
+  const clearAdvancedFilters = () => {
+    setParkingOnly(false);
+    setMinRating(0);
+    setBestTime('any');
+  };
 
   return (
     <div className="page-shell pb-24 animate-fade-in">
@@ -158,6 +182,55 @@ export default function Explore({
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="surface-card rounded-[1.5rem] p-3">
+          <div className="flex items-center gap-2">
+            <select
+              value={sortMode}
+              onChange={(event) => setSortMode(event.target.value)}
+              className="surface-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-xs font-bold text-primary outline-none"
+            >
+              {userPosition && <option value="nearest">Nearest first</option>}
+              <option value="newest">Newest first</option>
+              <option value="rating">Highest rated</option>
+            </select>
+            <button type="button" onClick={() => setFiltersOpen((open) => !open)} className={`relative flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-extrabold ${filtersOpen || advancedFilterCount ? 'border-accent-500/40 bg-accent-500/10 text-accent-400' : 'border-white/10 text-secondary'}`}>
+              <SlidersHorizontal className="h-4 w-4" /> Filters
+              {advancedFilterCount > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] text-[#211603]">{advancedFilterCount}</span>}
+            </button>
+          </div>
+          {filtersOpen && (
+            <div className="mt-3 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-3">
+              <label className="flex items-center justify-between rounded-xl bg-black/10 px-3 py-2.5 text-xs font-semibold text-secondary">
+                Parking details
+                <input type="checkbox" checked={parkingOnly} onChange={(event) => setParkingOnly(event.target.checked)} className="h-4 w-4 accent-amber-500" />
+              </label>
+              <label className="flex items-center gap-2 rounded-xl bg-black/10 px-3 py-2.5 text-xs font-semibold text-secondary">
+                Rating
+                <select value={minRating} onChange={(event) => setMinRating(Number(event.target.value))} className="ml-auto bg-transparent text-primary outline-none">
+                  <option value="0">Any</option>
+                  <option value="3">3+ stars</option>
+                  <option value="4">4+ stars</option>
+                  <option value="4.5">4.5+ stars</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-2 rounded-xl bg-black/10 px-3 py-2.5 text-xs font-semibold text-secondary">
+                Best time
+                <select value={bestTime} onChange={(event) => setBestTime(event.target.value)} className="ml-auto bg-transparent text-primary outline-none">
+                  <option value="any">Any</option>
+                  <option value="golden">Golden hour</option>
+                  <option value="blue">Blue hour</option>
+                  <option value="night">Night</option>
+                </select>
+              </label>
+              {advancedFilterCount > 0 && (
+                <button type="button" onClick={clearAdvancedFilters} className="flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-slate-500 hover:text-accent-400 sm:col-span-3">
+                  <X className="h-3.5 w-3.5" /> Clear advanced filters
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section>
