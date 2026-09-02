@@ -351,7 +351,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const [mapPosts, setMapPosts] = useState([]);
   const [mapEvents, setMapEvents] = useState([]);
   const [eventCoordinates, setEventCoordinates] = useState({});
-  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(() => searchParams.get('event'));
 
   useEffect(() => {
     let cancelled = false;
@@ -389,6 +389,10 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     const direct = {};
     const unresolved = new Map();
     mapEvents.forEach((event) => {
+      if (isValidCoordinate(event.latitude, event.longitude)) {
+        direct[event.id] = { lat: Number(event.latitude), lng: Number(event.longitude) };
+        return;
+      }
       const latitude = event.spot?.latitude;
       const longitude = event.spot?.longitude;
       if (isValidCoordinate(latitude, longitude)) {

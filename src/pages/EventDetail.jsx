@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, MapPin, Navigation, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
+import EventEditor from '../components/EventEditor';
 import { deleteEvent, fetchEvent, setEventRsvp, subscribeToEvents } from '../api/events';
+import { isCurrentUserAdmin } from '../api/moderation';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 
@@ -10,13 +12,15 @@ function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default function EventDetail({ allSpots = [], currentUser, showToast }) {
+export default function EventDetail({ allSpots = [], currentUser, showToast } = {}) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -29,6 +33,11 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
     refresh();
     return subscribeToEvents(refresh);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return setIsAdmin(false);
+    isCurrentUserAdmin().then(setIsAdmin);
+  }, [currentUser?.id]);
 
   const spot = useMemo(() => {
     if (!event) return null;
@@ -67,8 +76,9 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
 
   const full = event.maxAttendees && event.attendeeCount >= event.maxAttendees;
   const isHost = currentUser?.id === event.hostId;
-  const latitude = Number(spot?.latitude);
-  const longitude = Number(spot?.longitude);
+  const canManage = isHost || isAdmin;
+  const latitude = Number(event.latitude ?? spot?.latitude);
+  const longitude = Number(event.longitude ?? spot?.longitude);
   const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
   const hasAddress = Boolean(event.address);
   const googleAddressUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`;
@@ -101,19 +111,22 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
 
             <div className="mt-5 flex flex-wrap gap-2">
               {event.listingType === 'listed' ? <span className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=creators'} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{event.host?.avatar_url ? <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</span>{event.host?.display_name || event.host?.username || 'Creator'}</Link>}
-              {hasCoordinates && <Link to={`/?spot=${event.spotId}&lat=${latitude}&lng=${longitude}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><MapPin className="h-4 w-4 text-accent-400" />View on map</Link>}
+              {hasCoordinates && <Link to={`/?event=${event.id}&lat=${latitude}&lng=${longitude}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><MapPin className="h-4 w-4 text-accent-400" />View on map</Link>}
               {hasCoordinates && <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
             </div>
           </div>
         </section>
 
+        {canManage && !editing && <button type="button" onClick={() => setEditing(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-sm font-extrabold text-cyan-300"><Pencil className="h-4 w-4" />Edit event or map pin</button>}
+        {canManage && editing && <EventEditor event={event} spot={spot} onCancel={() => setEditing(false)} onSaved={(updated) => { setEvent(updated); setEditing(false); }} showToast={showToast} />}
+
         <section className="surface-card mt-4 rounded-[1.75rem] p-5">
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>
           {event.rsvps?.length ? <div className="mt-4 flex flex-wrap gap-2">{event.rsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-white/[0.045] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-accent-400" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div> : <p className="mt-3 text-sm text-muted">Be the first creator on the guest list.</p>}
         </section>
 
-        {isHost && <button type="button" onClick={remove} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-extrabold text-rose-400 hover:bg-rose-400/10 disabled:opacity-50"><Trash2 className="h-4 w-4" />Cancel event</button>}
+        {canManage && <button type="button" onClick={remove} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-extrabold text-rose-400 hover:bg-rose-400/10 disabled:opacity-50"><Trash2 className="h-4 w-4" />{event.listingType === 'listed' ? 'Delete listing' : 'Cancel event'}</button>}
       </main>
 
       {!isHost && <div className="fixed bottom-[6.7rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-2 shadow-2xl backdrop-blur-2xl">
