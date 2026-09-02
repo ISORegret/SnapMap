@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, LocateFixed, MapPin, MessageCircle, MoreHorizontal, Navigation, Send, Trash2, User, X } from 'lucide-react';
 import { addPostComment, compressPostImage, createPost, deletePost, deletePostComment, fetchPosts, reportPost, subscribeToFeed, togglePostLike } from '../api/posts';
@@ -89,7 +90,7 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
             {post.spotId ? <Link to={`/spot/${post.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />View spot</Link> : post.latitude != null && <Link to={`/?lat=${post.latitude}&lng=${post.longitude}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />Map</Link>}
           </div>
         </div>
-        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} className="mr-1 font-extrabold text-primary">@{post.author?.username}</Link>{post.caption}</p>}
+        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} className="mr-1 font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>{post.caption}</p>}
         {!commentsOpen && post.comments.length > 0 && <button type="button" onClick={() => setCommentsOpen(true)} className="mt-2 text-xs font-semibold text-muted">View {post.comments.length === 1 ? 'comment' : `all ${post.comments.length} comments`}</button>}
         {commentsOpen && <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
           <div className="max-h-64 space-y-3 overflow-y-auto">
@@ -171,8 +172,8 @@ function Composer({ open, onClose, onCreated, allSpots, currentUser, userPositio
     else setError(result.error || 'Could not publish your post.');
   };
 
-  return <div className="fixed inset-0 z-[1200] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Create a post">
-    <form onSubmit={submit} className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border border-[var(--border-subtle)] bg-[var(--bg-page-elevated)] p-5 shadow-2xl sm:rounded-[2rem]">
+  return createPortal(<div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Create a post">
+    <form onSubmit={submit} className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border border-[var(--border-subtle)] bg-[var(--bg-page-elevated)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[2rem]">
       <div className="flex items-center justify-between"><div><p className="eyebrow">Share the frame</p><h2 className="mt-1 text-xl font-extrabold text-primary">New spot post</h2></div><button type="button" onClick={resetAndClose} className="icon-button h-10 w-10 rounded-xl" aria-label="Close"><X className="h-5 w-5" /></button></div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addFiles} className="hidden" />
       {files.length === 0 ? <button type="button" onClick={() => inputRef.current?.click()} className="mt-5 flex aspect-[4/3] w-full flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-accent-500/35 bg-accent-500/[0.05] text-accent-400"><ImagePlus className="h-8 w-8" /><span className="mt-3 text-sm font-extrabold">Choose photos</span><span className="mt-1 text-xs text-muted">Up to 5 · optimized before upload</span></button>
@@ -187,7 +188,7 @@ function Composer({ open, onClose, onCreated, allSpots, currentUser, userPositio
       {error && <p className="mt-3 text-sm font-semibold text-rose-400">{error}</p>}
       <button type="submit" disabled={saving || !currentUser} className="primary-button mt-5 w-full py-3.5 text-sm disabled:opacity-50">{saving ? 'Uploading…' : 'Publish post'}</button>
     </form>
-  </div>;
+  </div>, document.body);
 }
 
 export default function SpotFeed({ allSpots = [], currentUser, userPosition, requestPosition, units = 'mi', showToast }) {
