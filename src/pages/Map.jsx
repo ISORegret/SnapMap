@@ -299,7 +299,7 @@ async function geocodeAddress(query) {
   return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
 }
 
-export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false }) {
+export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routeIds = useMemo(() => (searchParams.get('route') || '').split(',').map((id) => id.trim()).filter(Boolean), [searchParams]);
