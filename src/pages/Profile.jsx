@@ -5,6 +5,7 @@ import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profil
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
+import { fetchPosts } from '../api/posts';
 
 function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
@@ -25,6 +26,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [profilePosts, setProfilePosts] = useState([]);
   const avatarInputRef = React.useRef(null);
 
   const userSpots = useMemo(() => {
@@ -53,6 +55,13 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     if (!profile?.id) return;
     let cancelled = false;
     getFriendConnections(profile.id).then((result) => { if (!cancelled) setConnections(result); });
+    return () => { cancelled = true; };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    let cancelled = false;
+    fetchPosts({ profileId: profile.id, limit: 60 }).then((items) => { if (!cancelled) setProfilePosts(items); });
     return () => { cancelled = true; };
   }, [profile?.id]);
 
@@ -387,7 +396,22 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         </section>
       )}
 
-      <div className="px-4 pt-4">
+      <section className="px-4 pt-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Posts ({profilePosts.length})</h2>
+          {isOwnProfile && <Link to="/explore" className="text-xs font-extrabold text-accent-400">Open feed</Link>}
+        </div>
+        {profilePosts.length === 0 ? <div className="surface-card rounded-[1.5rem] px-5 py-8 text-center"><p className="text-sm font-bold text-primary">No photo posts yet</p><p className="mt-1 text-xs text-muted">Location stories will appear here.</p></div>
+        : <div className="grid grid-cols-3 gap-1.5 overflow-hidden rounded-[1.25rem]">
+          {profilePosts.map((post) => <Link key={post.id} to={`/explore?post=${post.id}`} className="group relative aspect-square overflow-hidden bg-black">
+            <img src={post.images[0]?.public_url} alt={post.locationName} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+            {post.images.length > 1 && <span className="absolute right-1.5 top-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[9px] font-bold text-white">+{post.images.length - 1}</span>}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6"><p className="truncate text-[10px] font-bold text-white">{post.locationName}</p></div>
+          </Link>)}
+        </div>}
+      </section>
+
+      <div className="px-4 pt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
           Spots ({userSpots.length})
         </h2>

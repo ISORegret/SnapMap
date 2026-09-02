@@ -6,7 +6,7 @@ export async function fetchNotifications(limit = 50) {
   if (!user) return [];
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, type, spot_id, comment_id, read_at, created_at, actor:profiles!notifications_actor_id_fkey(id, username, display_name, avatar_url), spot:spots(id, name)')
+    .select('id, type, spot_id, comment_id, post_id, post_comment_id, read_at, created_at, actor:profiles!notifications_actor_id_fkey(id, username, display_name, avatar_url), spot:spots(id, name)')
     .eq('recipient_id', user.id)
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
@@ -18,6 +18,8 @@ export async function fetchNotifications(limit = 50) {
     ...item,
     spotId: item.spot_id,
     commentId: item.comment_id,
+    postId: item.post_id,
+    postCommentId: item.post_comment_id,
     readAt: item.read_at,
     createdAt: item.created_at,
   }));

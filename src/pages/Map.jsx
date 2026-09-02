@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
@@ -183,6 +183,7 @@ async function geocodeAddress(query) {
 
 export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mapReady, setMapReady] = useState(false);
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -206,7 +207,11 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   const [mapSearchQuery, setMapSearchQuery] = useState('');
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [mapSearchError, setMapSearchError] = useState(null);
-  const [searchCenter, setSearchCenter] = useState(null); // { lat, lng } to fly map to
+  const [searchCenter, setSearchCenter] = useState(() => {
+    const lat = Number(searchParams.get('lat'));
+    const lng = Number(searchParams.get('lng'));
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng, key: 'shared-location' } : null;
+  }); // { lat, lng } to fly map to
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => {

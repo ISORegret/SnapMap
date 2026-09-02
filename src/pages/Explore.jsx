@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3 } from 'lucide-react';
+import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, Camera } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
@@ -9,6 +9,7 @@ import { hasSupabase } from '../api/supabase';
 import { searchProfiles } from '../api/profiles';
 import { getFriendConnections, sendFriendRequest, acceptFriendRequest, removeFriend } from '../api/follows';
 import { getBlockedUserIds } from '../api/safety';
+import SpotFeed from '../components/SpotFeed';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -30,8 +31,9 @@ export default function Explore({
   requestPosition: requestPositionProp,
   units = 'mi',
   currentUser = null,
+  showToast,
 }) {
-  const [viewMode, setViewMode] = useState('spots');
+  const [viewMode, setViewMode] = useState('feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
@@ -186,12 +188,12 @@ export default function Explore({
         <div className="mx-auto max-w-5xl">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">Spot directory</p>
+              <p className="eyebrow">Explore SnapMap</p>
               <h1 className="mt-1 text-[2rem] font-extrabold leading-none tracking-[-0.045em] text-primary sm:text-4xl">
-                Find the frame.
+                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'spots' ? 'Find the frame.' : 'Meet the creators.'}
               </h1>
               <p className="mt-2 text-sm font-medium text-muted">
-                {allSpots.length} community locations ready to explore
+                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : `${allSpots.length} community locations ready to explore`}
               </p>
             </div>
             <Link to="/about" className="icon-button h-11 w-11 shrink-0 rounded-2xl" aria-label="About SnapMap">
@@ -199,7 +201,7 @@ export default function Explore({
             </Link>
           </div>
 
-          <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
+          {viewMode !== 'feed' && <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
             <Search className="absolute left-5 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-muted" />
             <input
               type="search"
@@ -208,8 +210,11 @@ export default function Explore({
               placeholder={viewMode === 'spots' ? 'Search locations, cities, or tags' : 'Search creators or specialties'}
               className="surface-input w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-sm font-semibold placeholder:text-[var(--text-muted)] focus:shadow-none"
             />
-          </div>
-          <div className="mt-3 grid grid-cols-2 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+          </div>}
+          <div className="mt-3 grid grid-cols-3 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+            <button type="button" onClick={() => { setViewMode('feed'); setSearchQuery(''); }} className={`rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Camera className="mr-1.5 inline h-4 w-4" /> Feed
+            </button>
             <button type="button" onClick={() => { setViewMode('spots'); setSearchQuery(''); }} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <MapPin className="mr-1.5 inline h-4 w-4" /> Spots
             </button>
@@ -221,7 +226,9 @@ export default function Explore({
       </header>
 
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-6">
-        {viewMode === 'creators' ? (
+        {viewMode === 'feed' ? (
+          <SpotFeed allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
+        ) : viewMode === 'creators' ? (
           <section>
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>

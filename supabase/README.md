@@ -9,6 +9,8 @@ Shared spots are stored in Supabase so anyone can post and others can see them.
 2. **Create the `spots` table**  
    In the Supabase dashboard: **SQL Editor** → New query → paste the contents of `migrations/001_spots.sql` → Run.
 
+   Existing projects should run every newer migration once, in numeric order. SnapMap v2.4.0 adds the location photo feed with `029_spot_feed.sql`; it creates the feed tables, notification triggers, and the public `post-images` Storage bucket.
+
 3. **Get your API keys**  
    **Settings** → **API** → copy **Project URL** and **anon public** key.
 

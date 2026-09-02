@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
@@ -651,6 +651,11 @@ export default function SpotDetail({
           >
             {addPhotoLoading ? 'Adding…' : 'Add your photo to this spot'}
           </button>
+        </div>
+      )}
+      {currentUser && canReport && (
+        <div className="px-4 pt-2">
+          <Link to={`/explore?compose=1&spot=${spot.id}`} className="primary-button w-full py-3 text-sm"><Camera className="h-4 w-4" />Post from this location</Link>
         </div>
       )}
       <div className="px-4 pt-4">
