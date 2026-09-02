@@ -1,11 +1,14 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X } from 'lucide-react';
+import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3 } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
 import { getSpotRatingsForSpotIds } from '../api/ratings';
 import { hasSupabase } from '../api/supabase';
+import { searchProfiles } from '../api/profiles';
+import { getFriendConnections, sendFriendRequest, acceptFriendRequest, removeFriend } from '../api/follows';
+import { getBlockedUserIds } from '../api/safety';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -26,7 +29,9 @@ export default function Explore({
   userPosition: userPositionProp = null,
   requestPosition: requestPositionProp,
   units = 'mi',
+  currentUser = null,
 }) {
+  const [viewMode, setViewMode] = useState('spots');
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
@@ -35,12 +40,43 @@ export default function Explore({
   const [parkingOnly, setParkingOnly] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [bestTime, setBestTime] = useState('any');
+  const [creators, setCreators] = useState([]);
+  const [creatorsLoading, setCreatorsLoading] = useState(false);
+  const [friendConnections, setFriendConnections] = useState({ friends: [], incoming: [], outgoing: [] });
+  const [friendActionId, setFriendActionId] = useState(null);
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
   const sortChosenRef = useRef(false);
   const userPosition = userPositionProp;
 
   useEffect(() => {
     requestPositionProp?.();
   }, [requestPositionProp]);
+
+  useEffect(() => {
+    if (viewMode !== 'creators' || !hasSupabase) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setCreatorsLoading(true);
+      searchProfiles(searchQuery).then((result) => {
+        if (!cancelled) setCreators(result);
+      }).finally(() => {
+        if (!cancelled) setCreatorsLoading(false);
+      });
+    }, searchQuery ? 250 : 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [viewMode, searchQuery]);
+
+  const refreshFriendConnections = async () => {
+    if (!currentUser?.id) return;
+    setFriendConnections(await getFriendConnections(currentUser.id));
+  };
+
+  useEffect(() => {
+    if (viewMode === 'creators' && currentUser?.id) {
+      refreshFriendConnections();
+      getBlockedUserIds().then(setBlockedUserIds);
+    }
+  }, [viewMode, currentUser?.id]);
 
   useEffect(() => {
     if (userPosition && !sortChosenRef.current) setSortMode('nearest');
@@ -108,6 +144,42 @@ export default function Explore({
     setBestTime('any');
   };
 
+  const creatorCards = useMemo(() => {
+    const normalized = (value) => String(value || '').trim().toLowerCase().replace(/^@/, '');
+    return creators
+      .filter((creator) => creator.id !== currentUser?.id && !blockedUserIds.includes(creator.id))
+      .map((creator) => {
+        const spots = allSpots.filter((spot) => normalized(spot.createdBy) === normalized(creator.username));
+        const closestKm = userPosition && spots.length
+          ? Math.min(...spots.filter((spot) => spot.latitude != null && spot.longitude != null).map((spot) => haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude)))
+          : Infinity;
+        return { ...creator, spotCount: spots.length, closestKm };
+      })
+      .sort((a, b) => {
+        if (Number.isFinite(a.closestKm) !== Number.isFinite(b.closestKm)) return Number.isFinite(a.closestKm) ? -1 : 1;
+        if (a.closestKm !== b.closestKm) return a.closestKm - b.closestKm;
+        return b.spotCount - a.spotCount;
+      });
+  }, [creators, allSpots, userPosition, currentUser?.id, blockedUserIds]);
+
+  const friendStateFor = (creatorId) => {
+    if (friendConnections.friends.some((creator) => creator.id === creatorId)) return 'friends';
+    if (friendConnections.incoming.some((creator) => creator.id === creatorId)) return 'incoming';
+    if (friendConnections.outgoing.some((creator) => creator.id === creatorId)) return 'outgoing';
+    return 'none';
+  };
+
+  const handleFriendAction = async (creator) => {
+    if (!currentUser?.id || friendActionId) return;
+    const state = friendStateFor(creator.id);
+    setFriendActionId(creator.id);
+    if (state === 'none') await sendFriendRequest(creator.id);
+    else if (state === 'incoming') await acceptFriendRequest(creator.id);
+    else if (state === 'outgoing') await removeFriend(creator.id);
+    await refreshFriendConnections();
+    setFriendActionId(null);
+  };
+
   return (
     <div className="page-shell pb-24 animate-fade-in">
       <header className="page-header sticky top-0 z-20">
@@ -133,14 +205,76 @@ export default function Explore({
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search locations, cities, or tags"
+              placeholder={viewMode === 'spots' ? 'Search locations, cities, or tags' : 'Search creators or specialties'}
               className="surface-input w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-sm font-semibold placeholder:text-[var(--text-muted)] focus:shadow-none"
             />
+          </div>
+          <div className="mt-3 grid grid-cols-2 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+            <button type="button" onClick={() => { setViewMode('spots'); setSearchQuery(''); }} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <MapPin className="mr-1.5 inline h-4 w-4" /> Spots
+            </button>
+            <button type="button" onClick={() => { setViewMode('creators'); setSearchQuery(''); }} className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold transition ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Users className="mr-1.5 inline h-4 w-4" /> Creators
+            </button>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-6">
+        {viewMode === 'creators' ? (
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow">The people behind the pins</p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-tight text-primary">Discover creators</h2>
+                <p className="mt-1 text-xs text-muted">Creators with spots near you appear first.</p>
+              </div>
+              <span className="rounded-full border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-bold text-muted">{creatorCards.length}</span>
+            </div>
+
+            {!hasSupabase ? (
+              <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Users className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">Creator discovery needs cloud sync</p></div>
+            ) : creatorsLoading ? (
+              <div className="grid gap-3 md:grid-cols-2">{[0, 1, 2, 3].map((item) => <div key={item} className="surface-card h-32 animate-pulse rounded-[1.5rem]" />)}</div>
+            ) : creatorCards.length === 0 ? (
+              <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Search className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">No creators matched that search</p><p className="mt-1 text-sm text-muted">Try a username, name, or photography specialty.</p></div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {creatorCards.map((creator) => {
+                  const state = friendStateFor(creator.id);
+                  const labels = { none: 'Add friend', incoming: 'Accept', outgoing: 'Requested', friends: 'Friends' };
+                  const FriendIcon = state === 'friends' ? UserCheck : state === 'outgoing' ? Clock3 : UserPlus;
+                  const nearby = Number.isFinite(creator.closestKm) && creator.closestKm <= 80;
+                  return (
+                    <article key={creator.id} className="surface-card flex gap-3 rounded-[1.5rem] p-4">
+                      <Link to={`/user/${creator.username}`} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                        {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
+                      </Link>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2">
+                          <Link to={`/user/${creator.username}`} className="min-w-0 flex-1">
+                            <h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || creator.username}</h3>
+                            <p className="truncate text-xs text-muted">@{creator.username}</p>
+                          </Link>
+                          {nearby && <span className="shrink-0 rounded-full bg-accent-500/10 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-accent-400">Near you</span>}
+                        </div>
+                        {creator.bio && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-secondary">{creator.bio}</p>}
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold text-muted">{creator.spotCount} spot{creator.spotCount === 1 ? '' : 's'}</span>
+                          {currentUser ? (
+                            <button type="button" disabled={state === 'friends' || friendActionId === creator.id} onClick={() => handleFriendAction(creator)} className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-extrabold transition disabled:opacity-60 ${state === 'incoming' ? 'bg-accent-500 text-[#211603]' : 'border border-white/10 text-secondary hover:border-accent-500/40 hover:text-accent-400'}`}>
+                              <FriendIcon className="h-3.5 w-3.5" />{friendActionId === creator.id ? 'Working…' : labels[state]}
+                            </button>
+                          ) : <Link to="/signin" className="text-[11px] font-extrabold text-accent-400">Sign in to connect</Link>}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : <>
         {userPosition && nearYouSpots.length > 0 && (
           <section>
             <div className="mb-3 flex items-end justify-between">
@@ -304,6 +438,7 @@ export default function Explore({
             </div>
           )}
         </section>
+        </>}
       </div>
     </div>
   );

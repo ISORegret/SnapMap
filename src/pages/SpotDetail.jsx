@@ -10,6 +10,7 @@ import { getCheckInCount, hasCheckedIn, addCheckIn } from '../api/checkIns';
 import { getSpotRating, getUserRating, setSpotRating } from '../api/ratings';
 import { getDeviceId } from '../data/spotStore';
 import { hasSupabase, supabase } from '../api/supabase';
+import { getBlockedUserIds, reportComment } from '../api/safety';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -227,6 +228,8 @@ export default function SpotDetail({
   const [noteText, setNoteText] = useState('');
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
+  const [reportedCommentIds, setReportedCommentIds] = useState([]);
   const [checkInCount, setCheckInCount] = useState(0);
   const [userHasCheckedIn, setUserHasCheckedIn] = useState(false);
   const [checkInLoading, setCheckInLoading] = useState(false);
@@ -236,15 +239,21 @@ export default function SpotDetail({
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
   const conditionsRef = useRef(null);
-  const rootNotes = useMemo(() => notes.filter((note) => !note.parentId), [notes]);
+  const visibleNotes = useMemo(() => notes.filter((note) => !blockedUserIds.includes(note.userId)), [notes, blockedUserIds]);
+  const rootNotes = useMemo(() => visibleNotes.filter((note) => !note.parentId), [visibleNotes]);
   const repliesByParent = useMemo(() => {
     const grouped = {};
-    notes.filter((note) => note.parentId).forEach((note) => {
+    visibleNotes.filter((note) => note.parentId).forEach((note) => {
       if (!grouped[note.parentId]) grouped[note.parentId] = [];
       grouped[note.parentId].push(note);
     });
     return grouped;
-  }, [notes]);
+  }, [visibleNotes]);
+
+  useEffect(() => {
+    if (currentUser?.id) getBlockedUserIds().then(setBlockedUserIds);
+    else setBlockedUserIds([]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!spot?.id || !hasSupabase) return;
@@ -506,6 +515,13 @@ export default function SpotDetail({
     if (!window.confirm('Delete this comment?')) return;
     const ok = await deleteSpotNote(noteId);
     if (ok) setNotes((prev) => prev.filter((note) => note.id !== noteId && note.parentId !== noteId));
+  };
+
+  const flagComment = async (comment) => {
+    if (!currentUser || reportedCommentIds.includes(comment.id)) return;
+    if (!window.confirm('Report this comment for review?')) return;
+    const ok = await reportComment(comment.id);
+    if (ok) setReportedCommentIds((ids) => [...ids, comment.id]);
   };
 
   const sendReport = async () => {
@@ -914,6 +930,7 @@ export default function SpotDetail({
                         <div className="mt-1.5 flex items-center gap-3">
                           {!nested && currentUser && <button type="button" onClick={() => { setReplyTo(note); setNoteText(''); }} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-accent-400"><Reply className="h-3 w-3" />Reply</button>}
                           {comment.userId === currentUser?.id && <button type="button" onClick={() => removeComment(comment.id)} className="text-[11px] font-bold text-slate-500 hover:text-rose-400">Delete</button>}
+                          {currentUser && comment.userId && comment.userId !== currentUser.id && <button type="button" onClick={() => flagComment(comment)} disabled={reportedCommentIds.includes(comment.id)} className="text-[11px] font-bold text-slate-500 hover:text-amber-400 disabled:opacity-60">{reportedCommentIds.includes(comment.id) ? 'Reported' : 'Report'}</button>}
                         </div>
                       </div>
                     </div>

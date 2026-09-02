@@ -1,21 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users } from 'lucide-react';
+import { MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
+import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
 
 function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
-export default function Profile({ allSpots = [], currentUser, onProfileUpdated }) {
+export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0 }) {
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [friendState, setFriendState] = useState('none');
   const [connections, setConnections] = useState({ friends: [], incoming: [], outgoing: [] });
   const [followLoading, setFollowLoading] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
@@ -63,6 +65,11 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
     return () => { cancelled = true; };
   }, [profile?.id, currentUser?.id]);
 
+  useEffect(() => {
+    if (!profile?.id || !currentUser?.id || currentUser.id === profile.id) return;
+    isUserBlocked(profile.id).then(setBlocked);
+  }, [profile?.id, currentUser?.id]);
+
   const refreshConnections = async () => {
     if (!profile?.id) return;
     const result = await getFriendConnections(profile.id);
@@ -82,6 +89,19 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
     else if (friendState === 'friends' && window.confirm(`Remove ${profile.display_name || profile.username} from your friends?`)) ok = await removeFriend(profile.id);
     setFollowLoading(false);
     if (ok) await refreshConnections();
+  };
+
+  const handleBlock = async () => {
+    if (!profile?.id || followLoading) return;
+    if (!blocked && !window.confirm(`Block ${profile.display_name || profile.username}? You won't see their comments or receive requests from them.`)) return;
+    setFollowLoading(true);
+    const ok = blocked ? await unblockUser(profile.id) : await blockUser(profile.id);
+    setFollowLoading(false);
+    if (ok) {
+      setBlocked(!blocked);
+      setFriendState('none');
+      refreshConnections();
+    }
   };
 
   const friendButton = {
@@ -188,9 +208,15 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
           </div>
           <div className="min-w-0 flex-1">
             {isOwnProfile && (
-              <Link to="/settings" className="icon-button float-right" aria-label="Open settings">
-                <Settings className="h-5 w-5" />
-              </Link>
+              <div className="float-right flex gap-2">
+                <Link to="/notifications" className="icon-button relative" aria-label="Open notifications">
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifications > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications, 9)}{unreadNotifications > 9 ? '+' : ''}</span>}
+                </Link>
+                <Link to="/settings" className="icon-button" aria-label="Open settings">
+                  <Settings className="h-5 w-5" />
+                </Link>
+              </div>
             )}
             <p className="eyebrow">Creator profile</p>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-primary">
@@ -215,15 +241,10 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated }
               </button>
             )}
             {!isOwnProfile && currentUser && (
-              <button
-                type="button"
-                onClick={handleFriend}
-                disabled={followLoading}
-                className="primary-button mt-3 px-5 py-2.5 text-sm disabled:opacity-50"
-              >
-                {!followLoading && <FriendButtonIcon className="h-4 w-4" />}
-                {followLoading ? '…' : friendButton.label}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {!blocked && <button type="button" onClick={handleFriend} disabled={followLoading} className="primary-button px-5 py-2.5 text-sm disabled:opacity-50">{!followLoading && <FriendButtonIcon className="h-4 w-4" />}{followLoading ? '…' : friendButton.label}</button>}
+                <button type="button" onClick={handleBlock} disabled={followLoading} className="flex items-center gap-1.5 rounded-2xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-500 hover:border-rose-500/30 hover:text-rose-400 disabled:opacity-50"><Ban className="h-3.5 w-3.5" />{blocked ? 'Unblock' : 'Block'}</button>
+              </div>
             )}
           </div>
         </div>

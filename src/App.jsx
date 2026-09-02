@@ -33,11 +33,13 @@ import Privacy from './pages/Privacy';
 import SignIn from './pages/SignIn';
 import ChangePassword from './pages/ChangePassword';
 import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
+import { getUnreadNotificationCount, subscribeToNotifications } from './api/notifications';
 
 function RouteScrollReset() {
   const { pathname } = useLocation();
@@ -68,6 +70,7 @@ export default function App() {
   const [userPosition, setUserPosition] = useState(null);
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatus] = useState(isOnline ? 'saved' : 'offline');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const navigate = useNavigate();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
   const showToast = useCallback((message, options = {}) => {
@@ -211,6 +214,20 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser?.id) setCurrentUserProfile(null);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !hasSupabase) {
+      setUnreadNotifications(0);
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => getUnreadNotificationCount().then((count) => {
+      if (!cancelled) setUnreadNotifications(count);
+    });
+    refresh();
+    const unsubscribe = subscribeToNotifications(currentUser.id, refresh);
+    return () => { cancelled = true; unsubscribe(); };
   }, [currentUser?.id]);
 
   useEffect(() => {
@@ -700,6 +717,7 @@ export default function App() {
                 userPosition={userPosition}
                 requestPosition={requestPosition}
                 units={units}
+                currentUser={currentUser}
               />
             }
           />
@@ -711,7 +729,8 @@ export default function App() {
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
-          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} />} />
+          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} />} />
+          <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
           <Route
             path="/saved"
             element={
@@ -795,7 +814,11 @@ export default function App() {
           <NavLink to="/profile" className={navLinkClass}>
             <span className="relative">
               <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
-              <span className={`absolute -right-1 -top-1 h-2 w-2 rounded-full border border-[var(--bg-nav)] ${syncStatus === 'offline' ? 'bg-amber-400' : syncStatus === 'failed' ? 'bg-rose-400' : syncStatus === 'syncing' ? 'animate-pulse bg-sky-400' : 'bg-emerald-400'}`} title={`Sync: ${syncStatus}`} />
+              {unreadNotifications > 0 ? (
+                <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-[var(--bg-nav)] bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications, 9)}{unreadNotifications > 9 ? '+' : ''}</span>
+              ) : (
+                <span className={`absolute -right-1 -top-1 h-2 w-2 rounded-full border border-[var(--bg-nav)] ${syncStatus === 'offline' ? 'bg-amber-400' : syncStatus === 'failed' ? 'bg-rose-400' : syncStatus === 'syncing' ? 'animate-pulse bg-sky-400' : 'bg-emerald-400'}`} title={`Sync: ${syncStatus}`} />
+              )}
             </span>
             <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Profile</span>
           </NavLink>
