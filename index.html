@@ -140,5 +140,38 @@
       }
     </style>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // The splash normally disappears as soon as React is ready. Keep a
+      // standalone fallback here so a stale PWA bundle can never trap someone
+      // on the loading screen indefinitely.
+      window.setTimeout(function () {
+        var splash = document.getElementById('splash');
+        var root = document.getElementById('root');
+
+        if (splash) {
+          splash.classList.add('hidden');
+          window.setTimeout(function () { splash.remove(); }, 450);
+        }
+
+        if (root && root.childElementCount === 0) {
+          root.innerHTML = '<main style="box-sizing:border-box;min-height:100vh;display:grid;place-items:center;padding:24px;background:#080a0d;color:#e5e7eb;font-family:Manrope,system-ui,-apple-system,sans-serif;text-align:center"><section style="max-width:360px"><img src="./snapmap-icon.svg" alt="" width="64" height="64" style="margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 10px">SnapMap couldn\'t finish loading</h1><p style="margin:0;color:#94a3b8;line-height:1.55">The installed app may have an older cached version. Refreshing the app should restore it without removing your account or saved data.</p><button id="snapmap-repair" type="button" style="margin-top:22px;border:0;border-radius:14px;background:#f6b73c;color:#211603;font:700 15px Manrope,system-ui;padding:13px 20px">Refresh SnapMap</button></section></main>';
+
+          document.getElementById('snapmap-repair').addEventListener('click', async function () {
+            try {
+              if ('serviceWorker' in navigator) {
+                var registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(function (registration) { return registration.unregister(); }));
+              }
+              if ('caches' in window) {
+                var cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(function (name) { return caches.delete(name); }));
+              }
+            } finally {
+              window.location.reload();
+            }
+          });
+        }
+      }, 6000);
+    </script>
   </body>
 </html>
