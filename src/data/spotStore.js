@@ -122,3 +122,13 @@ export function deleteCollection(collectionId) {
   saveCollections(list);
   return list;
 }
+
+export function reorderCollectionSpots(collectionId, spotIds) {
+  const list = loadCollections();
+  const uniqueIds = [...new Set((spotIds || []).filter(Boolean))];
+  const next = list.map((collection) => (
+    collection.id === collectionId ? { ...collection, spotIds: uniqueIds } : collection
+  ));
+  saveCollections(next);
+  return next;
+}

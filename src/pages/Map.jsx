@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, CircleMarker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, Milestone as Route } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { fetchDownloadCount } from '../utils/stats';
@@ -74,6 +74,16 @@ function liveSpotIcon(summary, post = null) {
     iconSize: [40, 46],
     iconAnchor: [20, 42],
     popupAnchor: [0, -38],
+  });
+}
+
+function routeStopIcon(index) {
+  return L.divIcon({
+    className: 'snapmap-marker-wrap',
+    html: `<span class="snapmap-route-marker"><b>${index + 1}</b></span>`,
+    iconSize: [38, 44],
+    iconAnchor: [19, 40],
+    popupAnchor: [0, -36],
   });
 }
 
@@ -159,6 +169,18 @@ function FlyToCenter({ center, zoom = 14 }) {
   return null;
 }
 
+function FitRoute({ spots }) {
+  const map = useMap();
+  const fittedRef = useRef(false);
+  useEffect(() => {
+    if (fittedRef.current || !spots.length) return;
+    fittedRef.current = true;
+    if (spots.length === 1) map.flyTo([spots[0].latitude, spots[0].longitude], 14, { duration: 0.7 });
+    else map.fitBounds(L.latLngBounds(spots.map((spot) => [spot.latitude, spot.longitude])), { padding: [48, 48], maxZoom: 14 });
+  }, [map, spots]);
+  return null;
+}
+
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
     click: (e) => {
@@ -239,6 +261,7 @@ async function geocodeAddress(query) {
 export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme = 'dark', setTheme, units = 'mi', setUnits, userPosition: sharedUserPosition = null, requestPosition: requestSharedPosition, onRefreshSpots, spotsLoading = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const routeIds = useMemo(() => (searchParams.get('route') || '').split(',').map((id) => id.trim()).filter(Boolean), [searchParams]);
   const queryLatitude = searchParams.has('lat') ? Number(searchParams.get('lat')) : null;
   const queryLongitude = searchParams.has('lng') ? Number(searchParams.get('lng')) : null;
   const hasQueryLocation = isValidCoordinate(queryLatitude, queryLongitude);
@@ -359,6 +382,8 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
   }, []);
 
   const validSpots = useMemo(() => allSpots.filter((spot) => isValidCoordinate(spot.latitude, spot.longitude)), [allSpots]);
+  const routeSpots = useMemo(() => routeIds.map((id) => validSpots.find((spot) => String(spot.id) === id)).filter(Boolean), [routeIds, validSpots]);
+  const routeSpotIds = useMemo(() => new Set(routeSpots.map((spot) => String(spot.id))), [routeSpots]);
   const byFilter = useMemo(() => applyFilter(validSpots, filter), [validSpots, filter]);
   const filteredSpots = useMemo(
     () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
@@ -565,6 +590,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           />
         )}
         {searchCenter && <FlyToCenter center={searchCenter} />}
+        {routeSpots.length > 0 && <FitRoute spots={routeSpots} />}
         <MapClickHandler onMapClick={onMapClick} />
         <ViewportTracker onViewportChange={saveViewport} onUserViewportChange={setCandidateBounds} />
 
@@ -592,12 +618,18 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           />
         )}
         <SpotMarkersCluster
-          spots={displayedSpots}
+          spots={displayedSpots.filter((spot) => !routeSpotIds.has(String(spot.id)))}
           icon={icon}
           activityBySpot={activityBySpot}
           recentPostBySpot={recentPostBySpot}
           setSelectedSpotId={(spotId) => { setSelectedPostId(null); setPendingPin(null); setSelectedSpotId(spotId); }}
         />
+        {routeSpots.length > 1 && (
+          <Polyline positions={routeSpots.map((spot) => [spot.latitude, spot.longitude])} pathOptions={{ color: '#f6b73c', weight: 4, opacity: 0.85, dashArray: '8 8' }} />
+        )}
+        {routeSpots.map((spot, index) => (
+          <Marker key={`route-${spot.id}`} position={[spot.latitude, spot.longitude]} icon={routeStopIcon(index)} zIndexOffset={900} eventHandlers={{ click: () => { setSelectedPostId(null); setPendingPin(null); setSelectedSpotId(spot.id); } }} />
+        ))}
         {standalonePosts.map((post) => (
           <Marker
             key={`post-${post.id}`}
@@ -610,6 +642,13 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
       </MapContainer>
       <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
 
+      {routeSpots.length > 0 && (
+        <div className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-xs font-extrabold text-primary shadow-xl">
+          <Route className="h-4 w-4 text-accent-400" />{routeSpots.length} stop route
+          <Link to="/" replace className="text-accent-400">Exit</Link>
+        </div>
+      )}
+
       <div className="surface-card absolute bottom-[7.1rem] left-3 right-3 z-[1000] flex items-center justify-between gap-3 rounded-[1.25rem] px-3.5 py-3 text-xs text-secondary sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
         <span className="font-semibold">Tap anywhere to pin a new spot</span>
         <Link to="/explore" className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-[var(--accent-muted)] px-3 py-2 font-extrabold text-accent-400 transition hover:bg-accent-500 hover:text-[#211603]">
@@ -617,7 +656,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           Browse spots
         </Link>
       </div>
-      {candidateBounds && (
+      {candidateBounds && routeSpots.length === 0 && (
         <button
           type="button"
           onClick={() => { setAppliedBounds(candidateBounds); setCandidateBounds(null); setSelectedSpotId(null); }}
@@ -627,7 +666,7 @@ export default function Map({ allSpots, favoriteIds = [], toggleFavorite, theme 
           Search this area
         </button>
       )}
-      {appliedBounds && !candidateBounds && (
+      {appliedBounds && !candidateBounds && routeSpots.length === 0 && (
         <button type="button" onClick={() => setAppliedBounds(null)} className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] -translate-x-1/2 rounded-full px-4 py-2 text-xs font-bold text-accent-400">
           Show all spots
         </button>

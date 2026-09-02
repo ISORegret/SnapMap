@@ -15,6 +15,7 @@ import {
   removeSpotFromCollection,
   createCollection as createCollectionInStore,
   deleteCollection as deleteCollectionInStore,
+  reorderCollectionSpots as reorderCollectionSpotsInStore,
 } from './data/spotStore';
 import { fetchCommunitySpots, insertCommunitySpot, updateCommunitySpot, deleteCommunitySpot } from './api/spots';
 import { fetchFavorites as fetchFavoritesApi, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from './api/favorites';
@@ -626,6 +627,9 @@ export default function App() {
   const deleteCollection = useCallback((id) => {
     setCollections(deleteCollectionInStore(id));
   }, []);
+  const reorderCollectionSpots = useCallback((collectionId, spotIds) => {
+    setCollections(reorderCollectionSpotsInStore(collectionId, spotIds));
+  }, []);
 
   if (!ready) {
     return (
@@ -745,6 +749,7 @@ export default function App() {
                 createCollection={createCollection}
                 deleteCollection={deleteCollection}
                 removeFromCollection={removeFromCollection}
+                reorderCollectionSpots={reorderCollectionSpots}
                 onDismissSpotError={(spotId) => updateSpot(spotId, { uploadError: undefined, syncError: undefined })}
                 syncCode={syncCode}
                 effectiveSyncCode={effectiveSyncCode}
@@ -758,6 +763,8 @@ export default function App() {
                 setTheme={setTheme}
                 units={units}
                 setUnits={setUnits}
+                userPosition={userPosition}
+                requestPosition={requestPosition}
               />
             }
           />
