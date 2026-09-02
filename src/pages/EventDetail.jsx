@@ -56,7 +56,7 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
   const share = async () => {
     const url = `${window.location.origin}${window.location.pathname || ''}#/event/${event.id}`;
     if (navigator.share) {
-      try { await navigator.share({ title: event.title, text: `${event.title} at ${spot?.name || 'a SnapMap spot'}`, url }); return; } catch (shareError) { if (shareError?.name === 'AbortError') return; }
+      try { await navigator.share({ title: event.title, text: `${event.title} at ${event.venueName || spot?.name || 'the event location'}`, url }); return; } catch (shareError) { if (shareError?.name === 'AbortError') return; }
     }
     await navigator.clipboard.writeText(url);
     showToast?.('Event link copied.');
@@ -70,6 +70,9 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
   const latitude = Number(spot?.latitude);
   const longitude = Number(spot?.longitude);
   const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const hasAddress = Boolean(event.address);
+  const googleAddressUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`;
+  const appleAddressUrl = `https://maps.apple.com/?daddr=${encodeURIComponent(event.address)}`;
 
   return (
     <div className="page-shell pb-36 animate-fade-in">
@@ -86,20 +89,21 @@ export default function EventDetail({ allSpots = [], currentUser, showToast }) {
           <div className="relative aspect-[16/10] overflow-hidden bg-black/20">
             <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-black/20" />
-            <div className="absolute inset-x-0 bottom-0 p-5"><p className="eyebrow text-accent-300">Hosted meetup</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">{event.title}</h1></div>
+            <div className="absolute inset-x-0 bottom-0 p-5"><p className="eyebrow text-accent-300">{event.listingType === 'listed' ? event.eventType.replaceAll('_', ' ') : 'Hosted meetup'}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">{event.title}</h1></div>
           </div>
           <div className="p-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex gap-3 rounded-2xl bg-white/[0.045] p-3"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-accent-400" /><div><p className="text-xs font-extrabold text-primary">{fullDate(event.startsAt)}</p>{event.endsAt && <p className="mt-1 text-[11px] text-muted">Ends {fullDate(event.endsAt)}</p>}</div></div>
-              <Link to={`/spot/${event.spotId}`} className="flex gap-3 rounded-2xl bg-white/[0.045] p-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-accent-400" /><div className="min-w-0"><p className="truncate text-xs font-extrabold text-primary">{spot?.name || 'SnapMap spot'}</p><p className="mt-1 line-clamp-2 text-[11px] text-muted">{spot?.address || 'Pinned location'}</p></div></Link>
+              {event.spotId ? <Link to={`/spot/${event.spotId}`} className="flex gap-3 rounded-2xl bg-white/[0.045] p-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-accent-400" /><div className="min-w-0"><p className="truncate text-xs font-extrabold text-primary">{event.venueName || spot?.name || 'SnapMap spot'}</p><p className="mt-1 line-clamp-2 text-[11px] text-muted">{event.address || spot?.address || 'Pinned location'}</p></div></Link> : <div className="flex gap-3 rounded-2xl bg-white/[0.045] p-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-accent-400" /><div className="min-w-0"><p className="truncate text-xs font-extrabold text-primary">{event.venueName || 'Event location'}</p><p className="mt-1 line-clamp-2 text-[11px] text-muted">{event.address}</p></div></div>}
             </div>
 
             {event.description && <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-secondary">{event.description}</p>}
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=creators'} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{event.host?.avatar_url ? <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</span>{event.host?.display_name || event.host?.username || 'Creator'}</Link>
+              {event.listingType === 'listed' ? <span className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=creators'} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{event.host?.avatar_url ? <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</span>{event.host?.display_name || event.host?.username || 'Creator'}</Link>}
               {hasCoordinates && <Link to={`/?spot=${event.spotId}&lat=${latitude}&lng=${longitude}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><MapPin className="h-4 w-4 text-accent-400" />View on map</Link>}
               {hasCoordinates && <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
+              {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
             </div>
           </div>
         </section>

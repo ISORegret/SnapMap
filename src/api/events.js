@@ -2,6 +2,7 @@ import { hasSupabase, supabase } from './supabase';
 
 const EVENT_SELECT = `
   id, host_id, spot_id, title, description, starts_at, ends_at, max_attendees, created_at, updated_at,
+  event_type, venue_name, address, listing_type, source_label,
   host:profiles!events_host_id_fkey(id, username, display_name, avatar_url),
   spot:spots!events_spot_id_fkey(id, name, address, latitude, longitude, images),
   rsvps:event_rsvps(user_id, created_at, profile:profiles!event_rsvps_user_id_fkey(id, username, display_name, avatar_url))
@@ -15,6 +16,11 @@ function normalizeEvent(event, currentUserId = null) {
     startsAt: event.starts_at,
     endsAt: event.ends_at,
     maxAttendees: event.max_attendees,
+    eventType: event.event_type || 'meetup',
+    venueName: event.venue_name || event.spot?.name || '',
+    address: event.address || event.spot?.address || '',
+    listingType: event.listing_type || 'hosted',
+    sourceLabel: event.source_label || 'SnapMap community',
     createdAt: event.created_at,
     attendeeCount: event.rsvps?.length || 0,
     attending: Boolean(currentUserId && event.rsvps?.some((rsvp) => rsvp.user_id === currentUserId)),
