@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban, CalendarDays } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
 import { fetchPosts } from '../api/posts';
+import { fetchProfileEvents } from '../api/events';
 
 function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
-export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0 }) {
+export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0 } = {}) {
   const { username } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,6 +30,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [profilePosts, setProfilePosts] = useState([]);
+  const [profileEvents, setProfileEvents] = useState([]);
   const avatarInputRef = React.useRef(null);
 
   const userSpots = useMemo(() => {
@@ -64,6 +66,13 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     if (!profile?.id) return;
     let cancelled = false;
     fetchPosts({ profileId: profile.id, limit: 60 }).then((items) => { if (!cancelled) setProfilePosts(items); });
+    return () => { cancelled = true; };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    let cancelled = false;
+    fetchProfileEvents(profile.id, 8).then((items) => { if (!cancelled) setProfileEvents(items); });
     return () => { cancelled = true; };
   }, [profile?.id]);
 
@@ -405,6 +414,36 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
           {isOwnProfile && connections.outgoing.length > 0 && (
             <p className="mt-3 text-xs text-slate-500">Pending requests: {connections.outgoing.map((creator) => `@${creator.username}`).join(', ')}</p>
           )}
+        </section>
+      )}
+
+      {profileEvents.length > 0 && (
+        <section className="px-4 pt-6">
+          <div className="mb-3 flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-accent-400" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Upcoming events</h2>
+          </div>
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+            {profileEvents.map((event) => (
+              <Link key={event.id} to={`/event/${event.id}`} state={{ from: location.pathname }} className="surface-card w-64 shrink-0 rounded-[1.4rem] p-4 transition hover:border-accent-500/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-extrabold text-primary">{event.title}</p>
+                    <p className="mt-1 text-xs font-bold text-accent-400">
+                      {new Date(event.startsAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/15 text-cyan-300' : 'bg-emerald-400/15 text-emerald-400'}`}>
+                    {event.rsvpStatus === 'interested' ? 'Interested' : 'Going'}
+                  </span>
+                </div>
+                <p className="mt-3 flex items-center gap-1.5 truncate text-xs text-muted">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{event.venueName || event.address || 'Location coming soon'}</span>
+                </p>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 

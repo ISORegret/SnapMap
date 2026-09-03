@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, Us
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
-import { deleteEvent, fetchEvent, setEventRsvp, subscribeToEvents } from '../api/events';
+import { deleteEvent, fetchEvent, setEventRsvpStatus, subscribeToEvents } from '../api/events';
 import { isCurrentUserAdmin } from '../api/moderation';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
@@ -45,13 +45,24 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
     return allSpots.find((item) => String(item.id) === String(event.spotId)) || event.spot;
   }, [allSpots, event]);
 
-  const toggleRsvp = async () => {
+  const chooseRsvp = async (selectedStatus) => {
     if (!currentUser || !event || busy) return;
+    const nextStatus = event.rsvpStatus === selectedStatus ? null : selectedStatus;
     setBusy(true);
-    const result = await setEventRsvp(event.id, !event.attending);
+    const result = await setEventRsvpStatus(event.id, nextStatus);
     setBusy(false);
     if (!result.ok) return showToast?.(result.error);
-    setEvent((current) => ({ ...current, attending: !current.attending, attendeeCount: Math.max(0, current.attendeeCount + (current.attending ? -1 : 1)) }));
+    setEvent((current) => {
+      const previous = current.rsvpStatus;
+      return {
+        ...current,
+        rsvpStatus: nextStatus,
+        attending: nextStatus === 'going',
+        interested: nextStatus === 'interested',
+        attendeeCount: Math.max(0, current.attendeeCount - (previous === 'going' ? 1 : 0) + (nextStatus === 'going' ? 1 : 0)),
+        interestedCount: Math.max(0, (current.interestedCount || 0) - (previous === 'interested' ? 1 : 0) + (nextStatus === 'interested' ? 1 : 0)),
+      };
+    });
   };
 
   const remove = async () => {
@@ -78,6 +89,8 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
   const full = event.maxAttendees && event.attendeeCount >= event.maxAttendees;
   const isHost = currentUser?.id === event.hostId;
   const canManage = isHost || isAdmin;
+  const goingRsvps = (event.rsvps || []).filter((rsvp) => rsvp.status === 'going');
+  const interestedRsvps = (event.rsvps || []).filter((rsvp) => rsvp.status === 'interested');
   const latitude = Number(event.latitude ?? spot?.latitude);
   const longitude = Number(event.longitude ?? spot?.longitude);
   const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
@@ -123,8 +136,9 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
         {canManage && editing && <EventEditor event={event} spot={spot} onCancel={() => setEditing(false)} onSaved={(updated) => { setEvent(updated); setEditing(false); }} showToast={showToast} />}
 
         <section className="surface-card mt-4 rounded-[1.75rem] p-5">
-          <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>
-          {event.rsvps?.length ? <div className="mt-4 flex flex-wrap gap-2">{event.rsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-white/[0.045] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-accent-400" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div> : <p className="mt-3 text-sm text-muted">Be the first creator on the guest list.</p>}
+          <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going · {event.interestedCount || 0} interested</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>
+          {goingRsvps.length ? <div className="mt-4"><p className="mb-2 text-[11px] font-black uppercase tracking-wider text-emerald-400">Going</p><div className="flex flex-wrap gap-2">{goingRsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-emerald-400/[0.07] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-accent-400" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div></div> : <p className="mt-3 text-sm text-muted">No confirmed attendees yet.</p>}
+          {interestedRsvps.length > 0 && <div className="mt-4"><p className="mb-2 text-[11px] font-black uppercase tracking-wider text-cyan-300">Interested</p><div className="flex flex-wrap gap-2">{interestedRsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-cyan-400/[0.07] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-cyan-400/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-cyan-300" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div></div>}
         </section>
 
         <EventDiscussion eventId={event.id} currentUser={currentUser} canManage={canManage} showToast={showToast} />
@@ -133,7 +147,7 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
       </main>
 
       {!isHost && <div className="fixed bottom-[6.7rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-2 shadow-2xl backdrop-blur-2xl">
-        {currentUser ? <button type="button" onClick={toggleRsvp} disabled={busy || (full && !event.attending)} className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-[1.05rem] text-sm font-extrabold disabled:opacity-50 ${event.attending ? 'bg-emerald-400/15 text-emerald-400' : 'bg-accent-500 text-[#211603]'}`}><Users className="h-4 w-4" />{busy ? 'Saving…' : event.attending ? 'You’re going · Cancel RSVP' : full ? 'Event is full' : 'RSVP · I’m going'}</button> : <Link to="/signin" className="primary-button min-h-12 w-full text-sm">Sign in to RSVP</Link>}
+        {currentUser ? <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => chooseRsvp('interested')} disabled={busy} className={`flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] text-sm font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/20 text-cyan-300 ring-1 ring-cyan-400/25' : 'bg-white/[0.055] text-secondary'}`}>{busy ? 'Saving…' : event.rsvpStatus === 'interested' ? 'Interested ✓' : 'Interested'}</button><button type="button" onClick={() => chooseRsvp('going')} disabled={busy || (full && event.rsvpStatus !== 'going')} className={`flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] text-sm font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'going' ? 'bg-emerald-400/15 text-emerald-400 ring-1 ring-emerald-400/20' : 'bg-accent-500 text-[#211603]'}`}><Users className="h-4 w-4" />{busy ? 'Saving…' : full && event.rsvpStatus !== 'going' ? 'Event full' : event.rsvpStatus === 'going' ? 'Going ✓' : 'Going'}</button></div> : <Link to="/signin" className="primary-button min-h-12 w-full text-sm">Sign in to RSVP</Link>}
       </div>}
     </div>
   );

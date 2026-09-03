@@ -13,9 +13,17 @@ const EVENT_SELECT = EVENT_SELECT_BASE.replace(
   'event_type, venue_name, address, latitude, longitude, listing_type, source_label,'
 );
 
+const EVENT_SELECT_WITH_STATUS = EVENT_SELECT.replace(
+  'rsvps:event_rsvps(user_id, created_at,',
+  'rsvps:event_rsvps(user_id, status, created_at,'
+);
+
 function normalizeEvent(event, currentUserId = null) {
+  const rsvps = (event.rsvps || []).map((rsvp) => ({ ...rsvp, status: rsvp.status || 'going' }));
+  const rsvpStatus = currentUserId ? rsvps.find((rsvp) => rsvp.user_id === currentUserId)?.status || null : null;
   return {
     ...event,
+    rsvps,
     hostId: event.host_id,
     spotId: event.spot_id,
     startsAt: event.starts_at,
@@ -29,8 +37,11 @@ function normalizeEvent(event, currentUserId = null) {
     listingType: event.listing_type || 'hosted',
     sourceLabel: event.source_label || 'SnapMap community',
     createdAt: event.created_at,
-    attendeeCount: event.rsvps?.length || 0,
-    attending: Boolean(currentUserId && event.rsvps?.some((rsvp) => rsvp.user_id === currentUserId)),
+    attendeeCount: rsvps.filter((rsvp) => rsvp.status === 'going').length,
+    interestedCount: rsvps.filter((rsvp) => rsvp.status === 'interested').length,
+    rsvpStatus,
+    attending: rsvpStatus === 'going',
+    interested: rsvpStatus === 'interested',
   };
 }
 
@@ -42,10 +53,16 @@ async function currentUserId() {
 export async function fetchUpcomingEvents(limit = 50) {
   if (!hasSupabase) return { events: [], error: 'Events need cloud sync.' };
   const userId = await currentUserId();
-  let { data, error } = await supabase.from('events').select(EVENT_SELECT)
+  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS)
     .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
     .order('starts_at', { ascending: true })
     .limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT)
+      .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+  }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_BASE)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
@@ -62,7 +79,10 @@ export async function fetchUpcomingEvents(limit = 50) {
 export async function fetchEvent(eventId) {
   if (!hasSupabase || !eventId) return { event: null, error: 'Event not found.' };
   const userId = await currentUserId();
-  let { data, error } = await supabase.from('events').select(EVENT_SELECT).eq('id', eventId).maybeSingle();
+  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS).eq('id', eventId).maybeSingle();
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT).eq('id', eventId).maybeSingle());
+  }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_BASE).eq('id', eventId).maybeSingle());
   }
@@ -121,14 +141,45 @@ export async function updateEvent(eventId, updates) {
 }
 
 export async function setEventRsvp(eventId, attending) {
+  return setEventRsvpStatus(eventId, attending ? 'going' : null);
+}
+
+export async function setEventRsvpStatus(eventId, status) {
   if (!hasSupabase || !eventId) return { ok: false, error: 'Event unavailable.' };
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to RSVP.' };
-  const request = attending
-    ? supabase.from('event_rsvps').insert({ event_id: eventId, user_id: userId })
+  if (status != null && !['interested', 'going'].includes(status)) return { ok: false, error: 'Choose Interested or Going.' };
+  const request = status
+    ? supabase.from('event_rsvps').upsert({ event_id: eventId, user_id: userId, status }, { onConflict: 'event_id,user_id' })
     : supabase.from('event_rsvps').delete().eq('event_id', eventId).eq('user_id', userId);
   const { error } = await request;
-  return error ? { ok: false, error: error.message || 'Could not update RSVP.' } : { ok: true, error: null };
+  const needsMigration = ['42703', 'PGRST204'].includes(error?.code);
+  return error ? { ok: false, error: needsMigration ? 'Apply migration 036 to use Interested and Going.' : (error.message || 'Could not update RSVP.') } : { ok: true, status, error: null };
+}
+
+export async function fetchProfileEvents(profileId, limit = 8) {
+  if (!hasSupabase || !profileId) return [];
+  const fields = `status, event:events!inner(id, title, starts_at, event_type, venue_name, address, latitude, longitude, listing_type, spot:spots(id, name, address, latitude, longitude, images))`;
+  let { data, error } = await supabase.from('event_rsvps').select(fields)
+    .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
+    .limit(20);
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('event_rsvps').select(fields.replace('status, ', ''))
+      .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
+      .limit(20));
+  }
+  if (error) {
+    console.warn('SnapMap: profile events fetch failed', error);
+    return [];
+  }
+  return (data || [])
+    .filter((item) => item.event)
+    .map((item) => ({
+      ...normalizeEvent({ ...item.event, rsvps: [] }),
+      rsvpStatus: item.status || 'going',
+    }))
+    .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))
+    .slice(0, Math.min(Math.max(Number(limit) || 8, 1), 20));
 }
 
 export async function deleteEvent(eventId) {
