@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, Trash2, User, Users, X } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -10,6 +10,7 @@ import { getSpotPrimaryImage } from '../utils/spotImages';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 import { fetchEventReminder, setEventReminder } from '../api/eventReminders';
 import { checkInToEvent, fetchEventCheckIns, leaveEventCheckIn, subscribeToEventCheckIns } from '../api/eventCheckIns';
+import { reportEvent } from '../api/eventReports';
 
 function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -28,6 +29,11 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
   const [reminderBusy, setReminderBusy] = useState(false);
   const [checkIns, setCheckIns] = useState([]);
   const [checkInBusy, setCheckInBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportType, setReportType] = useState('wrong_location');
+  const [reportNote, setReportNote] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -137,6 +143,19 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
     navigate('/explore?view=events', { replace: true });
   };
 
+  const submitReport = async (submitEvent) => {
+    submitEvent.preventDefault();
+    if (!event || reportBusy) return;
+    setReportBusy(true);
+    const result = await reportEvent(event.id, reportType, reportNote);
+    setReportBusy(false);
+    if (!result.ok) return showToast?.(result.error);
+    setReportSent(true);
+    setReportOpen(false);
+    setReportNote('');
+    showToast?.('Event report sent. Thank you.');
+  };
+
   const share = async () => {
     const url = `${window.location.origin}${window.location.pathname || ''}#/event/${event.id}`;
     if (navigator.share) {
@@ -226,6 +245,21 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
         </section>
 
         <EventDiscussion eventId={event.id} currentUser={currentUser} canManage={canManage} showToast={showToast} />
+
+        {!canManage && currentUser && <section className="mt-4">
+          {reportSent ? <p className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-3 text-center text-sm font-bold text-emerald-400">Thanks—this event was reported for review.</p> : !reportOpen ? <button type="button" onClick={() => setReportOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-muted hover:bg-white/[0.035] hover:text-secondary"><Flag className="h-4 w-4" />Report incorrect event information</button> : <form onSubmit={submitReport} className="surface-card rounded-[1.65rem] p-5">
+            <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Help keep events accurate</p><h2 className="mt-1 text-lg font-extrabold text-primary">What needs correcting?</h2></div><button type="button" onClick={() => setReportOpen(false)} className="icon-button" aria-label="Close report form"><X className="h-4 w-4" /></button></div>
+            <div className="mt-4 grid grid-cols-2 gap-2">{[
+              ['wrong_location', 'Wrong address or pin'],
+              ['wrong_date_time', 'Wrong date or time'],
+              ['canceled', 'Event canceled'],
+              ['duplicate', 'Duplicate listing'],
+              ['wrong_details', 'Other incorrect details'],
+            ].map(([value, label]) => <button key={value} type="button" onClick={() => setReportType(value)} className={`min-h-11 rounded-xl border px-3 py-2 text-left text-xs font-extrabold ${reportType === value ? 'border-accent-500/40 bg-accent-500/10 text-accent-400' : 'border-[var(--border-subtle)] text-secondary'}`}>{label}</button>)}</div>
+            <textarea value={reportNote} onChange={(event) => setReportNote(event.target.value)} maxLength={1000} rows={3} placeholder="Add the correct address, time, or any helpful details…" className="surface-input mt-3 w-full resize-none rounded-2xl p-3.5 text-sm" />
+            <button type="submit" disabled={reportBusy} className="primary-button mt-3 w-full py-3 text-sm disabled:opacity-50">{reportBusy ? 'Sending…' : 'Send report'}</button>
+          </form>}
+        </section>}
 
         {canManage && <button type="button" onClick={remove} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-extrabold text-rose-400 hover:bg-rose-400/10 disabled:opacity-50"><Trash2 className="h-4 w-4" />{event.listingType === 'listed' ? 'Delete listing' : 'Cancel event'}</button>}
       </main>

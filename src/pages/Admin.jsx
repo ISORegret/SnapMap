@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Ban, CheckCircle2, Flag, ShieldCheck, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Ban, CheckCircle2, ExternalLink, Flag, ShieldCheck, Trash2 } from 'lucide-react';
 import { dismissReport, fetchModerationQueue, isCurrentUserAdmin, removeReportedContent, suspendUser } from '../api/moderation';
 
-const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location', message: 'Private message' };
+const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location', message: 'Private message', event: 'Event' };
 
 function cleanReason(value) {
   return String(value || 'inappropriate').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -11,13 +11,13 @@ function cleanReason(value) {
 
 function ReportCard({ item, busy, onDismiss, onRemove, onSuspend }) {
   const target = item.target || {};
-  const author = target.author || (item.kind === 'comment' ? target.author : null);
+  const author = target.author || (item.kind === 'event' ? target.host : null);
   const authorName = author?.display_name || author?.username || target.created_by_display_name || target.created_by || 'Unknown creator';
-  const title = item.kind === 'post' ? target.location_name : item.kind === 'comment' ? target.spot?.name || 'Location discussion' : item.kind === 'message' ? `Message from ${authorName}` : target.name;
+  const title = item.kind === 'post' ? target.location_name : item.kind === 'comment' ? target.spot?.name || 'Location discussion' : item.kind === 'message' ? `Message from ${authorName}` : item.kind === 'event' ? target.title : target.name;
   const body = item.kind === 'post' ? target.caption : item.kind === 'comment' || item.kind === 'message' ? target.body : target.description;
   const image = item.kind === 'post'
     ? [...(target.images || [])].sort((a, b) => a.position - b.position)[0]?.public_url
-    : item.kind === 'spot' ? target.image_uri : null;
+    : item.kind === 'spot' ? target.image_uri : item.kind === 'event' ? target.cover_image_url : null;
 
   return <article className="surface-card overflow-hidden rounded-[1.55rem]">
     {image && <div className="aspect-[16/8] overflow-hidden bg-black"><img src={image} alt="" className="h-full w-full object-cover" /></div>}
@@ -36,8 +36,10 @@ function ReportCard({ item, busy, onDismiss, onRemove, onSuspend }) {
         {item.note && <p className="mt-1 text-xs leading-relaxed text-secondary">{item.note}</p>}
       </div>
       {body && <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed text-secondary">{body}</p>}
+      {item.kind === 'event' && <div className="mt-3 rounded-2xl bg-white/[0.035] p-3 text-xs text-secondary"><p className="font-bold text-primary">{target.venue_name || 'Venue not listed'}</p><p className="mt-1">{target.address || 'Address not listed'}</p>{target.starts_at && <p className="mt-1 text-muted">{new Date(target.starts_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>}</div>}
       <p className="mt-3 text-[11px] text-muted">Reported by {item.reporter?.display_name || item.reporter?.username || 'an earlier app user'}</p>
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {item.kind === 'event' && <Link to={`/event/${target.id}`} className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-accent-500/20 bg-accent-500/[0.06] px-3 py-2.5 text-xs font-extrabold text-accent-400 sm:col-span-3"><ExternalLink className="h-4 w-4" />Open and correct event</Link>}
         <button type="button" disabled={busy} onClick={() => onDismiss(item)} className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-subtle)] px-3 py-2.5 text-xs font-extrabold text-secondary disabled:opacity-40"><CheckCircle2 className="h-4 w-4" />Dismiss</button>
         {item.targetUserId && <button type="button" disabled={busy} onClick={() => onSuspend(item)} className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5 text-xs font-extrabold text-amber-400 disabled:opacity-40"><Ban className="h-4 w-4" />Suspend 7d</button>}
         <button type="button" disabled={busy} onClick={() => onRemove(item)} className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500 px-3 py-2.5 text-xs font-extrabold text-white disabled:opacity-40 sm:col-span-1"><Trash2 className="h-4 w-4" />Remove</button>
@@ -65,7 +67,7 @@ export default function Admin({ currentUser, showToast }) {
   useEffect(() => { refresh(); }, [currentUser?.id]);
 
   const visibleItems = useMemo(() => filter === 'all' ? items : items.filter((item) => item.kind === filter), [items, filter]);
-  const counts = useMemo(() => ({ all: items.length, post: items.filter((item) => item.kind === 'post').length, comment: items.filter((item) => item.kind === 'comment').length, spot: items.filter((item) => item.kind === 'spot').length, message: items.filter((item) => item.kind === 'message').length }), [items]);
+  const counts = useMemo(() => ({ all: items.length, post: items.filter((item) => item.kind === 'post').length, comment: items.filter((item) => item.kind === 'comment').length, spot: items.filter((item) => item.kind === 'spot').length, message: items.filter((item) => item.kind === 'message').length, event: items.filter((item) => item.kind === 'event').length }), [items]);
 
   const complete = async (item, action) => {
     setBusyId(item.id);
@@ -102,8 +104,8 @@ export default function Admin({ currentUser, showToast }) {
       </div>
     </header>
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-6">
-      <div className="mb-5 grid grid-cols-5 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
-        {[['all', 'All'], ['post', 'Posts'], ['comment', 'Comments'], ['spot', 'Spots'], ['message', 'Messages']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:px-2 sm:text-[11px] ${filter === value ? 'bg-accent-500 text-[#211603]' : 'text-secondary'}`}>{label}<span className="ml-1 opacity-70">{counts[value]}</span></button>)}
+      <div className="mb-5 grid grid-cols-3 gap-1 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1 sm:grid-cols-6">
+        {[['all', 'All'], ['event', 'Events'], ['post', 'Posts'], ['comment', 'Comments'], ['spot', 'Spots'], ['message', 'Messages']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:px-2 sm:text-[11px] ${filter === value ? 'bg-accent-500 text-[#211603]' : 'text-secondary'}`}>{label}<span className="ml-1 opacity-70">{counts[value]}</span></button>)}
       </div>
       {visibleItems.length === 0 ? <div className="surface-card rounded-[1.65rem] px-6 py-16 text-center"><CheckCircle2 className="mx-auto h-9 w-9 text-emerald-400" /><h2 className="mt-4 font-extrabold text-primary">Queue clear</h2><p className="mt-1 text-sm text-muted">No open {filter === 'all' ? '' : `${filter} `}reports.</p></div>
       : <div className="grid gap-4 md:grid-cols-2">{visibleItems.map((item) => <ReportCard key={`${item.kind}-${item.id}`} item={item} busy={busyId === item.id} onDismiss={(report) => complete(report, () => dismissReport(report))} onRemove={handleRemove} onSuspend={handleSuspend} />)}</div>}
