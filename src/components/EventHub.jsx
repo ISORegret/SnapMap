@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3, MapPin, Plus, Users, X } from 'lucide-react';
+import { CalendarDays, Check, Clock3, MapPin, Plus, Search, SlidersHorizontal, Users, X } from 'lucide-react';
 import { createEvent, fetchUpcomingEvents, setEventRsvp, subscribeToEvents } from '../api/events';
 import { getSpotPrimaryImage } from '../utils/spotImages';
+import { haversineKm, milesToKm } from '../utils/geo';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -14,7 +15,33 @@ function eventDate(value) {
   };
 }
 
-export default function EventHub({ allSpots = [], currentUser, showToast }) {
+const EVENT_TYPES = [
+  ['all', 'All types'],
+  ['car_show', 'Car shows'],
+  ['cruise_in', 'Cruise-ins'],
+  ['cars_and_coffee', 'Cars & coffee'],
+  ['meetup', 'Meetups'],
+];
+
+function isSameDay(left, right) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+}
+
+function weekendRange(now = new Date()) {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  const daysUntilSaturday = day === 0 ? 0 : (6 - day + 7) % 7;
+  if (day !== 0) start.setDate(start.getDate() + daysUntilSaturday);
+  const end = new Date(start);
+  if (day !== 0) end.setDate(end.getDate() + 1);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+export default function EventHub({ allSpots = [], currentUser, userPosition = null, units = 'mi', showToast } = {}) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +49,45 @@ export default function EventHub({ allSpots = [], currentUser, showToast }) {
   const [submitting, setSubmitting] = useState(false);
   const [rsvpBusy, setRsvpBusy] = useState('');
   const [form, setForm] = useState({ title: '', description: '', spotId: '', startsAt: '', maxAttendees: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [whenFilter, setWhenFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [distanceMiles, setDistanceMiles] = useState(null);
+  const [attendingOnly, setAttendingOnly] = useState(false);
   const cloudSpots = useMemo(() => allSpots.filter((spot) => UUID_PATTERN.test(String(spot.id || ''))), [allSpots]);
+
+  const visibleEvents = useMemo(() => {
+    const now = new Date();
+    const weekend = weekendRange(now);
+    const query = searchQuery.trim().toLowerCase();
+    return events.filter((event) => {
+      const starts = new Date(event.startsAt);
+      if (query && ![event.title, event.venueName, event.address, event.description].some((value) => String(value || '').toLowerCase().includes(query))) return false;
+      if (whenFilter === 'today' && !isSameDay(starts, now)) return false;
+      if (whenFilter === 'weekend' && (starts < weekend.start || starts > weekend.end)) return false;
+      if (typeFilter !== 'all' && event.eventType !== typeFilter) return false;
+      if (attendingOnly && !event.attending) return false;
+      if (distanceMiles != null) {
+        if (!userPosition) return false;
+        const spot = allSpots.find((item) => String(item.id) === String(event.spotId)) || event.spot;
+        const latitude = Number(event.latitude ?? spot?.latitude);
+        const longitude = Number(event.longitude ?? spot?.longitude);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
+        if (haversineKm(userPosition.lat, userPosition.lng, latitude, longitude) > milesToKm(distanceMiles)) return false;
+      }
+      return true;
+    });
+  }, [events, searchQuery, whenFilter, typeFilter, attendingOnly, distanceMiles, userPosition, allSpots]);
+
+  const activeFilterCount = [whenFilter !== 'all', typeFilter !== 'all', distanceMiles != null, attendingOnly].filter(Boolean).length;
+  const clearFilters = () => {
+    setWhenFilter('all');
+    setTypeFilter('all');
+    setDistanceMiles(null);
+    setAttendingOnly(false);
+    setSearchQuery('');
+  };
 
   const refresh = useCallback(async () => {
     const result = await fetchUpcomingEvents();
@@ -76,6 +141,21 @@ export default function EventHub({ allSpots = [], currentUser, showToast }) {
         ) : <Link to="/signin" className="text-xs font-extrabold text-accent-400">Sign in to host</Link>}
       </div>
 
+      <div className="mb-4 flex gap-2">
+        <label className="surface-input flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl px-3.5"><Search className="h-4 w-4 shrink-0 text-muted" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search shows or venues" className="min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted" /></label>
+        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className={`relative flex min-h-12 shrink-0 items-center gap-2 rounded-2xl border px-3.5 text-sm font-extrabold ${filtersOpen || activeFilterCount ? 'border-accent-500/30 bg-accent-500/10 text-accent-400' : 'border-[var(--border-subtle)] text-secondary'}`}><SlidersHorizontal className="h-4 w-4" /><span className="hidden sm:inline">Filters</span>{activeFilterCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent-500 px-1 text-[10px] font-black text-[#211603]">{activeFilterCount}</span>}</button>
+      </div>
+
+      {filtersOpen && <div className="surface-card mb-5 rounded-[1.55rem] p-4">
+        <div className="flex items-center justify-between gap-3"><p className="text-sm font-extrabold text-primary">Narrow the list</p>{(activeFilterCount > 0 || searchQuery) && <button type="button" onClick={clearFilters} className="text-xs font-extrabold text-accent-400">Clear all</button>}</div>
+        <div className="mt-4 space-y-4">
+          <div><p className="mb-2 text-xs font-bold text-muted">When</p><div className="flex flex-wrap gap-2">{[['all', 'Any date'], ['today', 'Today'], ['weekend', 'This weekend']].map(([value, label]) => <button key={value} type="button" onClick={() => setWhenFilter(value)} className={`rounded-full px-3 py-2 text-xs font-extrabold ${whenFilter === value ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.055] text-secondary'}`}>{whenFilter === value && <Check className="mr-1 inline h-3.5 w-3.5" />}{label}</button>)}</div></div>
+          <div><p className="mb-2 text-xs font-bold text-muted">Event type</p><div className="flex flex-wrap gap-2">{EVENT_TYPES.map(([value, label]) => <button key={value} type="button" onClick={() => setTypeFilter(value)} className={`rounded-full px-3 py-2 text-xs font-extrabold ${typeFilter === value ? 'bg-cyan-400 text-[#05222a]' : 'bg-white/[0.055] text-secondary'}`}>{label}</button>)}</div></div>
+          <div><p className="mb-2 text-xs font-bold text-muted">Distance</p><div className="flex flex-wrap gap-2">{[[null, 'Any distance'], [10, units === 'km' ? '16 km' : '10 mi'], [25, units === 'km' ? '40 km' : '25 mi'], [50, units === 'km' ? '80 km' : '50 mi']].map(([value, label]) => <button key={label} type="button" disabled={value != null && !userPosition} onClick={() => setDistanceMiles(value)} className={`rounded-full px-3 py-2 text-xs font-extrabold disabled:opacity-35 ${distanceMiles === value ? 'bg-cyan-400 text-[#05222a]' : 'bg-white/[0.055] text-secondary'}`}>{label}</button>)}</div>{!userPosition && <p className="mt-2 text-[11px] text-muted">Allow location access to filter by distance.</p>}</div>
+          {currentUser && <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white/[0.035] px-3.5 py-3 text-sm font-bold text-secondary"><span>Only events I’m attending</span><input type="checkbox" checked={attendingOnly} onChange={(event) => setAttendingOnly(event.target.checked)} className="h-5 w-5 accent-amber-400" /></label>}
+        </div>
+      </div>}
+
       {composerOpen && (
         <form onSubmit={submit} className="surface-card mb-5 rounded-[1.6rem] border-accent-500/25 p-4">
           <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">New meetup</p><h3 className="mt-1 text-lg font-extrabold text-primary">Host an event</h3></div><button type="button" onClick={() => setComposerOpen(false)} className="icon-button h-9 w-9 rounded-xl" aria-label="Close event form"><X className="h-4 w-4" /></button></div>
@@ -96,9 +176,11 @@ export default function EventHub({ allSpots = [], currentUser, showToast }) {
         <div className="surface-card rounded-[1.6rem] px-6 py-14 text-center"><CalendarDays className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-extrabold text-primary">Events aren’t ready yet</p><p className="mt-1 text-sm text-muted">{error}</p></div>
       ) : events.length === 0 ? (
         <div className="surface-card rounded-[1.6rem] px-6 py-14 text-center"><CalendarDays className="mx-auto h-8 w-8 text-accent-400" /><p className="mt-4 font-extrabold text-primary">No upcoming meetups</p><p className="mt-1 text-sm text-muted">Host the first shoot at one of your favorite spots.</p></div>
+      ) : visibleEvents.length === 0 ? (
+        <div className="surface-card rounded-[1.6rem] px-6 py-14 text-center"><Search className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-extrabold text-primary">No matching events</p><p className="mt-1 text-sm text-muted">Try widening the date, type, or distance.</p><button type="button" onClick={clearFilters} className="mt-4 text-sm font-extrabold text-accent-400">Clear filters</button></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {events.map((event) => {
+          {visibleEvents.map((event) => {
             const date = eventDate(event.startsAt);
             const spot = allSpots.find((item) => String(item.id) === String(event.spotId)) || event.spot;
             const full = event.maxAttendees && event.attendeeCount >= event.maxAttendees;

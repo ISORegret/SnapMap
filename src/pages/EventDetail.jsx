@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
+import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
 import { deleteEvent, fetchEvent, setEventRsvp, subscribeToEvents } from '../api/events';
 import { isCurrentUserAdmin } from '../api/moderation';
@@ -125,6 +126,8 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>
           {event.rsvps?.length ? <div className="mt-4 flex flex-wrap gap-2">{event.rsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-white/[0.045] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-accent-400" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div> : <p className="mt-3 text-sm text-muted">Be the first creator on the guest list.</p>}
         </section>
+
+        <EventDiscussion eventId={event.id} currentUser={currentUser} canManage={canManage} showToast={showToast} />
 
         {canManage && <button type="button" onClick={remove} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-extrabold text-rose-400 hover:bg-rose-400/10 disabled:opacity-50"><Trash2 className="h-4 w-4" />{event.listingType === 'listed' ? 'Delete listing' : 'Cancel event'}</button>}
       </main>

@@ -24,8 +24,8 @@ function matchesSearch(spot, q) {
 }
 
 export default function Explore({
-  allSpots,
-  favoriteIds,
+  allSpots = [],
+  favoriteIds = [],
   toggleFavorite,
   onDismissSpotError,
   userPosition: userPositionProp = null,
@@ -33,7 +33,7 @@ export default function Explore({
   units = 'mi',
   currentUser = null,
   showToast,
-}) {
+} = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
   const [viewMode, setViewMode] = useState(['feed', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed');
@@ -243,7 +243,7 @@ export default function Explore({
         {viewMode === 'feed' ? (
           <SpotFeed allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
         ) : viewMode === 'events' ? (
-          <EventHub allSpots={allSpots} currentUser={currentUser} showToast={showToast} />
+          <EventHub allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} units={units} showToast={showToast} />
         ) : viewMode === 'creators' ? (
           <section>
             <div className="mb-4 flex items-end justify-between gap-4">
