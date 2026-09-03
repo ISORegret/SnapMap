@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -159,6 +159,7 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
               {hasCoordinates && <Link to={`/?event=${event.id}&lat=${latitude}&lng=${longitude}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><MapPin className="h-4 w-4 text-accent-400" />View on map</Link>}
               {hasCoordinates && <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
+              {currentUser && <Link to={`/explore?view=events&duplicate=${event.id}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Copy className="h-4 w-4 text-accent-400" />Duplicate event</Link>}
             </div>
           </div>
         </section>

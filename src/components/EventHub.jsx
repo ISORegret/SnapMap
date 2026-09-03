@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Check, Clock3, MapPin, Plus, Search, SlidersHorizontal, Users, X } from 'lucide-react';
-import { createEvent, fetchUpcomingEvents, setEventRsvpStatus, subscribeToEvents } from '../api/events';
+import { createEventSeries, fetchUpcomingEvents, setEventRsvpStatus, subscribeToEvents } from '../api/events';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, milesToKm } from '../utils/geo';
 
@@ -41,14 +41,25 @@ function weekendRange(now = new Date()) {
   return { start, end };
 }
 
+function localDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+const EMPTY_FORM = { title: '', description: '', spotId: '', startsAt: '', endsAt: '', maxAttendees: '', eventType: 'meetup' };
+
 export default function EventHub({ allSpots = [], currentUser, userPosition = null, units = 'mi', showToast } = {}) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [composerOpen, setComposerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rsvpBusy, setRsvpBusy] = useState('');
-  const [form, setForm] = useState({ title: '', description: '', spotId: '', startsAt: '', maxAttendees: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [repeat, setRepeat] = useState('none');
+  const [occurrences, setOccurrences] = useState(4);
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [whenFilter, setWhenFilter] = useState('all');
@@ -101,6 +112,30 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
     return subscribeToEvents(refresh);
   }, [refresh]);
 
+  useEffect(() => {
+    const duplicateId = searchParams.get('duplicate');
+    if (!duplicateId || events.length === 0) return;
+    const source = events.find((item) => String(item.id) === duplicateId);
+    if (!source) return;
+    const nextStart = new Date(source.startsAt);
+    nextStart.setDate(nextStart.getDate() + 7);
+    const duration = source.endsAt ? new Date(source.endsAt).getTime() - new Date(source.startsAt).getTime() : null;
+    setForm({
+      title: source.title || '',
+      description: source.description || '',
+      spotId: source.spotId || '',
+      startsAt: localDateTime(nextStart),
+      endsAt: duration ? localDateTime(new Date(nextStart.getTime() + duration)) : '',
+      maxAttendees: source.maxAttendees || '',
+      eventType: source.eventType || 'meetup',
+    });
+    setRepeat('none');
+    setComposerOpen(true);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('duplicate');
+    setSearchParams(nextParams, { replace: true });
+  }, [events, searchParams, setSearchParams]);
+
   const submit = async (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.spotId || !form.startsAt) return;
@@ -109,16 +144,18 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
       return;
     }
     setSubmitting(true);
-    const result = await createEvent(form);
+    const result = await createEventSeries({ ...form, repeat, occurrences });
     setSubmitting(false);
     if (result.error) {
       showToast?.(result.error);
       return;
     }
-    setEvents((current) => [...current, result.event].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt)));
-    setForm({ title: '', description: '', spotId: '', startsAt: '', maxAttendees: '' });
+    setEvents((current) => [...current, ...result.events].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt)));
+    setForm(EMPTY_FORM);
+    setRepeat('none');
+    setOccurrences(4);
     setComposerOpen(false);
-    showToast?.('Event published.');
+    showToast?.(result.events.length > 1 ? `${result.events.length} events published.` : 'Event published.');
   };
 
   const chooseRsvp = async (event, selectedStatus) => {
@@ -166,12 +203,13 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
           <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">New meetup</p><h3 className="mt-1 text-lg font-extrabold text-primary">Host an event</h3></div><button type="button" onClick={() => setComposerOpen(false)} className="icon-button h-9 w-9 rounded-xl" aria-label="Close event form"><X className="h-4 w-4" /></button></div>
           <div className="mt-4 space-y-3">
             <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={100} required placeholder="Event name" className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm" />
-            <select value={form.spotId} onChange={(event) => setForm((current) => ({ ...current, spotId: event.target.value }))} required className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">Choose a SnapMap spot</option>{cloudSpots.map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}</select>
-            <label className="block text-xs font-bold text-muted">Date and time<input type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} required className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm text-primary" /></label>
+            <div className="grid grid-cols-2 gap-3"><select value={form.eventType} onChange={(event) => setForm((current) => ({ ...current, eventType: event.target.value }))} className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="meetup">Meetup</option><option value="car_show">Car show</option><option value="cruise_in">Cruise-in</option><option value="cars_and_coffee">Cars & coffee</option></select><select value={form.spotId} onChange={(event) => setForm((current) => ({ ...current, spotId: event.target.value }))} required className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">Choose a spot</option>{cloudSpots.map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}</select></div>
+            <div className="grid grid-cols-2 gap-3"><label className="block text-xs font-bold text-muted">Starts<input type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} required className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm text-primary" /></label><label className="block text-xs font-bold text-muted">Ends <span className="font-normal">(optional)</span><input type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm text-primary" /></label></div>
             <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={1200} rows={3} placeholder="What’s the plan? Add arrival details, what to bring, or the kind of shots you’re after." className="surface-input w-full resize-none rounded-2xl px-3.5 py-3 text-sm" />
             <label className="block text-xs font-bold text-muted">Attendance limit <span className="font-normal">(optional)</span><input type="number" min="2" max="500" value={form.maxAttendees} onChange={(event) => setForm((current) => ({ ...current, maxAttendees: event.target.value }))} placeholder="No limit" className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm" /></label>
+            <div className="rounded-2xl bg-white/[0.035] p-3"><p className="text-xs font-bold text-muted">Repeat</p><div className="mt-2 grid grid-cols-3 gap-2">{[['none', 'One time'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([value, label]) => <button key={value} type="button" onClick={() => setRepeat(value)} className={`rounded-xl px-2 py-2.5 text-xs font-extrabold ${repeat === value ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.05] text-secondary'}`}>{label}</button>)}</div>{repeat !== 'none' && <label className="mt-3 flex items-center justify-between gap-3 text-xs font-bold text-secondary"><span>Number of events</span><select value={occurrences} onChange={(event) => setOccurrences(Number(event.target.value))} className="surface-input rounded-xl px-3 py-2 text-sm">{Array.from({ length: 11 }, (_, index) => index + 2).map((count) => <option key={count} value={count}>{count}</option>)}</select></label>}</div>
           </div>
-          <button type="submit" disabled={submitting || !form.title.trim() || !form.spotId || !form.startsAt} className="primary-button mt-4 w-full py-3 text-sm disabled:opacity-50">{submitting ? 'Publishing…' : 'Publish event'}</button>
+          <button type="submit" disabled={submitting || !form.title.trim() || !form.spotId || !form.startsAt} className="primary-button mt-4 w-full py-3 text-sm disabled:opacity-50">{submitting ? 'Publishing…' : repeat === 'none' ? 'Publish event' : `Publish ${occurrences} events`}</button>
         </form>
       )}
 

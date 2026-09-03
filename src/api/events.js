@@ -90,22 +90,52 @@ export async function fetchEvent(eventId) {
   return { event: normalizeEvent(data, userId), error: null };
 }
 
-export async function createEvent({ title, description = '', spotId, startsAt, endsAt = null, maxAttendees = null }) {
+function repeatDate(value, index, repeat) {
+  const date = new Date(value);
+  if (!index || repeat === 'none') return date;
+  if (repeat === 'weekly') {
+    date.setDate(date.getDate() + (7 * index));
+    return date;
+  }
+  const originalDay = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + index);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(originalDay, lastDay));
+  return date;
+}
+
+export async function createEventSeries({ title, description = '', spotId, startsAt, endsAt = null, maxAttendees = null, eventType = 'meetup', repeat = 'none', occurrences = 1 }) {
   if (!hasSupabase) return { event: null, error: 'Events need cloud sync.' };
   const userId = await currentUserId();
   if (!userId) return { event: null, error: 'Sign in to host an event.' };
-  const payload = {
-    host_id: userId,
-    spot_id: spotId,
-    title: String(title || '').trim().slice(0, 100),
-    description: String(description || '').trim().slice(0, 1200),
-    starts_at: new Date(startsAt).toISOString(),
-    ends_at: endsAt ? new Date(endsAt).toISOString() : null,
-    max_attendees: maxAttendees ? Number(maxAttendees) : null,
-  };
-  const { data, error } = await supabase.from('events').insert(payload).select(EVENT_SELECT).single();
-  if (error || !data) return { event: null, error: error?.code === '42P01' || error?.code === 'PGRST205' ? 'Apply migration 032 before creating events.' : (error?.message || 'Could not create event.') };
-  return { event: normalizeEvent(data, userId), error: null };
+  const count = repeat === 'none' ? 1 : Math.min(12, Math.max(2, Number(occurrences) || 2));
+  const validRepeat = ['none', 'weekly', 'monthly'].includes(repeat) ? repeat : 'none';
+  const start = new Date(startsAt);
+  const end = endsAt ? new Date(endsAt) : null;
+  if (Number.isNaN(start.getTime()) || (end && (Number.isNaN(end.getTime()) || end <= start))) return { events: [], event: null, error: 'Choose a valid event time.' };
+  const duration = end ? end.getTime() - start.getTime() : null;
+  const payloads = Array.from({ length: count }, (_, index) => {
+    const occurrenceStart = repeatDate(start, index, validRepeat);
+    return {
+      host_id: userId,
+      spot_id: spotId,
+      title: String(title || '').trim().slice(0, 100),
+      description: String(description || '').trim().slice(0, 1200),
+      starts_at: occurrenceStart.toISOString(),
+      ends_at: duration == null ? null : new Date(occurrenceStart.getTime() + duration).toISOString(),
+      max_attendees: maxAttendees ? Number(maxAttendees) : null,
+      event_type: ['car_show', 'cruise_in', 'cars_and_coffee', 'meetup'].includes(eventType) ? eventType : 'meetup',
+    };
+  });
+  const { data, error } = await supabase.from('events').insert(payloads).select(EVENT_SELECT);
+  if (error || !data?.length) return { events: [], event: null, error: error?.code === '42P01' || error?.code === 'PGRST205' ? 'Apply migration 032 before creating events.' : (error?.message || 'Could not create event.') };
+  const events = data.map((item) => normalizeEvent(item, userId));
+  return { events, event: events[0], error: null };
+}
+
+export async function createEvent(payload) {
+  return createEventSeries({ ...payload, repeat: 'none', occurrences: 1 });
 }
 
 export async function updateEvent(eventId, updates) {
