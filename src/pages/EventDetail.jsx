@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, Bell, BellOff, CalendarDays, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, ShieldCheck, Trash2, User, Users, X } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Bell, BellOff, CalendarDays, Camera, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, ShieldCheck, Trash2, User, Users, X } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -12,6 +12,7 @@ import { fetchEventReminder, setEventReminder } from '../api/eventReminders';
 import { checkInToEvent, fetchEventCheckIns, leaveEventCheckIn, subscribeToEventCheckIns } from '../api/eventCheckIns';
 import { reportEvent } from '../api/eventReports';
 import { fetchMyEventClaim, submitEventClaim } from '../api/eventClaims';
+import { fetchPosts, subscribeToFeed } from '../api/posts';
 
 function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -41,6 +42,7 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
   const [claimContact, setClaimContact] = useState('');
   const [claimProof, setClaimProof] = useState('');
   const [claimBusy, setClaimBusy] = useState(false);
+  const [eventPosts, setEventPosts] = useState([]);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -85,6 +87,15 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
     fetchMyEventClaim(event.id).then((value) => { if (active) setClaim(value); });
     return () => { active = false; };
   }, [currentUser?.id, event?.id, event?.listingType]);
+
+  useEffect(() => {
+    if (!id) return undefined;
+    let active = true;
+    const refreshGallery = () => fetchPosts({ eventId: id, limit: 60 }).then((items) => { if (active) setEventPosts(items); });
+    refreshGallery();
+    const unsubscribe = subscribeToFeed(refreshGallery);
+    return () => { active = false; unsubscribe(); };
+  }, [id]);
 
   const spot = useMemo(() => {
     if (!event) return null;
@@ -210,6 +221,7 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
   const checkInClosesAt = (event.endsAt ? new Date(event.endsAt).getTime() : new Date(event.startsAt).getTime() + (8 * 60 * 60 * 1000)) + (60 * 60 * 1000);
   const checkInOpen = now >= checkInOpensAt && now <= checkInClosesAt;
   const checkedIn = Boolean(currentUser && checkIns.some((item) => item.userId === currentUser.id));
+  const eventPhotos = eventPosts.flatMap((post) => (post.images || []).map((image) => ({ ...image, post })));
 
   return (
     <div className="page-shell pb-36 animate-fade-in">
@@ -279,6 +291,11 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going · {event.interestedCount || 0} interested</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>
           {goingRsvps.length ? <div className="mt-4"><p className="mb-2 text-[11px] font-black uppercase tracking-wider text-emerald-400">Going</p><div className="flex flex-wrap gap-2">{goingRsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-emerald-400/[0.07] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-accent-400" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div></div> : <p className="mt-3 text-sm text-muted">No confirmed attendees yet.</p>}
           {interestedRsvps.length > 0 && <div className="mt-4"><p className="mb-2 text-[11px] font-black uppercase tracking-wider text-cyan-300">Interested</p><div className="flex flex-wrap gap-2">{interestedRsvps.slice(0, 20).map((rsvp) => <Link key={rsvp.user_id} to={rsvp.profile?.username ? `/user/${rsvp.profile.username}` : '#'} className="flex items-center gap-2 rounded-full bg-cyan-400/[0.07] py-1.5 pl-1.5 pr-3 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-cyan-400/15">{rsvp.profile?.avatar_url ? <img src={rsvp.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5 text-cyan-300" />}</span>{rsvp.profile?.display_name || rsvp.profile?.username || 'Creator'}</Link>)}</div></div>}
+        </section>
+
+        <section className="surface-card mt-4 rounded-[1.75rem] p-5">
+          <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Community coverage</p><h2 className="mt-1 text-lg font-extrabold text-primary">Event gallery</h2><p className="mt-1 text-xs text-muted">{eventPhotos.length ? `${eventPhotos.length} photo${eventPhotos.length === 1 ? '' : 's'} from ${eventPosts.length} creator post${eventPosts.length === 1 ? '' : 's'}` : 'No event photos have been shared yet.'}</p></div>{currentUser && <Link to={`/explore?compose=1&event=${event.id}`} className="primary-button shrink-0 px-3.5 py-2.5 text-xs"><Camera className="h-4 w-4" />Add photos</Link>}</div>
+          {eventPhotos.length > 0 ? <div className="mt-4 grid grid-cols-3 gap-1.5 sm:grid-cols-4">{eventPhotos.slice(0, 32).map((photo) => <Link key={photo.id} to={`/explore?post=${photo.post.id}`} className="group relative aspect-square overflow-hidden rounded-xl bg-black"><img src={photo.public_url} alt={`Photo by ${photo.post.author?.display_name || photo.post.author?.username || 'creator'}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /><span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-5 text-[9px] font-bold text-white">{photo.post.author?.display_name || photo.post.author?.username || 'Creator'}</span></Link>)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[var(--border-strong)] px-5 py-8 text-center"><Camera className="mx-auto h-8 w-8 text-accent-400" /><p className="mt-3 text-sm font-extrabold text-primary">Start this event’s gallery</p><p className="mt-1 text-xs text-muted">Tag the event when posting your photos.</p></div>}
         </section>
 
         <EventDiscussion eventId={event.id} currentUser={currentUser} canManage={canManage} showToast={showToast} />

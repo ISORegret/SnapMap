@@ -3,13 +3,18 @@ import { getFriendConnections } from './follows';
 import { getBlockedUserIds } from './safety';
 
 const POST_SELECT = `
-  id, user_id, spot_id, caption, location_name, latitude, longitude, location_precision, created_at, updated_at,
+  id, user_id, spot_id, event_id, caption, location_name, latitude, longitude, location_precision, created_at, updated_at,
   author:profiles!posts_user_id_fkey(id, username, display_name, avatar_url),
   spot:spots(id, name, address),
+  event:events!posts_event_id_fkey(id, title, starts_at, venue_name, cover_image_url),
   images:post_images(id, public_url, storage_path, position, width, height),
   likes:post_likes(user_id),
   comments:post_comments(id, body, user_id, created_at, author:profiles!post_comments_user_id_fkey(id, username, display_name, avatar_url))
 `;
+
+const POST_SELECT_LEGACY = POST_SELECT
+  .replace('spot_id, event_id, caption', 'spot_id, caption')
+  .replace('  event:events!posts_event_id_fkey(id, title, starts_at, venue_name, cover_image_url),\n', '');
 
 function normalizePost(post, currentUserId = null) {
   const images = [...(post.images || [])].sort((a, b) => a.position - b.position);
@@ -18,6 +23,7 @@ function normalizePost(post, currentUserId = null) {
     ...post,
     userId: post.user_id,
     spotId: post.spot_id,
+    eventId: post.event_id,
     locationName: post.location_name,
     locationPrecision: post.location_precision,
     createdAt: post.created_at,
@@ -28,12 +34,18 @@ function normalizePost(post, currentUserId = null) {
   };
 }
 
-export async function fetchPosts({ mode = 'newest', profileId = null, limit = 40 } = {}) {
+export async function fetchPosts({ mode = 'newest', profileId = null, eventId = null, limit = 40 } = {}) {
   if (!hasSupabase) return [];
   const { data: { user } } = await supabase.auth.getUser();
   let query = supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(Math.min(Math.max(limit, 1), 75));
   if (profileId) query = query.eq('user_id', profileId);
-  const { data, error } = await query;
+  if (eventId) query = query.eq('event_id', eventId);
+  let { data, error } = await query;
+  if (error && !eventId && ['42703', 'PGRST200', 'PGRST204'].includes(error.code)) {
+    let legacyQuery = supabase.from('posts').select(POST_SELECT_LEGACY).order('created_at', { ascending: false }).limit(Math.min(Math.max(limit, 1), 75));
+    if (profileId) legacyQuery = legacyQuery.eq('user_id', profileId);
+    ({ data, error } = await legacyQuery);
+  }
   if (error) {
     console.warn('SnapMap: feed fetch failed', error);
     return [];
@@ -113,7 +125,7 @@ export async function compressPostImage(file) {
   }
 }
 
-export async function createPost({ caption = '', locationName, latitude = null, longitude = null, locationPrecision = 'exact', spotId = null, images = [] }) {
+export async function createPost({ caption = '', locationName, latitude = null, longitude = null, locationPrecision = 'exact', spotId = null, eventId = null, images = [] }) {
   if (!hasSupabase || !images.length || !locationName?.trim()) return { post: null, error: 'Add a photo and location.' };
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { post: null, error: 'Sign in to post.' };
@@ -121,7 +133,7 @@ export async function createPost({ caption = '', locationName, latitude = null, 
   // Approximate posts never send exact coordinates to the database.
   const storedLatitude = latitude == null ? null : (isApproximate ? Math.round(latitude * 100) / 100 : latitude);
   const storedLongitude = longitude == null ? null : (isApproximate ? Math.round(longitude * 100) / 100 : longitude);
-  const { data: post, error } = await supabase.from('posts').insert({
+  const postPayload = {
     user_id: user.id,
     spot_id: spotId || null,
     caption: String(caption).trim().slice(0, 2200),
@@ -129,7 +141,9 @@ export async function createPost({ caption = '', locationName, latitude = null, 
     latitude: storedLatitude,
     longitude: storedLongitude,
     location_precision: isApproximate ? 'approximate' : 'exact',
-  }).select('id').single();
+  };
+  if (eventId) postPayload.event_id = eventId;
+  const { data: post, error } = await supabase.from('posts').insert(postPayload).select('id').single();
   if (error || !post) return { post: null, error: error?.message || 'Could not create post.' };
 
   const uploadedPaths = [];
@@ -146,7 +160,10 @@ export async function createPost({ caption = '', locationName, latitude = null, 
     }
     const { error: imageError } = await supabase.from('post_images').insert(rows);
     if (imageError) throw imageError;
-    const { data: created, error: fetchError } = await supabase.from('posts').select(POST_SELECT).eq('id', post.id).single();
+    let { data: created, error: fetchError } = await supabase.from('posts').select(POST_SELECT).eq('id', post.id).single();
+    if (fetchError && !eventId && ['42703', 'PGRST200', 'PGRST204'].includes(fetchError.code)) {
+      ({ data: created, error: fetchError } = await supabase.from('posts').select(POST_SELECT_LEGACY).eq('id', post.id).single());
+    }
     if (fetchError) throw fetchError;
     return { post: normalizePost(created, user.id), error: null };
   } catch (uploadError) {
