@@ -37,6 +37,7 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Admin from './pages/Admin';
 import EventDetail from './pages/EventDetail';
+import RoutePlanner from './pages/RoutePlanner';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -740,6 +741,7 @@ export default function App() {
           <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
           <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />
           <Route path="/event/:id" element={<EventDetail allSpots={allSpots} currentUser={currentUser} showToast={showToast} />} />
+          <Route path="/route" element={<RoutePlanner allSpots={allSpots} favoriteIds={favoriteIds} collections={collections} userPosition={userPosition} requestPosition={requestPosition} units={units} />} />
           <Route
             path="/saved"
             element={

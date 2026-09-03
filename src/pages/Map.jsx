@@ -12,7 +12,7 @@ import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 import DirectionsLauncher from '../components/DirectionsLauncher';
-import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
+import { appleDirectionsUrl, appleMultiStopDirectionsUrl, googleDirectionsUrl, googleMultiStopDirectionsUrl } from '../utils/mapNavigation';
 import { fetchUpcomingEvents, subscribeToEvents } from '../api/events';
 
 import 'leaflet/dist/leaflet.css';
@@ -303,6 +303,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routeIds = useMemo(() => (searchParams.get('route') || '').split(',').map((id) => id.trim()).filter(Boolean), [searchParams]);
+  const routeStartMode = searchParams.get('start') === 'first' ? 'first' : 'current';
   const queryLatitude = searchParams.has('lat') ? Number(searchParams.get('lat')) : null;
   const queryLongitude = searchParams.has('lng') ? Number(searchParams.get('lng')) : null;
   const hasQueryLocation = isValidCoordinate(queryLatitude, queryLongitude);
@@ -492,6 +493,11 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const validSpots = useMemo(() => allSpots.filter((spot) => isValidCoordinate(spot.latitude, spot.longitude)), [allSpots]);
   const routeSpots = useMemo(() => routeIds.map((id) => validSpots.find((spot) => String(spot.id) === id)).filter(Boolean), [routeIds, validSpots]);
   const routeSpotIds = useMemo(() => new Set(routeSpots.map((spot) => String(spot.id))), [routeSpots]);
+  const routeStartsAtFirst = routeStartMode === 'first' && routeSpots.length > 1;
+  const routeNavigationStops = routeStartsAtFirst ? routeSpots.slice(1) : routeSpots;
+  const routeOrigin = routeStartsAtFirst ? routeSpots[0] : userPosition;
+  const routeGoogleUrl = googleMultiStopDirectionsUrl(routeNavigationStops, routeOrigin);
+  const routeAppleUrl = appleMultiStopDirectionsUrl(routeNavigationStops, routeOrigin);
   const byFilter = useMemo(() => applyFilter(validSpots, filter), [validSpots, filter]);
   const filteredSpots = useMemo(
     () => applyDistanceFilter(byFilter, userPosition, distanceFilterMi),
@@ -770,7 +776,9 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       {routeSpots.length > 0 && (
         <div className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-xs font-extrabold text-primary shadow-xl">
           <Route className="h-4 w-4 text-accent-400" />{routeSpots.length} stop route
-          <Link to="/" replace className="text-accent-400">Exit</Link>
+          <DirectionsLauncher googleUrl={routeGoogleUrl} appleUrl={routeAppleUrl} title="Start this route" googleDescription="Open all route stops in Google Maps" appleDescription="Open all route stops in Apple Maps" className="text-emerald-400">Navigate</DirectionsLauncher>
+          <Link to={`/route?ids=${routeSpots.map((spot) => spot.id).join(',')}&start=${routeStartsAtFirst ? 'first' : 'current'}`} className="text-accent-400">Edit</Link>
+          <Link to="/" replace className="text-muted">Exit</Link>
         </div>
       )}
 

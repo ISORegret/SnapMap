@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone as Route, ArrowUp, ArrowDown, Sparkles, Navigation, Share2, X } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone } from 'lucide-react';
 import { getSpotPrimaryImage } from '../utils/spotImages';
-import { haversineKm, kmToMi } from '../utils/geo';
-import DirectionsLauncher from '../components/DirectionsLauncher';
-import { appleDirectionsUrl } from '../utils/mapNavigation';
 
 function generateSyncCode() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -110,140 +107,14 @@ function exportJSON(spots) {
   );
 }
 
-function validRouteSpot(spot) {
-  const lat = Number(spot?.latitude);
-  const lng = Number(spot?.longitude);
-  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0);
-}
-
-function routeDistanceKm(spots, start = null) {
-  if (!spots.length) return 0;
-  let total = start ? haversineKm(start.lat, start.lng, spots[0].latitude, spots[0].longitude) : 0;
-  for (let index = 1; index < spots.length; index += 1) {
-    total += haversineKm(spots[index - 1].latitude, spots[index - 1].longitude, spots[index].latitude, spots[index].longitude);
-  }
-  return total;
-}
-
-function optimizeSpots(spots, start = null) {
-  if (spots.length < 3) return spots;
-  const remaining = [...spots];
-  const ordered = [];
-  let current = start || { lat: remaining[0].latitude, lng: remaining[0].longitude };
-  if (!start) ordered.push(remaining.shift());
-  while (remaining.length) {
-    let nearestIndex = 0;
-    let nearestDistance = Infinity;
-    remaining.forEach((spot, index) => {
-      const distance = haversineKm(current.lat, current.lng, spot.latitude, spot.longitude);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-    });
-    const [next] = remaining.splice(nearestIndex, 1);
-    ordered.push(next);
-    current = { lat: next.latitude, lng: next.longitude };
-  }
-  return ordered;
-}
-
-function googleRouteUrl(spots, start = null) {
-  if (!spots.length) return null;
-  const coordinate = (spot) => `${spot.latitude},${spot.longitude}`;
-  const destination = coordinate(spots[spots.length - 1]);
-  const origin = start ? `${start.lat},${start.lng}` : coordinate(spots[0]);
-  const waypoints = (start ? spots.slice(0, -1) : spots.slice(1, -1)).map(coordinate).join('|');
-  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ''}&travelmode=driving`;
-}
-
-function appleRouteUrl(spots) {
-  if (!spots.length) return null;
-  return appleDirectionsUrl(spots[0].latitude, spots[0].longitude);
-}
-
-function RoutePlanner({ collection, spots, reorderCollectionSpots, removeFromCollection, userPosition, requestPosition, units, onClose }) {
-  const [optimizing, setOptimizing] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const routeSpots = spots.filter(validRouteSpot);
-  const distanceKm = routeDistanceKm(routeSpots, userPosition);
-  const distanceLabel = units === 'km' ? `${distanceKm.toFixed(1)} km` : `${kmToMi(distanceKm).toFixed(1)} mi`;
-  const routeIds = routeSpots.map((spot) => spot.id);
-  const moveStop = (index, direction) => {
-    const next = [...routeIds];
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    reorderCollectionSpots(collection.id, [...next, ...collection.spotIds.filter((id) => !next.includes(id))]);
-  };
-  const optimize = async () => {
-    setOptimizing(true);
-    const start = userPosition || await requestPosition?.();
-    const ordered = optimizeSpots(routeSpots, start || null);
-    const optimizedIds = ordered.map((spot) => spot.id);
-    reorderCollectionSpots(collection.id, [...optimizedIds, ...collection.spotIds.filter((id) => !optimizedIds.includes(id))]);
-    setOptimizing(false);
-  };
-  const shareRoute = () => {
-    const base = `${window.location.origin}${window.location.pathname || ''}#/saved`;
-    navigator.clipboard.writeText(`${base}?ids=${routeIds.join(',')}&route=1`).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    });
-  };
-  return (
-    <div className="mt-3 overflow-hidden rounded-[1.5rem] border border-accent-500/25 bg-accent-500/[0.045]">
-      <div className="flex items-start justify-between gap-3 p-4">
-        <div>
-          <p className="eyebrow">Shoot route</p>
-          <h3 className="mt-1 text-lg font-extrabold text-primary">{collection.name}</h3>
-          <p className="mt-1 text-xs text-muted">{routeSpots.length} stops · about {distanceLabel} point to point</p>
-        </div>
-        <button type="button" onClick={onClose} className="icon-button h-9 w-9 rounded-xl" aria-label="Close route planner"><X className="h-4 w-4" /></button>
-      </div>
-
-      {routeSpots.length === 0 ? (
-        <p className="px-4 pb-5 text-sm text-muted">Add at least one location to this list before planning a route.</p>
-      ) : (
-        <>
-          <ol className="space-y-2 px-4">
-            {routeSpots.map((spot, index) => (
-              <li key={spot.id} className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-black/10 p-2.5">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-500 text-xs font-black text-[#211603]">{index + 1}</span>
-                <Link to={`/spot/${spot.id}`} className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-primary">{spot.name}</p>
-                  <p className="truncate text-xs text-muted">{spot.address || `${Number(spot.latitude).toFixed(3)}, ${Number(spot.longitude).toFixed(3)}`}</p>
-                </Link>
-                <div className="flex shrink-0 items-center">
-                  <button type="button" onClick={() => moveStop(index, -1)} disabled={index === 0} className="rounded-lg p-2 text-secondary hover:bg-white/5 disabled:opacity-20" aria-label={`Move ${spot.name} earlier`}><ArrowUp className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => moveStop(index, 1)} disabled={index === routeSpots.length - 1} className="rounded-lg p-2 text-secondary hover:bg-white/5 disabled:opacity-20" aria-label={`Move ${spot.name} later`}><ArrowDown className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => removeFromCollection(collection.id, spot.id)} className="rounded-lg p-2 text-muted hover:bg-rose-400/10 hover:text-rose-400" aria-label={`Remove ${spot.name} from route`}><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="grid grid-cols-2 gap-2 p-4">
-            <button type="button" onClick={optimize} disabled={optimizing || routeSpots.length < 2} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary disabled:opacity-40"><Sparkles className="h-4 w-4 text-accent-400" />{optimizing ? 'Optimizing…' : 'Optimize order'}</button>
-            <Link to={`/?route=${encodeURIComponent(routeIds.join(','))}`} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><MapPin className="h-4 w-4 text-accent-400" />Preview map</Link>
-            <DirectionsLauncher googleUrl={googleRouteUrl(routeSpots, userPosition)} appleUrl={appleRouteUrl(routeSpots)} title="Start shoot route" googleDescription={`Open all ${routeSpots.length} ordered stops`} appleDescription="Navigate to stop 1" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</DirectionsLauncher>
-            <button type="button" onClick={shareRoute} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><Share2 className="h-4 w-4" />{copied ? 'Copied' : 'Share route'}</button>
-          </div>
-          <p className="px-4 pb-4 text-[11px] leading-relaxed text-muted">Distance is a quick estimate. Google Maps opens the full route; Apple Maps opens the next stop.</p>
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function Saved({
-  allSpots,
-  favoriteIds,
+  allSpots = [],
+  favoriteIds = [],
   toggleFavorite,
   collections = [],
   createCollection,
   deleteCollection,
   removeFromCollection,
-  reorderCollectionSpots,
   onDismissSpotError,
   syncCode = '',
   effectiveSyncCode,
@@ -255,13 +126,9 @@ export default function Saved({
   hasSupabase = false,
   theme = 'dark',
   setTheme,
-  units = 'mi',
-  userPosition = null,
-  requestPosition,
-}) {
+} = {}) {
   const [searchParams] = useSearchParams();
   const idsParam = searchParams.get('ids');
-  const isSharedRoute = searchParams.get('route') === '1';
   const [enterCodeValue, setEnterCodeValue] = useState('');
   const [codeCopied, setCodeCopied] = useState(false);
   const sharedIds = useMemo(
@@ -274,10 +141,9 @@ export default function Saved({
   const [importCodeValue, setImportCodeValue] = useState('');
   const [importing, setImporting] = useState(false);
   const [importDone, setImportDone] = useState(false);
-  const [planningCollectionId, setPlanningCollectionId] = useState(null);
   const savedSpots = useMemo(() => {
     if (sharedIds?.length) {
-      return sharedIds.map((id) => allSpots.find((spot) => spot.id === id)).filter(Boolean);
+      return allSpots.filter((s) => sharedIds.includes(s.id));
     }
     return allSpots.filter((s) => favoriteIds.includes(s.id));
   }, [allSpots, favoriteIds, sharedIds]);
@@ -297,10 +163,7 @@ export default function Saved({
   const totalInCollections = otherCollections.reduce((acc, c) => acc + c.spotIds.length, 0);
   const hasAny = savedSpots.length > 0 || totalInCollections > 0;
   const getSpotsForCollection = (coll) =>
-    allSpots
-      .filter((spot) => coll.spotIds.includes(spot.id))
-      .sort((a, b) => coll.spotIds.indexOf(a.id) - coll.spotIds.indexOf(b.id))
-      .filter((spot) => matchesSearch(spot, searchQuery));
+    allSpots.filter((s) => coll.spotIds.includes(s.id)).filter((s) => matchesSearch(s, searchQuery));
 
   return (
     <div className="page-shell pb-24 animate-fade-in">
@@ -329,6 +192,12 @@ export default function Saved({
           )}
         </div>
       </header>
+
+      {!sharedIds?.length && savedSpots.length > 0 && (
+        <div className="px-4 pt-5">
+          <Link to="/route" className="primary-button min-h-12 w-full text-sm"><Milestone className="h-4 w-4" />Plan a route</Link>
+        </div>
+      )}
 
       {!sharedIds?.length && (
         <>
@@ -543,17 +412,6 @@ export default function Saved({
 
       {sharedIds?.length ? (
         <div className="px-4 pt-4">
-          {isSharedRoute && savedSpots.filter(validRouteSpot).length > 0 && (
-            <div className="mb-4 rounded-[1.5rem] border border-accent-500/25 bg-accent-500/[0.05] p-4">
-              <p className="eyebrow">Shared shoot route</p>
-              <p className="mt-1 text-sm font-bold text-primary">{savedSpots.filter(validRouteSpot).length} ordered stops</p>
-              <p className="mt-1 text-xs text-muted">About {units === 'km' ? `${routeDistanceKm(savedSpots.filter(validRouteSpot), userPosition).toFixed(1)} km` : `${kmToMi(routeDistanceKm(savedSpots.filter(validRouteSpot), userPosition)).toFixed(1)} mi`} point to point</p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link to={`/?route=${encodeURIComponent(savedSpots.filter(validRouteSpot).map((spot) => spot.id).join(','))}`} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] px-3 text-sm font-extrabold text-primary"><MapPin className="h-4 w-4 text-accent-400" />Preview map</Link>
-                <DirectionsLauncher googleUrl={googleRouteUrl(savedSpots.filter(validRouteSpot), userPosition)} appleUrl={appleRouteUrl(savedSpots.filter(validRouteSpot))} title="Start shared route" googleDescription={`Open all ${savedSpots.filter(validRouteSpot).length} ordered stops`} appleDescription="Navigate to stop 1" className="primary-button min-h-11 px-3 text-sm"><Navigation className="h-4 w-4" />Start route</DirectionsLauncher>
-              </div>
-            </div>
-          )}
           {savedSpotsFiltered.length === 0 ? (
             <p className="text-sm text-slate-500">No spots in this shared list.</p>
           ) : (
@@ -577,9 +435,7 @@ export default function Saved({
         <div className="px-4 pt-4 space-y-6">
           {/* Favorites */}
           <section>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Favorites
-            </h2>
+            <div className="mb-2 flex items-center justify-between gap-3"><h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Favorites</h2>{savedSpotsFiltered.length > 0 && <Link to={`/route?ids=${savedSpotsFiltered.slice(0, 4).map((spot) => spot.id).join(',')}`} className="flex items-center gap-1 text-xs font-extrabold text-accent-400"><Milestone className="h-3.5 w-3.5" />Route these</Link>}</div>
             {savedSpotsFiltered.length === 0 ? (
               <p className="text-sm text-slate-600">
                 {savedSpots.length === 0 ? 'No favorites yet — heart a spot to add it.' : 'No favorites match your search.'}
@@ -604,32 +460,8 @@ export default function Saved({
                   <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {coll.name}
                   </h2>
-                  <div className="flex items-center gap-1">
-                  {coll.spotIds.length > 0 && <button type="button" onClick={() => setPlanningCollectionId((id) => id === coll.id ? null : coll.id)} className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold ${planningCollectionId === coll.id ? 'bg-accent-500 text-[#211603]' : 'bg-accent-500/10 text-accent-400'}`}><Route className="h-3.5 w-3.5" />Plan route</button>}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(`Delete “${coll.name}”? The spots will stay in SnapMap.`)) deleteCollection(coll.id);
-                    }}
-                    className="rounded p-1 text-slate-500 hover:bg-white/5 hover:text-red-400"
-                    aria-label={`Delete ${coll.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  </div>
+                  <div className="flex items-center gap-2">{spots.length > 0 && <Link to={`/route?ids=${spots.slice(0, 4).map((spot) => spot.id).join(',')}`} className="flex items-center gap-1 text-xs font-extrabold text-accent-400"><Milestone className="h-3.5 w-3.5" />Route</Link>}<button type="button" onClick={() => { if (window.confirm(`Delete “${coll.name}”? The spots will stay in SnapMap.`)) deleteCollection(coll.id); }} className="rounded p-1 text-slate-500 hover:bg-white/5 hover:text-red-400" aria-label={`Delete ${coll.name}`}><Trash2 className="h-4 w-4" /></button></div>
                 </div>
-                {planningCollectionId === coll.id && (
-                  <RoutePlanner
-                    collection={coll}
-                    spots={allSpots.filter((spot) => coll.spotIds.includes(spot.id)).sort((a, b) => coll.spotIds.indexOf(a.id) - coll.spotIds.indexOf(b.id))}
-                    reorderCollectionSpots={reorderCollectionSpots}
-                    removeFromCollection={removeFromCollection}
-                    userPosition={userPosition}
-                    requestPosition={requestPosition}
-                    units={units}
-                    onClose={() => setPlanningCollectionId(null)}
-                  />
-                )}
                 {spots.length === 0 ? (
                   <p className="text-sm text-slate-600">
                     {coll.spotIds.length === 0 ? 'No spots — add from a spot page (Add to list).' : 'No spots in this list match your search.'}

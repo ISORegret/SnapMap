@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera, Activity, CheckCircle2, AlertTriangle, Clock3 } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { toPng } from 'html-to-image';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
@@ -11,7 +11,6 @@ import { getSpotRating, getUserRating, setSpotRating } from '../api/ratings';
 import { getDeviceId } from '../data/spotStore';
 import { hasSupabase, supabase } from '../api/supabase';
 import { getBlockedUserIds, reportComment } from '../api/safety';
-import { SPOT_CONDITIONS, checkInNow, fetchSpotActivity, shareSpotCondition, subscribeToSpotActivity } from '../api/spotActivity';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 
@@ -196,20 +195,6 @@ function photoByLabel(profile) {
   return 'You';
 }
 
-function relativeActivityTime(value) {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
-}
-
-function activityAuthor(activity) {
-  return activity?.author?.display_name?.trim()
-    || activity?.author?.username?.trim()
-    || 'A creator';
-}
-
 export default function SpotDetail({
   getSpotById,
   isUserSpot,
@@ -253,12 +238,6 @@ export default function SpotDetail({
   const [rating, setRating] = useState({ average: 0, count: 0 });
   const [userRating, setUserRating] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
-  const [liveActivity, setLiveActivity] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [activityError, setActivityError] = useState('');
-  const [conditionOpen, setConditionOpen] = useState(false);
-  const [selectedCondition, setSelectedCondition] = useState('clear');
-  const [conditionNote, setConditionNote] = useState('');
   const addPhotoInputRef = useRef(null);
   const shareCardRef = useRef(null);
   const conditionsRef = useRef(null);
@@ -288,20 +267,6 @@ export default function SpotDetail({
       }
     });
     return () => { cancelled = true; };
-  }, [spot?.id]);
-
-  useEffect(() => {
-    if (!spot?.id || !hasSupabase || String(spot.id).startsWith('user-')) return;
-    let cancelled = false;
-    const refresh = () => fetchSpotActivity(spot.id).then((items) => {
-      if (!cancelled) setLiveActivity(items);
-    });
-    refresh();
-    const unsubscribe = subscribeToSpotActivity(spot.id, refresh);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
   }, [spot?.id]);
 
   useEffect(() => {
@@ -370,8 +335,8 @@ export default function SpotDetail({
   }
 
   const { latitude, longitude } = spot;
-  const googleMapsUrl = googleDirectionsUrl(latitude, longitude);
-  const appleMapsUrl = appleDirectionsUrl(latitude, longitude);
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  const appleMapsUrl = `https://maps.apple.com/?q=${latitude},${longitude}`;
   const wazeUrl = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
   const otherCollections = collections.filter((c) => c.id !== 'favorites');
   const isInCollection = (collId) => collections.find((c) => c.id === collId)?.spotIds?.includes(spot.id) ?? false;
@@ -532,35 +497,6 @@ export default function SpotDetail({
   };
 
   const canReport = spot.id && !String(spot.id).startsWith('user-');
-
-  const activeCheckIns = liveActivity.filter((item) => item.activityType === 'check_in');
-  const latestCondition = liveActivity.find((item) => item.activityType === 'condition') || null;
-  const viewerIsCheckedIn = Boolean(currentUser?.id && activeCheckIns.some((item) => item.userId === currentUser.id));
-
-  const submitLiveCheckIn = async () => {
-    if (!currentUser || activityLoading) return;
-    setActivityLoading(true);
-    setActivityError('');
-    const result = await checkInNow(spot.id);
-    setActivityLoading(false);
-    if (result.error) setActivityError(result.error);
-    else setLiveActivity(await fetchSpotActivity(spot.id));
-  };
-
-  const submitCondition = async () => {
-    if (!currentUser || activityLoading) return;
-    setActivityLoading(true);
-    setActivityError('');
-    const result = await shareSpotCondition(spot.id, selectedCondition, conditionNote);
-    setActivityLoading(false);
-    if (result.error) {
-      setActivityError(result.error);
-      return;
-    }
-    setConditionNote('');
-    setConditionOpen(false);
-    setLiveActivity(await fetchSpotActivity(spot.id));
-  };
 
   const addNote = async () => {
     if (!canAddNotes || !noteText.trim() || noteSubmitting) return;
@@ -761,86 +697,6 @@ export default function SpotDetail({
             </Link>
           </p>
         ) : null}
-        {hasSupabase && canReport && (
-          <section className="mt-4 overflow-hidden rounded-[1.4rem] border border-emerald-400/20 bg-emerald-400/[0.06]">
-            <div className="flex items-start justify-between gap-3 p-4">
-              <div>
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-400">
-                  <Activity className="h-3.5 w-3.5" /> Live spot activity
-                </p>
-                <p className="mt-1 text-sm text-slate-400">
-                  {activeCheckIns.length > 0
-                    ? `${activeCheckIns.length} ${activeCheckIns.length === 1 ? 'creator is' : 'creators are'} here now`
-                    : 'No one has checked in recently'}
-                </p>
-              </div>
-              {latestCondition && (
-                <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-extrabold ${latestCondition.condition === 'clear' ? 'bg-emerald-400/15 text-emerald-300' : latestCondition.condition === 'busy' ? 'bg-amber-400/15 text-amber-300' : 'bg-rose-400/15 text-rose-300'}`}>
-                  {SPOT_CONDITIONS.find((item) => item.id === latestCondition.condition)?.label || latestCondition.condition}
-                </span>
-              )}
-            </div>
-
-            {latestCondition && (
-              <div className="mx-4 mb-3 rounded-2xl border border-white/[0.07] bg-black/10 px-3.5 py-3">
-                <p className="text-sm font-semibold text-primary">
-                  {latestCondition.note || `${SPOT_CONDITIONS.find((item) => item.id === latestCondition.condition)?.label || 'Condition'} reported`}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">{activityAuthor(latestCondition)} · {relativeActivityTime(latestCondition.createdAt)}</p>
-              </div>
-            )}
-
-            {liveActivity.length > 0 && (
-              <div className="mx-4 mb-3 space-y-2 border-t border-white/[0.07] pt-3">
-                {liveActivity.slice(0, 4).map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
-                    <p className="min-w-0 truncate text-slate-300">
-                      <span className="font-bold text-primary">{activityAuthor(item)}</span>{' '}
-                      {item.activityType === 'check_in'
-                        ? 'checked in'
-                        : `reported ${SPOT_CONDITIONS.find((condition) => condition.id === item.condition)?.label?.toLowerCase() || 'an update'}`}
-                    </p>
-                    <span className="shrink-0 text-slate-500">{relativeActivityTime(item.createdAt)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-              {currentUser ? (
-                <button type="button" onClick={submitLiveCheckIn} disabled={activityLoading} className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-extrabold transition disabled:opacity-50 ${viewerIsCheckedIn ? 'bg-emerald-400 text-emerald-950' : 'bg-white/[0.08] text-primary hover:bg-white/[0.12]'}`}>
-                  <CheckCircle2 className="h-4 w-4" /> {viewerIsCheckedIn ? 'Checked in' : 'Check in now'}
-                </button>
-              ) : (
-                <Link to="/signin" className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.08] px-3 text-sm font-extrabold text-primary">
-                  <CheckCircle2 className="h-4 w-4" /> Sign in
-                </Link>
-              )}
-              <button type="button" onClick={() => setConditionOpen((open) => !open)} disabled={!currentUser || activityLoading} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white/[0.08] px-3 text-sm font-extrabold text-primary transition hover:bg-white/[0.12] disabled:opacity-40">
-                <AlertTriangle className="h-4 w-4" /> Update status
-              </button>
-            </div>
-
-            {conditionOpen && currentUser && (
-              <div className="border-t border-white/[0.07] bg-black/10 p-4">
-                <p className="text-sm font-bold text-primary">What is it like right now?</p>
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                  {SPOT_CONDITIONS.map((item) => (
-                    <button key={item.id} type="button" onClick={() => setSelectedCondition(item.id)} className={`shrink-0 rounded-full px-3 py-2 text-xs font-extrabold transition ${selectedCondition === item.id ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.07] text-slate-300'}`}>
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                <textarea value={conditionNote} onChange={(event) => setConditionNote(event.target.value)} rows={2} maxLength={240} placeholder="Optional detail — lighting, access, crowds…" className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-[var(--bg-page)] px-3.5 py-3 text-sm text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none" />
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="flex items-center gap-1 text-xs text-slate-500"><Clock3 className="h-3.5 w-3.5" />Expires in 12 hours</p>
-                  <button type="button" onClick={submitCondition} disabled={activityLoading} className="primary-button px-4 py-2.5 text-sm">{activityLoading ? 'Sharing…' : 'Share update'}</button>
-                </div>
-              </div>
-            )}
-            {activityError && <p className="border-t border-rose-400/20 px-4 py-3 text-xs font-semibold text-rose-300">{activityError}</p>}
-          </section>
-        )}
         {hasSupabase && (
           <div className="mt-3 flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -1282,7 +1138,7 @@ export default function SpotDetail({
             <Heart className="h-4 w-4" fill={isFavorite(spot.id) ? 'currentColor' : 'none'} />
             {isFavorite(spot.id) ? 'Saved' : 'Save'}
           </button>
-          <DirectionsLauncher googleUrl={googleMapsUrl} appleUrl={appleMapsUrl} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
+          <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold text-secondary hover:bg-white/5">
             <Navigation className="h-4 w-4" />
             Directions
           </DirectionsLauncher>
