@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, CalendarDays, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -8,6 +8,7 @@ import { deleteEvent, fetchEvent, setEventRsvpStatus, subscribeToEvents } from '
 import { isCurrentUserAdmin } from '../api/moderation';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
+import { fetchEventReminder, setEventReminder } from '../api/eventReminders';
 
 function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -22,6 +23,8 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
   const [busy, setBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [reminder, setReminder] = useState(null);
+  const [reminderBusy, setReminderBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -40,6 +43,16 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
     isCurrentUserAdmin().then(setIsAdmin);
   }, [currentUser?.id]);
 
+  useEffect(() => {
+    if (!currentUser?.id || !event?.id || (!event.rsvpStatus && event.hostId !== currentUser.id)) {
+      setReminder(null);
+      return;
+    }
+    let cancelled = false;
+    fetchEventReminder(event.id).then((value) => { if (!cancelled) setReminder(value); });
+    return () => { cancelled = true; };
+  }, [currentUser?.id, event?.id, event?.rsvpStatus, event?.hostId]);
+
   const spot = useMemo(() => {
     if (!event) return null;
     return allSpots.find((item) => String(item.id) === String(event.spotId)) || event.spot;
@@ -47,11 +60,18 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
 
   const chooseRsvp = async (selectedStatus) => {
     if (!currentUser || !event || busy) return;
+    const previousStatus = event.rsvpStatus;
     const nextStatus = event.rsvpStatus === selectedStatus ? null : selectedStatus;
     setBusy(true);
     const result = await setEventRsvpStatus(event.id, nextStatus);
     setBusy(false);
     if (!result.ok) return showToast?.(result.error);
+    if (nextStatus && !previousStatus) {
+      setReminder({ eventId: event.id, dayBefore: true, hoursBefore: 3 });
+      setEventReminder(event.id, true, 3);
+    } else {
+      setReminder(null);
+    }
     setEvent((current) => {
       const previous = current.rsvpStatus;
       return {
@@ -63,6 +83,17 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
         interestedCount: Math.max(0, (current.interestedCount || 0) - (previous === 'interested' ? 1 : 0) + (nextStatus === 'interested' ? 1 : 0)),
       };
     });
+  };
+
+  const toggleReminder = async () => {
+    if (!event || reminderBusy) return;
+    const nextEnabled = !reminder;
+    setReminderBusy(true);
+    const result = await setEventReminder(event.id, nextEnabled, reminder?.hoursBefore || 3);
+    setReminderBusy(false);
+    if (!result.ok) return showToast?.(result.error);
+    setReminder(nextEnabled ? { eventId: event.id, dayBefore: true, hoursBefore: 3 } : null);
+    showToast?.(nextEnabled ? 'Event reminder turned on.' : 'Event reminder turned off.');
   };
 
   const remove = async () => {
@@ -134,6 +165,8 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
 
         {canManage && !editing && <button type="button" onClick={() => setEditing(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-sm font-extrabold text-cyan-300"><Pencil className="h-4 w-4" />Edit event or map pin</button>}
         {canManage && editing && <EventEditor event={event} spot={spot} onCancel={() => setEditing(false)} onSaved={(updated) => { setEvent(updated); setEditing(false); }} showToast={showToast} />}
+
+        {currentUser && (event.rsvpStatus || isHost) && <section className="surface-card mt-4 flex items-center gap-3 rounded-[1.5rem] p-4"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${reminder ? 'bg-accent-500/15 text-accent-400' : 'bg-white/[0.05] text-muted'}`}>{reminder ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-primary">Event reminders</p><p className="mt-0.5 text-xs text-muted">{reminder ? `On · 1 day and ${reminder.hoursBefore || 3} hours before` : 'Off for this event'}</p></div><button type="button" onClick={toggleReminder} disabled={reminderBusy} className={`rounded-xl px-3 py-2 text-xs font-extrabold disabled:opacity-50 ${reminder ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.06] text-secondary'}`}>{reminderBusy ? '…' : reminder ? 'On' : 'Turn on'}</button></section>}
 
         <section className="surface-card mt-4 rounded-[1.75rem] p-5">
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going · {event.interestedCount || 0} interested</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bell,
   Check,
   ChevronRight,
   Database,
@@ -21,6 +22,7 @@ import {
 import { supabase, hasSupabase } from '../api/supabase';
 import { isCurrentUserAdmin } from '../api/moderation';
 import { getMapAppPreference, MAP_APP_OPTIONS, setMapAppPreference } from '../utils/mapNavigation';
+import { browserNotificationPermission, requestBrowserNotifications } from '../api/eventReminders';
 
 const MAP_STYLES = [
   { id: 'streets', label: 'Streets' },
@@ -62,6 +64,7 @@ export default function Settings({
   const [busy, setBusy] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [mapApp, setMapApp] = useState(() => getMapAppPreference());
+  const [notificationPermission, setNotificationPermission] = useState(() => browserNotificationPermission());
 
   useEffect(() => {
     if (!currentUser) { setIsAdmin(false); return; }
@@ -78,6 +81,14 @@ export default function Settings({
     setMapApp(value);
     setMapAppPreference(value);
     showToast?.(`Directions will ${value === 'ask' ? 'ask which maps app to use' : `open in ${value === 'apple' ? 'Apple Maps' : 'Google Maps'}`}.`);
+  };
+
+  const enableDeviceAlerts = async () => {
+    const permission = await requestBrowserNotifications();
+    setNotificationPermission(permission);
+    if (permission === 'granted') showToast?.('Device event alerts enabled.');
+    else if (permission === 'unsupported') showToast?.('This device does not support web alerts. In-app reminders will still work.');
+    else showToast?.('Notification permission was not enabled. In-app reminders will still work.');
   };
 
   const clearTemporaryData = () => {
@@ -189,6 +200,15 @@ export default function Settings({
               <select value={mapApp} onChange={(event) => chooseMapApp(event.target.value)} className="max-w-[8.5rem] rounded-xl border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-xs font-semibold text-primary outline-none">
                 {MAP_APP_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
               </select>
+            </SettingRow>
+          </div>
+        </section>
+
+        <section>
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Reminders</p>
+          <div className="surface-card rounded-[1.5rem] px-4">
+            <SettingRow icon={Bell} title="Device event alerts" subtitle="In-app reminders always work. Enable this for alerts while SnapMap is running.">
+              <button type="button" onClick={enableDeviceAlerts} disabled={notificationPermission === 'granted' || notificationPermission === 'denied'} className={`rounded-xl px-3 py-2 text-xs font-extrabold disabled:opacity-70 ${notificationPermission === 'granted' ? 'bg-emerald-400/15 text-emerald-400' : 'bg-accent-500 text-[#211603]'}`}>{notificationPermission === 'granted' ? 'Enabled' : notificationPermission === 'denied' ? 'Blocked' : notificationPermission === 'unsupported' ? 'Unavailable' : 'Enable'}</button>
             </SettingRow>
           </div>
         </section>

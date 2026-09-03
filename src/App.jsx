@@ -44,6 +44,7 @@ import ToastHost from './components/ToastHost';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
 import { getUnreadNotificationCount, subscribeToNotifications } from './api/notifications';
+import { claimDueEventReminders, showBrowserEventReminder } from './api/eventReminders';
 
 function RouteScrollReset() {
   const { pathname } = useLocation();
@@ -233,6 +234,26 @@ export default function App() {
     const unsubscribe = subscribeToNotifications(currentUser.id, refresh);
     return () => { cancelled = true; unsubscribe(); };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !hasSupabase || !isOnline) return;
+    let cancelled = false;
+    let intervalId;
+    const checkReminders = async () => {
+      const reminders = await claimDueEventReminders();
+      if (cancelled || reminders.length === 0) return;
+      reminders.forEach((reminder) => showBrowserEventReminder(reminder));
+      const first = reminders[0];
+      const when = new Date(first.startsAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+      showToast(`${first.title} starts ${when}.`, { duration: 9000, actionLabel: 'View', onAction: () => navigate(`/event/${first.eventId}`) });
+      getUnreadNotificationCount().then((count) => { if (!cancelled) setUnreadNotifications(count); });
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') checkReminders(); };
+    checkReminders();
+    intervalId = setInterval(checkReminders, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { cancelled = true; clearInterval(intervalId); document.removeEventListener('visibilitychange', onVisible); };
+  }, [currentUser?.id, isOnline, navigate, showToast]);
 
   useEffect(() => {
     if (!ready) return;

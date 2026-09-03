@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, CalendarDays, CheckCheck, Heart, MessageCircle, User, UserCheck, UserPlus } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCheck, Heart, MessageCircle, User, UserCheck, UserPlus } from 'lucide-react';
 import { fetchNotifications, markAllNotificationsRead } from '../api/notifications';
 
 function notificationCopy(item) {
   const name = item.actor?.display_name || item.actor?.username || 'A creator';
+  if (item.type === 'event_reminder') {
+    const starts = item.event?.starts_at ? new Date(item.event.starts_at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'soon';
+    return { icon: Bell, text: `${item.event?.title || 'Your event'} starts ${starts}`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
+  }
+  if (item.type === 'event_rsvp') return { icon: UserCheck, text: `${name} RSVP’d to your event`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
   if (item.type === 'friend_request') return { icon: UserPlus, text: `${name} sent you a friend request`, href: item.actor?.username ? `/user/${item.actor.username}` : '/profile' };
   if (item.type === 'friend_accepted') return { icon: UserCheck, text: `${name} accepted your friend request`, href: item.actor?.username ? `/user/${item.actor.username}` : '/profile' };
   if (item.type === 'post_like') return { icon: Heart, text: `${name} liked your post`, href: item.postId ? `/explore?post=${item.postId}` : '/explore' };
   if (item.type === 'post_comment') return { icon: MessageCircle, text: `${name} commented on your post`, href: item.postId ? `/explore?post=${item.postId}` : '/explore' };
-  if (item.type === 'event_rsvp') return { icon: CalendarDays, text: `${name} is going to ${item.event?.title || 'your event'}`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
   if (item.type === 'comment_reply') return { icon: MessageCircle, text: `${name} replied to your comment`, href: item.spotId ? `/spot/${item.spotId}` : '/' };
   return { icon: MessageCircle, text: `${name} commented on ${item.spot?.name || 'your location'}`, href: item.spotId ? `/spot/${item.spotId}` : '/' };
 }
@@ -49,7 +53,7 @@ export default function Notifications({ currentUser, onRead }) {
         ) : loading ? (
           [0, 1, 2].map((item) => <div key={item} className="surface-card h-20 animate-pulse rounded-[1.4rem]" />)
         ) : items.length === 0 ? (
-          <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Bell className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">You’re all caught up</p><p className="mt-1 text-sm text-muted">Friend requests, likes, and comments will appear here.</p></div>
+          <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Bell className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">You’re all caught up</p><p className="mt-1 text-sm text-muted">Event reminders and community activity will appear here.</p></div>
         ) : items.map((item) => {
           const content = notificationCopy(item);
           const Icon = content.icon;
