@@ -8,7 +8,7 @@ export async function isCurrentUserAdmin() {
 
 export async function fetchModerationQueue() {
   if (!hasSupabase || !(await isCurrentUserAdmin())) return [];
-  const [postsResult, commentsResult, spotsResult] = await Promise.all([
+  const [postsResult, commentsResult, spotsResult, messagesResult] = await Promise.all([
     supabase.from('post_reports').select(`
       id, reason, status, created_at,
       reporter:profiles!post_reports_reporter_id_fkey(id, username, display_name, avatar_url),
@@ -28,8 +28,14 @@ export async function fetchModerationQueue() {
       reporter:profiles!spot_reports_reporter_id_fkey(id, username, display_name, avatar_url),
       spot:spots(id, name, description, address, image_uri, owner_id, created_by, created_by_display_name)
     `).eq('status', 'open').order('created_at', { ascending: false }),
+    supabase.from('private_message_reports').select(`
+      id, reason, status, created_at,
+      reporter:profiles!private_message_reports_reporter_id_fkey(id, username, display_name, avatar_url),
+      message:private_messages!private_message_reports_message_id_fkey(id, body, sender_id, recipient_id, share_type, share_title, created_at,
+        author:profiles!private_messages_sender_id_fkey(id, username, display_name, avatar_url))
+    `).eq('status', 'open').order('created_at', { ascending: false }),
   ]);
-  const failed = [postsResult, commentsResult, spotsResult].find((result) => result.error);
+  const failed = [postsResult, commentsResult, spotsResult, messagesResult].find((result) => result.error);
   if (failed) {
     console.warn('SnapMap: moderation queue failed', failed.error);
     return [];
@@ -38,10 +44,11 @@ export async function fetchModerationQueue() {
     ...(postsResult.data || []).map((item) => ({ ...item, kind: 'post', target: item.post, targetUserId: item.post?.user_id })),
     ...(commentsResult.data || []).map((item) => ({ ...item, kind: 'comment', target: item.comment, targetUserId: item.comment?.user_id })),
     ...(spotsResult.data || []).map((item) => ({ ...item, kind: 'spot', reason: item.report_type, target: item.spot, targetUserId: item.spot?.owner_id })),
+    ...(messagesResult.data || []).map((item) => ({ ...item, kind: 'message', target: item.message, targetUserId: item.message?.sender_id })),
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
-const REPORT_TABLES = { post: 'post_reports', comment: 'comment_reports', spot: 'spot_reports' };
+const REPORT_TABLES = { post: 'post_reports', comment: 'comment_reports', spot: 'spot_reports', message: 'private_message_reports' };
 
 export async function dismissReport(item) {
   const table = REPORT_TABLES[item?.kind];
@@ -61,6 +68,8 @@ export async function removeReportedContent(item) {
     ({ error } = await supabase.from('spot_notes').delete().eq('id', item.target.id));
   } else if (item.kind === 'spot') {
     ({ error } = await supabase.from('spots').delete().eq('id', item.target.id));
+  } else if (item.kind === 'message') {
+    ({ error } = await supabase.from('private_messages').delete().eq('id', item.target.id));
   }
   if (error) console.warn('SnapMap: moderation removal failed', error);
   return !error;

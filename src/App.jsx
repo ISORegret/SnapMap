@@ -38,6 +38,7 @@ import Notifications from './pages/Notifications';
 import Admin from './pages/Admin';
 import EventDetail from './pages/EventDetail';
 import RoutePlanner from './pages/RoutePlanner';
+import Messages from './pages/Messages';
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -45,6 +46,7 @@ import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
 import { getUnreadNotificationCount, subscribeToNotifications } from './api/notifications';
 import { claimDueEventReminders, showBrowserEventReminder } from './api/eventReminders';
+import { getUnreadMessageCount, subscribeToMessages } from './api/messages';
 
 function RouteScrollReset() {
   const { pathname } = useLocation();
@@ -76,12 +78,14 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatus] = useState(isOnline ? 'saved' : 'offline');
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
   const showToast = useCallback((message, options = {}) => {
     setToast({ id: Date.now(), message, ...options });
   }, []);
   const dismissToast = useCallback(() => setToast(null), []);
+  const refreshUnreadMessages = useCallback(() => getUnreadMessageCount().then(setUnreadMessages), []);
 
   const requestPosition = useCallback(async () => {
     const pos = await getCurrentPosition();
@@ -219,6 +223,18 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser?.id) setCurrentUserProfile(null);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !hasSupabase) {
+      setUnreadMessages(0);
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => getUnreadMessageCount().then((count) => { if (!cancelled) setUnreadMessages(count); });
+    refresh();
+    const unsubscribe = subscribeToMessages(refresh);
+    return () => { cancelled = true; unsubscribe(); };
   }, [currentUser?.id]);
 
   useEffect(() => {
@@ -758,8 +774,10 @@ export default function App() {
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
-          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} />} />
+          <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} />} />
           <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
+          <Route path="/messages" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
+          <Route path="/messages/:username" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
           <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />
           <Route path="/event/:id" element={<EventDetail allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} />} />
           <Route path="/route" element={<RoutePlanner allSpots={allSpots} favoriteIds={favoriteIds} collections={collections} userPosition={userPosition} requestPosition={requestPosition} units={units} />} />
@@ -849,8 +867,8 @@ export default function App() {
           <NavLink to="/profile" className={navLinkClass}>
             <span className="relative">
               <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
-              {unreadNotifications > 0 ? (
-                <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-[var(--bg-nav)] bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications, 9)}{unreadNotifications > 9 ? '+' : ''}</span>
+              {unreadNotifications + unreadMessages > 0 ? (
+                <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-[var(--bg-nav)] bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications + unreadMessages, 9)}{unreadNotifications + unreadMessages > 9 ? '+' : ''}</span>
               ) : (
                 <span className={`absolute -right-1 -top-1 h-2 w-2 rounded-full border border-[var(--bg-nav)] ${syncStatus === 'offline' ? 'bg-amber-400' : syncStatus === 'failed' ? 'bg-rose-400' : syncStatus === 'syncing' ? 'animate-pulse bg-sky-400' : 'bg-emerald-400'}`} title={`Sync: ${syncStatus}`} />
               )}

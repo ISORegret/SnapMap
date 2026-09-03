@@ -982,6 +982,14 @@ export default function SpotDetail({
               <Share2 className="h-4 w-4" />
               {copyFeedback === 'link' ? 'Copied!' : 'Share spot'}
             </button>
+            {currentUser && <Link
+              to="/messages"
+              state={{ share: { type: 'spot', id: spot.id, title: spot.name, subtitle: spot.address || locationText, imageUrl: spotImages[0]?.uri || '' } }}
+              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-accent-500/20 bg-accent-500/[0.06] py-2.5 text-sm font-medium text-accent-400 transition hover:bg-accent-500/10"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Send to friend
+            </Link>}
             <button
               type="button"
               onClick={shareAsImage}

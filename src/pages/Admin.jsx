@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Ban, CheckCircle2, Flag, ShieldCheck, Trash2 } from 'lucide-react';
 import { dismissReport, fetchModerationQueue, isCurrentUserAdmin, removeReportedContent, suspendUser } from '../api/moderation';
 
-const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location' };
+const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location', message: 'Private message' };
 
 function cleanReason(value) {
   return String(value || 'inappropriate').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -13,8 +13,8 @@ function ReportCard({ item, busy, onDismiss, onRemove, onSuspend }) {
   const target = item.target || {};
   const author = target.author || (item.kind === 'comment' ? target.author : null);
   const authorName = author?.display_name || author?.username || target.created_by_display_name || target.created_by || 'Unknown creator';
-  const title = item.kind === 'post' ? target.location_name : item.kind === 'comment' ? target.spot?.name || 'Location discussion' : target.name;
-  const body = item.kind === 'post' ? target.caption : item.kind === 'comment' ? target.body : target.description;
+  const title = item.kind === 'post' ? target.location_name : item.kind === 'comment' ? target.spot?.name || 'Location discussion' : item.kind === 'message' ? `Message from ${authorName}` : target.name;
+  const body = item.kind === 'post' ? target.caption : item.kind === 'comment' || item.kind === 'message' ? target.body : target.description;
   const image = item.kind === 'post'
     ? [...(target.images || [])].sort((a, b) => a.position - b.position)[0]?.public_url
     : item.kind === 'spot' ? target.image_uri : null;
@@ -65,7 +65,7 @@ export default function Admin({ currentUser, showToast }) {
   useEffect(() => { refresh(); }, [currentUser?.id]);
 
   const visibleItems = useMemo(() => filter === 'all' ? items : items.filter((item) => item.kind === filter), [items, filter]);
-  const counts = useMemo(() => ({ all: items.length, post: items.filter((item) => item.kind === 'post').length, comment: items.filter((item) => item.kind === 'comment').length, spot: items.filter((item) => item.kind === 'spot').length }), [items]);
+  const counts = useMemo(() => ({ all: items.length, post: items.filter((item) => item.kind === 'post').length, comment: items.filter((item) => item.kind === 'comment').length, spot: items.filter((item) => item.kind === 'spot').length, message: items.filter((item) => item.kind === 'message').length }), [items]);
 
   const complete = async (item, action) => {
     setBusyId(item.id);
@@ -102,8 +102,8 @@ export default function Admin({ currentUser, showToast }) {
       </div>
     </header>
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-6">
-      <div className="mb-5 grid grid-cols-4 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
-        {[['all', 'All'], ['post', 'Posts'], ['comment', 'Comments'], ['spot', 'Spots']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-2xl px-2 py-2.5 text-[11px] font-extrabold transition ${filter === value ? 'bg-accent-500 text-[#211603]' : 'text-secondary'}`}>{label}<span className="ml-1 opacity-70">{counts[value]}</span></button>)}
+      <div className="mb-5 grid grid-cols-5 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+        {[['all', 'All'], ['post', 'Posts'], ['comment', 'Comments'], ['spot', 'Spots'], ['message', 'Messages']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:px-2 sm:text-[11px] ${filter === value ? 'bg-accent-500 text-[#211603]' : 'text-secondary'}`}>{label}<span className="ml-1 opacity-70">{counts[value]}</span></button>)}
       </div>
       {visibleItems.length === 0 ? <div className="surface-card rounded-[1.65rem] px-6 py-16 text-center"><CheckCircle2 className="mx-auto h-9 w-9 text-emerald-400" /><h2 className="mt-4 font-extrabold text-primary">Queue clear</h2><p className="mt-1 text-sm text-muted">No open {filter === 'all' ? '' : `${filter} `}reports.</p></div>
       : <div className="grid gap-4 md:grid-cols-2">{visibleItems.map((item) => <ReportCard key={`${item.kind}-${item.id}`} item={item} busy={busyId === item.id} onDismiss={(report) => complete(report, () => dismissReport(report))} onRemove={handleRemove} onSuspend={handleSuspend} />)}</div>}

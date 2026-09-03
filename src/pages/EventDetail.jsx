@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, LocateFixed, LogOut, MapPin, Navigation, Pencil, Radio, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -197,6 +197,7 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
               {hasCoordinates && <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {currentUser && <Link to={`/explore?view=events&duplicate=${event.id}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Copy className="h-4 w-4 text-accent-400" />Duplicate event</Link>}
+              {currentUser && <Link to="/messages" state={{ share: { type: 'event', id: event.id, title: event.title, subtitle: `${event.venueName || spot?.name || 'Event'} · ${fullDate(event.startsAt)}`, imageUrl: event.coverImageUrl || getSpotPrimaryImage(spot) || '' } }} className="flex items-center gap-2 rounded-2xl border border-accent-500/20 bg-accent-500/[0.06] px-3 py-2.5 text-xs font-bold text-accent-400"><MessageCircle className="h-4 w-4" />Send to friend</Link>}
             </div>
           </div>
         </section>

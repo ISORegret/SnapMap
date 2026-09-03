@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban, CalendarDays } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban, CalendarDays, MessageCircle } from 'lucide-react';
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -12,7 +12,7 @@ function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
-export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0 } = {}) {
+export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0, unreadMessages = 0 } = {}) {
   const { username } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,6 +239,10 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
           <div className="min-w-0 flex-1">
             {isOwnProfile && (
               <div className="float-right flex gap-2">
+                <Link to="/messages" className="icon-button relative" aria-label="Open messages">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadMessages > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadMessages, 9)}{unreadMessages > 9 ? '+' : ''}</span>}
+                </Link>
                 <Link to="/notifications" className="icon-button relative" aria-label="Open notifications">
                   <Bell className="h-5 w-5" />
                   {unreadNotifications > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications, 9)}{unreadNotifications > 9 ? '+' : ''}</span>}
@@ -273,6 +277,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             {!isOwnProfile && currentUser && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {!blocked && <button type="button" onClick={handleFriend} disabled={followLoading} className="primary-button px-5 py-2.5 text-sm disabled:opacity-50">{!followLoading && <FriendButtonIcon className="h-4 w-4" />}{followLoading ? '…' : friendButton.label}</button>}
+                {!blocked && friendState === 'friends' && <Link to={`/messages/${profile.username}`} className="flex items-center gap-1.5 rounded-2xl border border-accent-500/25 bg-accent-500/[0.07] px-4 py-2 text-xs font-extrabold text-accent-400"><MessageCircle className="h-4 w-4" />Message</Link>}
                 <button type="button" onClick={handleBlock} disabled={followLoading} className="flex items-center gap-1.5 rounded-2xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-500 hover:border-rose-500/30 hover:text-rose-400 disabled:opacity-50"><Ban className="h-3.5 w-3.5" />{blocked ? 'Unblock' : 'Block'}</button>
               </div>
             )}
