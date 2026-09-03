@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, MapPin, Navigation, Pencil, Share2, Trash2, User, Users } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, LocateFixed, LogOut, MapPin, Navigation, Pencil, Radio, Share2, Trash2, User, Users } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -9,12 +9,13 @@ import { isCurrentUserAdmin } from '../api/moderation';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
 import { fetchEventReminder, setEventReminder } from '../api/eventReminders';
+import { checkInToEvent, fetchEventCheckIns, leaveEventCheckIn, subscribeToEventCheckIns } from '../api/eventCheckIns';
 
 function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default function EventDetail({ allSpots = [], currentUser, showToast } = {}) {
+export default function EventDetail({ allSpots = [], currentUser, userPosition = null, requestPosition, showToast } = {}) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
@@ -25,6 +26,8 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
   const [editing, setEditing] = useState(false);
   const [reminder, setReminder] = useState(null);
   const [reminderBusy, setReminderBusy] = useState(false);
+  const [checkIns, setCheckIns] = useState([]);
+  const [checkInBusy, setCheckInBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -37,6 +40,16 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
     refresh();
     return subscribeToEvents(refresh);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!id) return undefined;
+    let active = true;
+    const refreshCheckIns = () => fetchEventCheckIns(id).then((items) => { if (active) setCheckIns(items); });
+    refreshCheckIns();
+    const unsubscribe = subscribeToEventCheckIns(refreshCheckIns, id);
+    const interval = window.setInterval(refreshCheckIns, 60000);
+    return () => { active = false; unsubscribe(); window.clearInterval(interval); };
+  }, [id]);
 
   useEffect(() => {
     if (!currentUser?.id) return setIsAdmin(false);
@@ -96,6 +109,25 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
     showToast?.(nextEnabled ? 'Event reminder turned on.' : 'Event reminder turned off.');
   };
 
+  const toggleCheckIn = async () => {
+    if (!event || !currentUser || checkInBusy) return;
+    const checkedIn = checkIns.some((item) => item.userId === currentUser.id);
+    setCheckInBusy(true);
+    if (checkedIn) {
+      const ok = await leaveEventCheckIn(event.id);
+      setCheckInBusy(false);
+      if (!ok) return showToast?.('Could not remove your check-in.');
+      setCheckIns((items) => items.filter((item) => item.userId !== currentUser.id));
+      return showToast?.('You left the live check-in.');
+    }
+    const position = await requestPosition?.() || userPosition;
+    const result = await checkInToEvent(event.id, position);
+    setCheckInBusy(false);
+    if (!result.ok) return showToast?.(result.error);
+    setCheckIns(await fetchEventCheckIns(event.id));
+    showToast?.('You’re checked in. Have a great shoot.');
+  };
+
   const remove = async () => {
     if (!event || !window.confirm(`Cancel “${event.title}”? Everyone’s RSVP will be removed.`)) return;
     setBusy(true);
@@ -128,6 +160,11 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
   const hasAddress = Boolean(event.address);
   const googleAddressUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`;
   const appleAddressUrl = `https://maps.apple.com/?daddr=${encodeURIComponent(event.address)}`;
+  const now = Date.now();
+  const checkInOpensAt = new Date(event.startsAt).getTime() - (3 * 60 * 60 * 1000);
+  const checkInClosesAt = (event.endsAt ? new Date(event.endsAt).getTime() : new Date(event.startsAt).getTime() + (8 * 60 * 60 * 1000)) + (60 * 60 * 1000);
+  const checkInOpen = now >= checkInOpensAt && now <= checkInClosesAt;
+  const checkedIn = Boolean(currentUser && checkIns.some((item) => item.userId === currentUser.id));
 
   return (
     <div className="page-shell pb-36 animate-fade-in">
@@ -168,6 +205,18 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
         {canManage && editing && <EventEditor event={event} spot={spot} onCancel={() => setEditing(false)} onSaved={(updated) => { setEvent(updated); setEditing(false); }} showToast={showToast} />}
 
         {currentUser && (event.rsvpStatus || isHost) && <section className="surface-card mt-4 flex items-center gap-3 rounded-[1.5rem] p-4"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${reminder ? 'bg-accent-500/15 text-accent-400' : 'bg-white/[0.05] text-muted'}`}>{reminder ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-primary">Event reminders</p><p className="mt-0.5 text-xs text-muted">{reminder ? `On · 1 day and ${reminder.hoursBefore || 3} hours before` : 'Off for this event'}</p></div><button type="button" onClick={toggleReminder} disabled={reminderBusy} className={`rounded-xl px-3 py-2 text-xs font-extrabold disabled:opacity-50 ${reminder ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.06] text-secondary'}`}>{reminderBusy ? '…' : reminder ? 'On' : 'Turn on'}</button></section>}
+
+        <section className={`surface-card mt-4 rounded-[1.75rem] p-5 ${checkIns.length ? 'border-emerald-400/25 shadow-[0_0_32px_rgba(52,211,153,0.08)]' : ''}`}>
+          <div className="flex items-start gap-3">
+            <span className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${checkIns.length ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.05] text-muted'}`}><Radio className="h-5 w-5" />{checkIns.length > 0 && <i className="absolute right-1 top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400 ring-4 ring-emerald-400/15" />}</span>
+            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-extrabold text-primary">Live attendance</h2>{checkIns.length > 0 && <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">Live · {checkIns.length} here</span>}</div><p className="mt-1 text-xs leading-relaxed text-muted">{checkIns.length ? `${checkIns.length === 1 ? 'One creator is' : `${checkIns.length} creators are`} currently checked in.` : checkInOpen ? 'Be the first creator to check in.' : now < checkInOpensAt ? `Check-in opens ${new Date(checkInOpensAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.` : 'Live check-in has ended.'}</p></div>
+          </div>
+          {checkIns.length > 0 && <div className="mt-4 flex -space-x-2">{checkIns.slice(0, 10).map((item) => <Link key={item.userId} to={item.profile?.username ? `/user/${item.profile.username}` : '#'} title={item.profile?.display_name || item.profile?.username || 'Creator'} className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-[var(--bg-card-solid)] bg-emerald-400/15 text-emerald-300">{item.profile?.avatar_url ? <img src={item.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}</Link>)}</div>}
+          <div className="mt-4">
+            {currentUser ? <button type="button" onClick={toggleCheckIn} disabled={checkInBusy || (!checkedIn && !checkInOpen)} className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-extrabold disabled:opacity-40 ${checkedIn ? 'border border-white/10 bg-white/[0.045] text-secondary' : 'bg-emerald-400 text-[#06291d]'}`}>{checkedIn ? <LogOut className="h-4 w-4" /> : <LocateFixed className="h-4 w-4" />}{checkInBusy ? 'Updating…' : checkedIn ? 'Leave check-in' : checkInOpen ? 'I’m here' : 'Check-in unavailable'}</button> : <Link to="/signin" className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-400 text-sm font-extrabold text-[#06291d]">Sign in to check in</Link>}
+            <p className="mt-2 text-center text-[11px] text-muted">Your location is only used to confirm you’re within 2 miles. It is never saved.</p>
+          </div>
+        </section>
 
         <section className="surface-card mt-4 rounded-[1.75rem] p-5">
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Guest list</p><h2 className="mt-1 text-lg font-extrabold text-primary">{event.attendeeCount} going · {event.interestedCount || 0} interested</h2></div>{event.maxAttendees && <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-muted">{event.attendeeCount}/{event.maxAttendees}</span>}</div>

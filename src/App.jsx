@@ -761,7 +761,7 @@ export default function App() {
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} />} />
           <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
           <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />
-          <Route path="/event/:id" element={<EventDetail allSpots={allSpots} currentUser={currentUser} showToast={showToast} />} />
+          <Route path="/event/:id" element={<EventDetail allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} />} />
           <Route path="/route" element={<RoutePlanner allSpots={allSpots} favoriteIds={favoriteIds} collections={collections} userPosition={userPosition} requestPosition={requestPosition} units={units} />} />
           <Route
             path="/saved"

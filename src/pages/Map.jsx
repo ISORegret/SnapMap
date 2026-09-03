@@ -14,6 +14,7 @@ import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleDirectionsUrl, appleMultiStopDirectionsUrl, googleDirectionsUrl, googleMultiStopDirectionsUrl } from '../utils/mapNavigation';
 import { fetchUpcomingEvents, subscribeToEvents } from '../api/events';
+import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -58,6 +59,17 @@ const eventIcon = L.divIcon({
   iconAnchor: [19, 42],
   popupAnchor: [0, -38],
 });
+
+function liveEventIcon(liveCount = 0) {
+  if (!liveCount) return eventIcon;
+  return L.divIcon({
+    className: 'snapmap-marker-wrap',
+    html: '<span class="snapmap-event-marker is-live"><b>LIVE</b></span>',
+    iconSize: [44, 50],
+    iconAnchor: [22, 46],
+    popupAnchor: [0, -42],
+  });
+}
 
 function safeImageUrl(value) {
   const url = String(value || '');
@@ -245,7 +257,7 @@ function EventMarkersCluster({ events, onSelect }) {
       }),
     });
     events.forEach((event) => {
-      const marker = L.marker([event.mapLatitude, event.mapLongitude], { icon: eventIcon, zIndexOffset: 650 });
+      const marker = L.marker([event.mapLatitude, event.mapLongitude], { icon: liveEventIcon(event.liveCount), zIndexOffset: event.liveCount ? 800 : 650 });
       marker.on('click', (leafletEvent) => {
         L.DomEvent.stopPropagation(leafletEvent);
         onSelect(event.id);
@@ -351,6 +363,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const [activityBySpot, setActivityBySpot] = useState({});
   const [mapPosts, setMapPosts] = useState([]);
   const [mapEvents, setMapEvents] = useState([]);
+  const [eventLiveCounts, setEventLiveCounts] = useState({});
   const [eventCoordinates, setEventCoordinates] = useState({});
   const [selectedEventId, setSelectedEventId] = useState(() => searchParams.get('event'));
 
@@ -368,6 +381,16 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       window.clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    if (mapEvents.length === 0) return undefined;
+    let active = true;
+    const refresh = () => fetchActiveEventCheckInCounts(mapEvents.map((event) => event.id)).then((counts) => { if (active) setEventLiveCounts(counts); });
+    refresh();
+    const unsubscribe = subscribeToEventCheckIns(refresh);
+    const interval = window.setInterval(refresh, 60000);
+    return () => { active = false; unsubscribe(); window.clearInterval(interval); };
+  }, [mapEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -522,8 +545,8 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const selectedPost = useMemo(() => mapPosts.find((post) => String(post.id) === String(selectedPostId)) || null, [mapPosts, selectedPostId]);
   const positionedEvents = useMemo(() => mapEvents.map((event) => {
     const coordinates = eventCoordinates[event.id];
-    return coordinates ? { ...event, mapLatitude: coordinates.lat, mapLongitude: coordinates.lng } : null;
-  }).filter(Boolean), [mapEvents, eventCoordinates]);
+    return coordinates ? { ...event, mapLatitude: coordinates.lat, mapLongitude: coordinates.lng, liveCount: eventLiveCounts[event.id] || 0 } : null;
+  }).filter(Boolean), [mapEvents, eventCoordinates, eventLiveCounts]);
   const selectedEvent = useMemo(() => positionedEvents.find((event) => String(event.id) === String(selectedEventId)) || null, [positionedEvents, selectedEventId]);
 
   const saveViewport = useCallback((viewport) => {
@@ -882,6 +905,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
                 <Link to={`/event/${selectedEvent.id}`} className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-sm font-extrabold text-primary">{selectedEvent.title}</p>
                   <p className="mt-1 truncate text-xs text-slate-500">{selectedEvent.venueName || selectedEvent.address}</p>
+                  {selectedEvent.liveCount > 0 && <p className="mt-1 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-emerald-400"><i className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />Live · {selectedEvent.liveCount} here</p>}
                 </Link>
                 <button type="button" onClick={() => setSelectedEventId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close event preview"><X className="h-4 w-4" /></button>
               </div>
