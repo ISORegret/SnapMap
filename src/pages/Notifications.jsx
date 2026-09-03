@@ -10,6 +10,8 @@ function notificationCopy(item) {
     return { icon: Bell, text: `${item.event?.title || 'Your event'} starts ${starts}`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
   }
   if (item.type === 'event_rsvp') return { icon: UserCheck, text: `${name} RSVP’d to your event`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
+  if (item.type === 'event_claim_approved') return { icon: UserCheck, text: `Your ownership claim for ${item.event?.title || 'the event'} was approved`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
+  if (item.type === 'event_claim_rejected') return { icon: Bell, text: `Your ownership claim for ${item.event?.title || 'the event'} wasn’t approved`, href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events' };
   if (item.type === 'friend_request') return { icon: UserPlus, text: `${name} sent you a friend request`, href: item.actor?.username ? `/user/${item.actor.username}` : '/profile' };
   if (item.type === 'friend_accepted') return { icon: UserCheck, text: `${name} accepted your friend request`, href: item.actor?.username ? `/user/${item.actor.username}` : '/profile' };
   if (item.type === 'post_like') return { icon: Heart, text: `${name} liked your post`, href: item.postId ? `/explore?post=${item.postId}` : '/explore' };

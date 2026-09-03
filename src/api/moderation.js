@@ -55,6 +55,27 @@ export async function fetchModerationQueue() {
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
+export async function fetchEventClaims() {
+  if (!hasSupabase || !(await isCurrentUserAdmin())) return [];
+  const { data, error } = await supabase.from('event_claims').select(`
+    id, event_id, organizer_role, verification_contact, proof_note, status, created_at,
+    claimant:profiles!event_claims_claimant_id_fkey(id, username, display_name, avatar_url),
+    event:events!event_claims_event_id_fkey(id, title, venue_name, address, starts_at, cover_image_url, listing_type)
+  `).eq('status', 'pending').order('created_at', { ascending: true });
+  if (error) {
+    console.warn('SnapMap: event claims queue failed', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function reviewEventClaim(claimId, approve) {
+  if (!hasSupabase || !claimId) return false;
+  const { data, error } = await supabase.rpc('review_event_claim', { target_claim_id: claimId, approve_claim: Boolean(approve) });
+  if (error) console.warn('SnapMap: claim review failed', error);
+  return !error && data === true;
+}
+
 const REPORT_TABLES = { post: 'post_reports', comment: 'comment_reports', spot: 'spot_reports', message: 'private_message_reports', event: 'event_reports' };
 
 export async function dismissReport(item) {

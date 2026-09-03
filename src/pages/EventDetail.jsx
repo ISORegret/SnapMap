@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, CalendarDays, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, Trash2, User, Users, X } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Bell, BellOff, CalendarDays, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, ShieldCheck, Trash2, User, Users, X } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
 import EventEditor from '../components/EventEditor';
@@ -11,6 +11,7 @@ import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation'
 import { fetchEventReminder, setEventReminder } from '../api/eventReminders';
 import { checkInToEvent, fetchEventCheckIns, leaveEventCheckIn, subscribeToEventCheckIns } from '../api/eventCheckIns';
 import { reportEvent } from '../api/eventReports';
+import { fetchMyEventClaim, submitEventClaim } from '../api/eventClaims';
 
 function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -34,6 +35,12 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
   const [reportNote, setReportNote] = useState('');
   const [reportBusy, setReportBusy] = useState(false);
   const [reportSent, setReportSent] = useState(false);
+  const [claim, setClaim] = useState(null);
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claimRole, setClaimRole] = useState('organizer');
+  const [claimContact, setClaimContact] = useState('');
+  const [claimProof, setClaimProof] = useState('');
+  const [claimBusy, setClaimBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const result = await fetchEvent(id);
@@ -71,6 +78,13 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
     fetchEventReminder(event.id).then((value) => { if (!cancelled) setReminder(value); });
     return () => { cancelled = true; };
   }, [currentUser?.id, event?.id, event?.rsvpStatus, event?.hostId]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !event?.id || event.listingType !== 'listed') return setClaim(null);
+    let active = true;
+    fetchMyEventClaim(event.id).then((value) => { if (active) setClaim(value); });
+    return () => { active = false; };
+  }, [currentUser?.id, event?.id, event?.listingType]);
 
   const spot = useMemo(() => {
     if (!event) return null;
@@ -156,6 +170,18 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
     showToast?.('Event report sent. Thank you.');
   };
 
+  const submitClaim = async (submitEvent) => {
+    submitEvent.preventDefault();
+    if (!event || claimBusy) return;
+    setClaimBusy(true);
+    const result = await submitEventClaim({ eventId: event.id, organizerRole: claimRole, verificationContact: claimContact, proofNote: claimProof });
+    setClaimBusy(false);
+    if (!result.claim) return showToast?.(result.error);
+    setClaim(result.claim);
+    setClaimOpen(false);
+    showToast?.('Ownership claim sent for review.');
+  };
+
   const share = async () => {
     const url = `${window.location.origin}${window.location.pathname || ''}#/event/${event.id}`;
     if (navigator.share) {
@@ -223,6 +249,17 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
 
         {canManage && !editing && <button type="button" onClick={() => setEditing(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-sm font-extrabold text-cyan-300"><Pencil className="h-4 w-4" />Edit event or map pin</button>}
         {canManage && editing && <EventEditor event={event} spot={spot} onCancel={() => setEditing(false)} onSaved={(updated) => { setEvent(updated); setEditing(false); }} showToast={showToast} />}
+
+        {event.listingType === 'listed' && currentUser && !isAdmin && <section className="mt-4">
+          {claim?.status === 'pending' ? <div className="surface-card flex items-start gap-3 rounded-[1.5rem] border-cyan-400/20 p-4"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10 text-cyan-300"><ShieldCheck className="h-5 w-5" /></span><div><p className="text-sm font-extrabold text-primary">Ownership claim pending</p><p className="mt-1 text-xs leading-relaxed text-muted">We’ll review your organizer details. If approved, this event will move into your profile and become editable.</p></div></div> : !claimOpen ? <button type="button" onClick={() => setClaimOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] py-3 text-sm font-extrabold text-cyan-300"><BadgeCheck className="h-4 w-4" />Are you the organizer? Claim this event</button> : <form onSubmit={submitClaim} className="surface-card rounded-[1.65rem] border-cyan-400/20 p-5">
+            <div className="flex items-center justify-between gap-3"><div><p className="eyebrow text-cyan-300">Organizer verification</p><h2 className="mt-1 text-lg font-extrabold text-primary">Claim this event</h2></div><button type="button" onClick={() => setClaimOpen(false)} className="icon-button" aria-label="Close claim form"><X className="h-4 w-4" /></button></div>
+            <label className="mt-4 block text-sm font-bold text-secondary">Your role<select value={claimRole} onChange={(event) => setClaimRole(event.target.value)} className="surface-input mt-2 w-full rounded-2xl px-3.5 py-3 text-sm"><option value="organizer">Event organizer</option><option value="venue">Venue owner or manager</option><option value="staff">Event staff</option></select></label>
+            <label className="mt-3 block text-sm font-bold text-secondary">Verification contact<input value={claimContact} onChange={(event) => setClaimContact(event.target.value)} maxLength={300} placeholder="Official email, website, or social account" className="surface-input mt-2 w-full rounded-2xl px-3.5 py-3 text-sm" /></label>
+            <label className="mt-3 block text-sm font-bold text-secondary">How can we verify you?<textarea value={claimProof} onChange={(event) => setClaimProof(event.target.value)} maxLength={1500} rows={4} placeholder="Explain your connection to the event and anything we should check." className="surface-input mt-2 w-full resize-none rounded-2xl p-3.5 text-sm" /></label>
+            <p className="mt-3 text-xs leading-relaxed text-muted">Your verification details are only visible to SnapMap moderators.</p>
+            <button type="submit" disabled={claimBusy} className="primary-button mt-4 w-full py-3 text-sm disabled:opacity-50">{claimBusy ? 'Submitting…' : 'Submit ownership claim'}</button>
+          </form>}
+        </section>}
 
         {currentUser && (event.rsvpStatus || isHost) && <section className="surface-card mt-4 flex items-center gap-3 rounded-[1.5rem] p-4"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${reminder ? 'bg-accent-500/15 text-accent-400' : 'bg-white/[0.05] text-muted'}`}>{reminder ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-primary">Event reminders</p><p className="mt-0.5 text-xs text-muted">{reminder ? `On · 1 day and ${reminder.hoursBefore || 3} hours before` : 'Off for this event'}</p></div><button type="button" onClick={toggleReminder} disabled={reminderBusy} className={`rounded-xl px-3 py-2 text-xs font-extrabold disabled:opacity-50 ${reminder ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.06] text-secondary'}`}>{reminderBusy ? '…' : reminder ? 'On' : 'Turn on'}</button></section>}
 
