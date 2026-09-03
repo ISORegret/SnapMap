@@ -13,7 +13,17 @@ const EVENT_SELECT = EVENT_SELECT_BASE.replace(
   'event_type, venue_name, address, latitude, longitude, listing_type, source_label,'
 );
 
-const EVENT_SELECT_WITH_STATUS = EVENT_SELECT.replace(
+const EVENT_SELECT_WITH_COVER = EVENT_SELECT.replace(
+  'event_type, venue_name, address, latitude, longitude, listing_type, source_label,',
+  'event_type, venue_name, address, latitude, longitude, cover_image_url, cover_image_path, listing_type, source_label,'
+);
+
+const EVENT_SELECT_WITH_STATUS = EVENT_SELECT_WITH_COVER.replace(
+  'rsvps:event_rsvps(user_id, created_at,',
+  'rsvps:event_rsvps(user_id, status, created_at,'
+);
+
+const EVENT_SELECT_WITH_STATUS_LEGACY = EVENT_SELECT.replace(
   'rsvps:event_rsvps(user_id, created_at,',
   'rsvps:event_rsvps(user_id, status, created_at,'
 );
@@ -34,6 +44,8 @@ function normalizeEvent(event, currentUserId = null) {
     address: event.address || event.spot?.address || '',
     latitude: event.latitude == null ? null : Number(event.latitude),
     longitude: event.longitude == null ? null : Number(event.longitude),
+    coverImageUrl: event.cover_image_url || '',
+    coverImagePath: event.cover_image_path || '',
     listingType: event.listing_type || 'hosted',
     sourceLabel: event.source_label || 'SnapMap community',
     createdAt: event.created_at,
@@ -58,6 +70,18 @@ export async function fetchUpcomingEvents(limit = 50) {
     .order('starts_at', { ascending: true })
     .limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS_LEGACY)
+      .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+  }
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_COVER)
+      .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+  }
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .order('starts_at', { ascending: true })
@@ -80,6 +104,12 @@ export async function fetchEvent(eventId) {
   if (!hasSupabase || !eventId) return { event: null, error: 'Event not found.' };
   const userId = await currentUserId();
   let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS).eq('id', eventId).maybeSingle();
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS_LEGACY).eq('id', eventId).maybeSingle());
+  }
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_COVER).eq('id', eventId).maybeSingle());
+  }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT).eq('id', eventId).maybeSingle());
   }
@@ -162,11 +192,60 @@ export async function updateEvent(eventId, updates) {
   };
   if (!payload.title || Number.isNaN(new Date(payload.starts_at).getTime())) return { event: null, error: 'Add an event name and valid start time.' };
   const userId = await currentUserId();
-  const { data, error } = await supabase.from('events').update(payload).eq('id', eventId).select(EVENT_SELECT).single();
+  let { data, error } = await supabase.from('events').update(payload).eq('id', eventId).select(EVENT_SELECT_WITH_COVER).single();
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from('events').update(payload).eq('id', eventId).select(EVENT_SELECT).single());
+  }
   if (error || !data) {
     const needsMigration = ['42703', 'PGRST204'].includes(error?.code);
     return { event: null, error: needsMigration ? 'Apply migration 034 before editing event pins.' : (error?.message || 'Could not update event.') };
   }
+  return { event: normalizeEvent(data, userId), error: null };
+}
+
+export async function replaceEventCoverImage(event, image) {
+  if (!hasSupabase || !event?.id || !image?.blob) return { event: null, error: 'Choose an event photo.' };
+  const userId = await currentUserId();
+  if (!userId) return { event: null, error: 'Sign in to change the event photo.' };
+  const path = `${userId}/${event.id}/${crypto.randomUUID()}.webp`;
+  const { error: uploadError } = await supabase.storage.from('event-images').upload(path, image.blob, {
+    contentType: 'image/webp',
+    cacheControl: '31536000',
+    upsert: false,
+  });
+  if (uploadError) {
+    const missingBucket = /bucket|not found/i.test(uploadError.message || '');
+    return { event: null, error: missingBucket ? 'Run migration 038 before uploading event photos.' : (uploadError.message || 'Could not upload the event photo.') };
+  }
+  const { data: { publicUrl } } = supabase.storage.from('event-images').getPublicUrl(path);
+  const { data, error } = await supabase.from('events').update({
+    cover_image_url: publicUrl,
+    cover_image_path: path,
+    updated_at: new Date().toISOString(),
+  }).eq('id', event.id).select(EVENT_SELECT_WITH_COVER).single();
+  if (error || !data) {
+    await supabase.storage.from('event-images').remove([path]);
+    const needsMigration = ['42703', 'PGRST204'].includes(error?.code);
+    return { event: null, error: needsMigration ? 'Run migration 038 before uploading event photos.' : (error?.message || 'Could not save the event photo.') };
+  }
+  if (event.coverImagePath && event.coverImagePath !== path) await supabase.storage.from('event-images').remove([event.coverImagePath]);
+  return { event: normalizeEvent(data, userId), error: null };
+}
+
+export async function removeEventCoverImage(event) {
+  if (!hasSupabase || !event?.id) return { event: null, error: 'Event unavailable.' };
+  const userId = await currentUserId();
+  if (!userId) return { event: null, error: 'Sign in to change the event photo.' };
+  const { data, error } = await supabase.from('events').update({
+    cover_image_url: null,
+    cover_image_path: null,
+    updated_at: new Date().toISOString(),
+  }).eq('id', event.id).select(EVENT_SELECT_WITH_COVER).single();
+  if (error || !data) {
+    const needsMigration = ['42703', 'PGRST204'].includes(error?.code);
+    return { event: null, error: needsMigration ? 'Run migration 038 before changing event photos.' : (error?.message || 'Could not remove the event photo.') };
+  }
+  if (event.coverImagePath) await supabase.storage.from('event-images').remove([event.coverImagePath]);
   return { event: normalizeEvent(data, userId), error: null };
 }
 
@@ -189,12 +268,24 @@ export async function setEventRsvpStatus(eventId, status) {
 
 export async function fetchProfileEvents(profileId, limit = 8) {
   if (!hasSupabase || !profileId) return [];
-  const fields = `status, event:events!inner(id, title, starts_at, event_type, venue_name, address, latitude, longitude, listing_type, spot:spots(id, name, address, latitude, longitude, images))`;
+  const fields = `status, event:events!inner(id, title, starts_at, event_type, venue_name, address, latitude, longitude, cover_image_url, cover_image_path, listing_type, spot:spots(id, name, address, latitude, longitude, images))`;
   let { data, error } = await supabase.from('event_rsvps').select(fields)
     .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
     .limit(20);
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('event_rsvps').select(fields.replace('status, ', ''))
+      .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
+      .limit(20));
+  }
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    const legacyFields = fields.replace('cover_image_url, cover_image_path, ', '');
+    ({ data, error } = await supabase.from('event_rsvps').select(legacyFields)
+      .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
+      .limit(20));
+  }
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    const legacyFields = fields.replace('status, ', '').replace('cover_image_url, cover_image_path, ', '');
+    ({ data, error } = await supabase.from('event_rsvps').select(legacyFields)
       .eq('user_id', profileId).gte('event.starts_at', new Date().toISOString())
       .limit(20));
   }
@@ -212,9 +303,10 @@ export async function fetchProfileEvents(profileId, limit = 8) {
     .slice(0, Math.min(Math.max(Number(limit) || 8, 1), 20));
 }
 
-export async function deleteEvent(eventId) {
+export async function deleteEvent(eventId, coverImagePath = '') {
   if (!hasSupabase || !eventId) return false;
   const { error } = await supabase.from('events').delete().eq('id', eventId);
+  if (!error && coverImagePath) await supabase.storage.from('event-images').remove([coverImagePath]);
   return !error;
 }
 

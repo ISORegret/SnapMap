@@ -231,7 +231,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
             return (
               <article key={event.id} className="surface-card overflow-hidden rounded-[1.6rem]">
                 <Link to={`/event/${event.id}`} className="relative block aspect-[16/9] overflow-hidden bg-black/20">
-                  <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
+                  <img src={event.coverImageUrl || getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
                   <span className="absolute bottom-3 left-3 rounded-full bg-accent-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#211603]">{date.day}</span>
                 </Link>

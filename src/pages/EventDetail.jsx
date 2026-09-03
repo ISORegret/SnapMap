@@ -99,7 +99,7 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
   const remove = async () => {
     if (!event || !window.confirm(`Cancel “${event.title}”? Everyone’s RSVP will be removed.`)) return;
     setBusy(true);
-    const ok = await deleteEvent(event.id);
+    const ok = await deleteEvent(event.id, event.coverImagePath);
     if (!ok) { setBusy(false); return showToast?.('Could not cancel the event.'); }
     showToast?.('Event canceled.');
     navigate('/explore?view=events', { replace: true });
@@ -142,7 +142,7 @@ export default function EventDetail({ allSpots = [], currentUser, showToast } = 
       <main className="mx-auto w-full max-w-3xl px-4 py-5 md:px-6">
         <section className="surface-card overflow-hidden rounded-[1.75rem]">
           <div className="relative aspect-[16/10] overflow-hidden bg-black/20">
-            <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
+            <img src={event.coverImageUrl || getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-black/20" />
             <div className="absolute inset-x-0 bottom-0 p-5"><p className="eyebrow text-accent-300">{event.listingType === 'listed' ? event.eventType.replaceAll('_', ' ') : 'Hosted meetup'}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">{event.title}</h1></div>
           </div>

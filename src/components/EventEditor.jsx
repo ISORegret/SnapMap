@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Crosshair, LocateFixed, MapPin, Save, Search, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Crosshair, ImagePlus, LocateFixed, MapPin, Save, Search, Trash2, X } from 'lucide-react';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { updateEvent } from '../api/events';
+import { removeEventCoverImage, replaceEventCoverImage, updateEvent } from '../api/events';
+import { compressPostImage } from '../api/posts';
+import { getSpotPrimaryImage } from '../utils/spotImages';
 
 const pinIcon = L.divIcon({
   className: 'snapmap-marker-wrap',
@@ -58,9 +60,30 @@ export default function EventEditor({ event, spot, onCancel, onSaved, showToast 
   });
   const [saving, setSaving] = useState(false);
   const [finding, setFinding] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoInputRef = useRef(null);
   const pin = useMemo(() => validCoordinate(form.latitude, form.longitude)
     ? [Number(form.latitude), Number(form.longitude)]
     : null, [form.latitude, form.longitude]);
+  const displayedPhoto = photo?.previewUrl || (!removePhoto && event.coverImageUrl) || getSpotPrimaryImage(spot);
+
+  useEffect(() => () => { if (photo?.previewUrl) URL.revokeObjectURL(photo.previewUrl); }, [photo?.previewUrl]);
+
+  const choosePhoto = async (changeEvent) => {
+    const file = changeEvent.target.files?.[0];
+    changeEvent.target.value = '';
+    if (!file) return;
+    setPhotoError('');
+    try {
+      const processed = await compressPostImage(file);
+      setPhoto(processed);
+      setRemovePhoto(false);
+    } catch (error) {
+      setPhotoError(error?.message || 'That photo could not be processed.');
+    }
+  };
 
   const setPin = (lat, lng) => setForm((current) => ({
     ...current,
@@ -87,10 +110,28 @@ export default function EventEditor({ event, spot, onCancel, onSaved, showToast 
     submitEvent.preventDefault();
     setSaving(true);
     const result = await updateEvent(event.id, form);
+    if (result.error) { setSaving(false); return showToast?.(result.error); }
+    let savedEvent = { ...event, ...result.event };
+    if (photo) {
+      const photoResult = await replaceEventCoverImage(savedEvent, photo);
+      if (photoResult.error) { setSaving(false); return showToast?.(`Event details saved. ${photoResult.error}`); }
+      savedEvent = { ...savedEvent, ...photoResult.event };
+    } else if (removePhoto && event.coverImageUrl) {
+      const photoResult = await removeEventCoverImage(savedEvent);
+      if (photoResult.error) { setSaving(false); return showToast?.(`Event details saved. ${photoResult.error}`); }
+      savedEvent = { ...savedEvent, ...photoResult.event };
+    }
     setSaving(false);
-    if (result.error) return showToast?.(result.error);
     showToast?.('Event updated.');
-    onSaved(result.event);
+    onSaved({
+      ...savedEvent,
+      rsvps: event.rsvps,
+      rsvpStatus: event.rsvpStatus,
+      attendeeCount: event.attendeeCount,
+      interestedCount: event.interestedCount,
+      attending: event.attending,
+      interested: event.interested,
+    });
   };
 
   return (
@@ -98,6 +139,21 @@ export default function EventEditor({ event, spot, onCancel, onSaved, showToast 
       <div className="flex items-start justify-between gap-3">
         <div><p className="eyebrow text-cyan-300">Event editor</p><h2 className="mt-1 text-lg font-extrabold text-primary">Correct this listing</h2></div>
         <button type="button" onClick={onCancel} className="icon-button h-10 w-10" aria-label="Close editor"><X className="h-4 w-4" /></button>
+      </div>
+
+      <div className="mt-4">
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/25">
+          <img src={displayedPhoto} alt="Event cover preview" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
+          <span className="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-1.5 text-xs font-extrabold text-white backdrop-blur">{photo ? 'New event photo' : removePhoto ? 'Location photo fallback' : event.coverImageUrl ? 'Current event photo' : 'Location photo fallback'}</span>
+        </div>
+        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={choosePhoto} className="hidden" />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => photoInputRef.current?.click()} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] px-3 text-sm font-extrabold text-cyan-300"><ImagePlus className="h-4 w-4" />{event.coverImageUrl || photo ? 'Replace photo' : 'Add event photo'}</button>
+          {(event.coverImageUrl || photo) ? <button type="button" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(event.coverImageUrl)); setPhotoError(''); }} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 px-3 text-sm font-extrabold text-secondary"><Trash2 className="h-4 w-4" />{photo && !event.coverImageUrl ? 'Clear photo' : 'Remove photo'}</button> : <div />}
+        </div>
+        <p className="mt-2 text-xs text-muted">Use the event flyer or an actual photo from the show. JPG, PNG, or WebP up to 20 MB.</p>
+        {photoError && <p className="mt-2 text-xs font-bold text-rose-400">{photoError}</p>}
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

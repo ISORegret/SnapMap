@@ -874,8 +874,8 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       {selectedEvent && !selectedSpot && !selectedPost && !pendingPin && (
         <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-3 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
           <div className="flex gap-3">
-            <Link to={`/event/${selectedEvent.id}`} className="grid h-24 w-20 shrink-0 place-items-center rounded-[1.1rem] bg-cyan-400/10 text-cyan-300">
-              <CalendarDays className="h-8 w-8" />
+            <Link to={`/event/${selectedEvent.id}`} className="grid h-24 w-20 shrink-0 place-items-center overflow-hidden rounded-[1.1rem] bg-cyan-400/10 text-cyan-300">
+              {selectedEvent.coverImageUrl ? <img src={selectedEvent.coverImageUrl} alt="" className="h-full w-full object-cover" /> : <CalendarDays className="h-8 w-8" />}
             </Link>
             <div className="min-w-0 flex-1 py-1">
               <div className="flex items-start gap-2">
