@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, Camera, ChevronLeft, ChevronRight, Clock3, Heart, ImagePlus, LocateFixed, MapPin, MessageCircle, MoreHorizontal, Navigation, Send, Sparkles, Trash2, User, X } from 'lucide-react';
-import { addPostComment, compressPostImage, createPost, deletePost, deletePostComment, fetchPosts, reportPost, subscribeToFeed, togglePostLike } from '../api/posts';
+import { CalendarDays, Camera, ChevronLeft, ChevronRight, Clock3, Heart, ImagePlus, LocateFixed, MapPin, MessageCircle, MoreHorizontal, Navigation, Pencil, Send, Sparkles, Trash2, User, X } from 'lucide-react';
+import { addPostComment, compressPostImage, createPost, deletePost, deletePostComment, fetchPosts, reportPost, subscribeToFeed, togglePostLike, updatePost } from '../api/posts';
 import { fetchEvent, fetchUpcomingEvents } from '../api/events';
 import { getFriendConnections } from '../api/follows';
 import { haversineKm, kmToMi } from '../utils/geo';
@@ -17,7 +17,7 @@ function timeAgo(value) {
   return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function PostCard({ post, currentUser, units, onChanged, showToast }) {
+function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
   const [slide, setSlide] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comment, setComment] = useState('');
@@ -48,7 +48,9 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
 
   const handlePostAction = async (action) => {
     setMenuOpen(false);
-    if (action === 'delete') {
+    if (action === 'edit') {
+      onEdit?.(post);
+    } else if (action === 'delete') {
       if (!window.confirm('Delete this post and its photos?')) return;
       if (await deletePost(post)) { showToast?.('Post deleted.'); onChanged?.(); }
     } else if (await reportPost(post.id)) showToast?.('Post reported. Thank you.');
@@ -67,7 +69,8 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
         </div>
         <div className="relative">
           <button type="button" onClick={() => setMenuOpen((open) => !open)} className="icon-button h-9 w-9 rounded-xl" aria-label="Post options"><MoreHorizontal className="h-4 w-4" /></button>
-          {menuOpen && <div className="absolute right-0 top-11 z-20 w-40 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card-solid)] p-1.5 shadow-2xl">
+          {menuOpen && <div className="absolute right-0 top-11 z-20 w-44 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card-solid)] p-1.5 shadow-2xl">
+            {isOwn && <button type="button" onClick={() => handlePostAction('edit')} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-secondary hover:bg-white/5"><Pencil className="h-4 w-4 text-accent-400" />Edit post</button>}
             <button type="button" onClick={() => handlePostAction(isOwn ? 'delete' : 'report')} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-secondary hover:bg-white/5">
               {isOwn ? <Trash2 className="h-4 w-4 text-rose-400" /> : <MoreHorizontal className="h-4 w-4" />}{isOwn ? 'Delete post' : 'Report post'}
             </button>
@@ -95,7 +98,7 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
             {post.spotId ? <Link to={`/spot/${post.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />View spot</Link> : post.latitude != null && <Link to={`/?lat=${post.latitude}&lng=${post.longitude}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />Map</Link>}
           </div>
         </div>
-        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="mr-1 font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>{post.caption}</p>}
+        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="mr-1 font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>{post.caption}{post.updated_at && new Date(post.updated_at).getTime() > new Date(post.createdAt).getTime() + 1000 && <span className="ml-1.5 text-[10px] font-semibold text-muted">Edited</span>}</p>}
         {!commentsOpen && post.comments.length > 0 && <button type="button" onClick={() => setCommentsOpen(true)} className="mt-2 text-xs font-semibold text-muted">View {post.comments.length === 1 ? 'comment' : `all ${post.comments.length} comments`}</button>}
         {commentsOpen && <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
           <div className="max-h-64 space-y-3 overflow-y-auto">
@@ -114,6 +117,82 @@ function PostCard({ post, currentUser, units, onChanged, showToast }) {
       </div>
     </article>
   );
+}
+
+function PostEditor({ post, open, onClose, onSaved, allSpots = [], availableEvents = [], userPosition, requestPosition, showToast }) {
+  const cloudSpots = useMemo(() => allSpots.filter((spot) => /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(spot.id))), [allSpots]);
+  const eventOptions = useMemo(() => post?.event && !availableEvents.some((item) => item.id === post.event.id) ? [post.event, ...availableEvents] : availableEvents, [availableEvents, post?.event]);
+  const [caption, setCaption] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [spotId, setSpotId] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [approximate, setApproximate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!post || !open) return;
+    setCaption(post.caption || '');
+    setLocationName(post.locationName || '');
+    setSpotId(post.spotId || '');
+    setEventId(post.eventId || '');
+    setLatitude(post.latitude ?? null);
+    setLongitude(post.longitude ?? null);
+    setApproximate(post.locationPrecision === 'approximate');
+    setError('');
+  }, [open, post?.id]);
+
+  if (!open || !post) return null;
+
+  const chooseSpot = (value) => {
+    setSpotId(value);
+    const selected = cloudSpots.find((spot) => String(spot.id) === String(value));
+    if (!selected) return;
+    setLocationName(selected.name);
+    setLatitude(selected.latitude);
+    setLongitude(selected.longitude);
+    setApproximate(false);
+  };
+
+  const useMyLocation = async () => {
+    const position = userPosition || await requestPosition?.();
+    if (!position) return setError('Location access is needed to use your current position.');
+    setSpotId('');
+    setLatitude(position.lat);
+    setLongitude(position.lng);
+    if (!locationName.trim() || post.spotId) setLocationName('Current location');
+    setError('');
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!locationName.trim() || latitude == null || longitude == null) return setError('Choose a spot or use your current location.');
+    setSaving(true);
+    setError('');
+    const result = await updatePost({ postId: post.id, caption, locationName, latitude, longitude, locationPrecision: approximate ? 'approximate' : 'exact', spotId, eventId });
+    setSaving(false);
+    if (!result.post) return setError(result.error || 'Could not save your changes.');
+    showToast?.('Post updated.');
+    onSaved?.(result.post);
+    onClose?.();
+  };
+
+  return createPortal(<div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="edit-post-title">
+    <form onSubmit={submit} className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] border border-[var(--border-subtle)] bg-[var(--bg-page-elevated)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[2rem]">
+      <div className="flex items-center justify-between"><div><p className="eyebrow">Your post</p><h2 id="edit-post-title" className="mt-1 text-xl font-extrabold text-primary">Edit post</h2></div><button type="button" onClick={onClose} className="icon-button h-10 w-10 rounded-xl" aria-label="Close"><X className="h-5 w-5" /></button></div>
+      <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--bg-input)] p-3"><img src={post.images[0]?.public_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" /><div><p className="text-sm font-extrabold text-primary">Photos stay with this post</p><p className="mt-1 text-xs leading-relaxed text-muted">You can update the caption, location, privacy, and event tag.</p></div></div>
+      <label className="mt-4 block text-xs font-extrabold text-secondary">Caption<textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={2200} rows={4} placeholder="What made this spot worth the stop?" className="surface-input mt-2 w-full resize-none rounded-2xl p-3.5 text-sm font-normal" /></label>
+      <label className="mt-4 block text-xs font-extrabold text-secondary">Tagged event<select value={eventId} onChange={(event) => setEventId(event.target.value)} className="surface-input mt-2 w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">No event tagged</option>{eventOptions.map((item) => { const startsAt = item.startsAt || item.starts_at; return <option key={item.id} value={item.id}>{item.title}{startsAt ? ` · ${new Date(startsAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ''}</option>; })}</select></label>
+      <label className="mt-4 block text-xs font-extrabold text-secondary">SnapMap location<select value={spotId} onChange={(event) => chooseSpot(event.target.value)} className="surface-input mt-2 w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">Custom or current location</option>{cloudSpots.map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}</select></label>
+      <button type="button" onClick={useMyLocation} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--border-subtle)] px-4 py-3 text-sm font-extrabold text-secondary"><LocateFixed className="h-4 w-4 text-accent-400" />Use my current location</button>
+      <label className="mt-4 block text-xs font-extrabold text-secondary">Location name<input value={locationName} onChange={(event) => setLocationName(event.target.value)} maxLength={160} className="surface-input mt-2 w-full rounded-2xl px-3.5 py-3 text-sm font-normal" /></label>
+      <label className="mt-3 flex items-start gap-3 rounded-2xl bg-[var(--bg-input)] p-3 text-sm text-secondary"><input type="checkbox" checked={approximate} onChange={(event) => setApproximate(event.target.checked)} className="mt-0.5 h-4 w-4 accent-amber-500" /><span><strong className="block text-primary">Show approximate location</strong><span className="text-xs text-muted">Coordinates are blurred and the exact spot link is removed.</span></span></label>
+      {error && <p className="mt-3 text-sm font-semibold text-rose-400">{error}</p>}
+      <button type="submit" disabled={saving} className="primary-button mt-5 w-full py-3.5 text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
+    </form>
+  </div>, document.body);
 }
 
 function Composer({ open, onClose, onCreated, allSpots = [], availableEvents = [], currentUser, userPosition, requestPosition, showToast, initialSpotId = '', initialEvent = null } = {}) {
@@ -233,6 +312,7 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
   const [friendIds, setFriendIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [composerOpen, setComposerOpen] = useState(searchParams.get('compose') === '1');
+  const [editingPost, setEditingPost] = useState(null);
   const signedInDefaultApplied = useRef(false);
   const refresh = useCallback(async (silent = false) => { if (!silent) setLoading(true); setPosts(await fetchPosts({ mode: mode === 'for_you' ? 'newest' : mode, limit: focusedPostId ? 75 : 40 })); setLoading(false); }, [mode, currentUser?.id, focusedPostId]);
   useEffect(() => { refresh(); const unsubscribe = subscribeToFeed(() => refresh(true)); return unsubscribe; }, [refresh]);
@@ -351,7 +431,8 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     {loading ? <div className="space-y-4">{[0, 1].map((item) => <div key={item} className="surface-card aspect-[4/5] animate-pulse rounded-[1.65rem]" />)}</div>
     : mode === 'nearby' && !userPosition ? <div className="surface-card rounded-[1.65rem] px-6 py-12 text-center"><LocateFixed className="mx-auto h-8 w-8 text-accent-400" /><p className="mt-4 font-extrabold text-primary">Turn on location for nearby posts</p><button type="button" onClick={requestPosition} className="primary-button mt-4 px-5 py-2.5 text-sm">Use my location</button></div>
     : displayed.length === 0 ? <div className="surface-card rounded-[1.65rem] px-6 py-12 text-center"><Camera className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-extrabold text-primary">{mode === 'friends' ? 'Your friends haven’t posted yet' : mode === 'nearby' ? 'No posts nearby yet' : mode === 'for_you' ? 'Your photo feed is ready to grow' : 'The feed is ready for its first frame'}</p><p className="mt-1 text-sm text-muted">{currentUser ? 'Share a photo from a location worth finding.' : 'Sign in and help start the community.'}</p>{currentUser && <button type="button" onClick={() => setComposerOpen(true)} className="primary-button mt-5 px-5 py-2.5 text-sm">Create a post</button>}</div>
-    : <div className="space-y-5">{displayed.map((post) => <PostCard key={post.id} post={post} currentUser={currentUser} units={units} onChanged={() => refresh(true)} showToast={showToast} />)}</div>}
+    : <div className="space-y-5">{displayed.map((post) => <PostCard key={post.id} post={post} currentUser={currentUser} units={units} onChanged={() => refresh(true)} onEdit={setEditingPost} showToast={showToast} />)}</div>}
     <Composer key={`${composeSpotId || 'spot'}-${composeEvent?.id || composeEventId || 'event'}`} open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={() => refresh(true)} allSpots={allSpots} availableEvents={events} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} initialSpotId={composeSpotId} initialEvent={composeEvent} />
+    <PostEditor post={editingPost} open={Boolean(editingPost)} onClose={() => setEditingPost(null)} onSaved={() => refresh(true)} allSpots={allSpots} availableEvents={events} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} />
   </section>;
 }

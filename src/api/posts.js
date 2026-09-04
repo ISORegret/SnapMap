@@ -174,6 +174,33 @@ export async function createPost({ caption = '', locationName, latitude = null, 
   }
 }
 
+export async function updatePost({ postId, caption = '', locationName, latitude = null, longitude = null, locationPrecision = 'exact', spotId = null, eventId = null }) {
+  if (!hasSupabase || !postId || !locationName?.trim()) return { post: null, error: 'Choose a location for this post.' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { post: null, error: 'Sign in to edit this post.' };
+  const isApproximate = locationPrecision === 'approximate';
+  const storedLatitude = latitude == null ? null : (isApproximate ? Math.round(latitude * 100) / 100 : latitude);
+  const storedLongitude = longitude == null ? null : (isApproximate ? Math.round(longitude * 100) / 100 : longitude);
+  const { data, error } = await supabase
+    .from('posts')
+    .update({
+      caption: String(caption).trim().slice(0, 2200),
+      location_name: String(locationName).trim().slice(0, 160),
+      latitude: storedLatitude,
+      longitude: storedLongitude,
+      location_precision: isApproximate ? 'approximate' : 'exact',
+      spot_id: isApproximate ? null : (spotId || null),
+      event_id: eventId || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', postId)
+    .eq('user_id', user.id)
+    .select(POST_SELECT)
+    .single();
+  if (error || !data) return { post: null, error: error?.message || 'Could not save your changes.' };
+  return { post: normalizePost(data, user.id), error: null };
+}
+
 export async function togglePostLike(postId, liked) {
   if (!hasSupabase || !postId) return false;
   const { data: { user } } = await supabase.auth.getUser();
