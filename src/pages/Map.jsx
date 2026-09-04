@@ -711,12 +711,13 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       <MapContainer
         center={initialViewport.center}
         zoom={initialViewport.zoom}
-        className="h-full w-full"
+        className="snapmap-map h-full w-full"
         style={{ height: '100%', minHeight: 200 }}
         scrollWheelZoom
         zoomControl={false}
+        attributionControl={false}
       >
-        <ZoomControl position="bottomleft" />
+        {!selectedSpot && !selectedPost && !selectedEvent && !pendingPin && <ZoomControl position="bottomleft" />}
         <TileLayer
           key={activeMapStyle.id}
           attribution={activeMapStyle.attribution}
@@ -806,7 +807,10 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       )}
 
       <div className="surface-card absolute bottom-[7.1rem] left-3 right-3 z-[1000] flex items-center justify-between gap-3 rounded-[1.25rem] px-3.5 py-3 text-xs text-secondary sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
-        <span className="font-semibold">Tap anywhere to pin a new spot</span>
+        <div className="min-w-0">
+          <span className="font-semibold">Tap anywhere to pin a new spot</span>
+          <p className="mt-1 truncate text-[8px] text-muted"><a href="https://leafletjs.com" target="_blank" rel="noreferrer" className="hover:text-primary">Leaflet</a><span aria-hidden="true"> | </span><span dangerouslySetInnerHTML={{ __html: activeMapStyle.attribution }} /></p>
+        </div>
         <Link to="/explore" className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-[var(--accent-muted)] px-3 py-2 font-extrabold text-accent-400 transition hover:bg-accent-500 hover:text-[#211603]">
           <Compass className="h-3.5 w-3.5" />
           Browse spots

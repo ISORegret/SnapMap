@@ -275,6 +275,13 @@ a:hover { text-decoration: none; }
   background: transparent !important;
   color: #f7f8fa !important;
 }
+.snapmap-map .leaflet-bottom.leaflet-left {
+  bottom: calc(14.25rem + env(safe-area-inset-bottom, 0px));
+  left: 0.2rem;
+}
+.snapmap-map .leaflet-control-zoom {
+  margin: 0 !important;
+}
 .leaflet-popup-content-wrapper {
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
