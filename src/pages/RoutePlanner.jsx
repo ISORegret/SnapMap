@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowLeft, ArrowUp, LocateFixed, MapPin, Milestone, Navigation, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Clock3, LocateFixed, MapPin, Milestone, Navigation, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleMultiStopDirectionsUrl, googleMultiStopDirectionsUrl } from '../utils/mapNavigation';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
 
 const ROUTE_DRAFT_KEY = 'snapmap_route_draft_v1';
-const MAX_ROUTE_STOPS = 4;
+const MAX_ROUTE_STOPS = 8;
 
 function validCoordinate(spot) {
   const lat = Number(spot?.latitude);
@@ -22,6 +22,14 @@ function readDraft() {
   } catch {
     return [];
   }
+}
+
+function formatDriveTime(minutes) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return '—';
+  if (minutes < 60) return `${Math.max(1, Math.round(minutes))} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = Math.round(minutes % 60);
+  return remainder ? `${hours} hr ${remainder} min` : `${hours} hr`;
 }
 
 export default function RoutePlanner({ allSpots = [], favoriteIds = [], collections = [], userPosition = null, requestPosition, units = 'mi' } = {}) {
@@ -58,6 +66,27 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
     });
   };
 
+  const optimizeRoute = () => {
+    if (selectedSpots.length < 2) return;
+    const lockedFirst = originMode === 'first' ? selectedSpots[0] : null;
+    let previous = lockedFirst || userPosition;
+    const remaining = [...(lockedFirst ? selectedSpots.slice(1) : selectedSpots)];
+    const ordered = lockedFirst ? [lockedFirst] : [];
+    if (!previous && remaining.length) previous = remaining.shift();
+    if (ordered.length === 0 && previous && !userPosition) ordered.push(previous);
+    while (remaining.length) {
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      remaining.forEach((spot, index) => {
+        const km = haversineKm(Number(previous.lat ?? previous.latitude), Number(previous.lng ?? previous.longitude), Number(spot.latitude), Number(spot.longitude));
+        if (km < closestDistance) { closestDistance = km; closestIndex = index; }
+      });
+      previous = remaining.splice(closestIndex, 1)[0];
+      ordered.push(previous);
+    }
+    setRouteIds(ordered.map((spot) => String(spot.id)));
+  };
+
   const useLocation = async () => {
     setOriginMode('current');
     if (userPosition || !requestPosition) return;
@@ -79,7 +108,9 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
     const previous = pathPoints[index];
     return total + haversineKm(Number(previous.lat ?? previous.latitude), Number(previous.lng ?? previous.longitude), Number(point.lat ?? point.latitude), Number(point.lng ?? point.longitude));
   }, 0);
-  const distance = units === 'km' ? straightLineKm : kmToMi(straightLineKm);
+  const estimatedRoadKm = straightLineKm * 1.22;
+  const distance = units === 'km' ? estimatedRoadKm : kmToMi(estimatedRoadKm);
+  const estimatedDriveMinutes = (estimatedRoadKm / 56) * 60;
 
   return (
     <div className="page-shell pb-32 animate-fade-in">
@@ -87,7 +118,7 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
         <button type="button" onClick={() => navigate(-1)} className="icon-button mb-5 gap-2 rounded-2xl px-3" aria-label="Go back"><ArrowLeft className="h-5 w-5" />Back</button>
         <p className="eyebrow">Shoot-day planner</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary">Plan a route</h1>
-        <p className="mt-2 text-sm text-muted">Choose up to four saved spots, put them in order, then open the trip in your maps app.</p>
+        <p className="mt-2 text-sm text-muted">Choose up to eight saved spots, optimize the order, then open the complete trip in your maps app.</p>
       </header>
 
       <div className="space-y-5 px-4 pt-5">
@@ -100,7 +131,7 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
         </section>
 
         <section>
-          <div className="mb-3 flex items-end justify-between gap-3"><div><p className="eyebrow">Route order</p><h2 className="mt-1 text-lg font-extrabold text-primary">{selectedSpots.length} of {MAX_ROUTE_STOPS} stops</h2></div>{selectedSpots.length > 0 && <button type="button" onClick={() => setRouteIds([])} className="text-xs font-bold text-rose-400">Clear route</button>}</div>
+          <div className="mb-3 flex items-end justify-between gap-3"><div><p className="eyebrow">Route order</p><h2 className="mt-1 text-lg font-extrabold text-primary">{selectedSpots.length} of {MAX_ROUTE_STOPS} stops</h2></div><div className="flex items-center gap-3">{selectedSpots.length > 1 && <button type="button" onClick={optimizeRoute} disabled={originMode === 'current' && !userPosition} className="flex items-center gap-1 text-xs font-extrabold text-accent-400 disabled:opacity-40"><Sparkles className="h-3.5 w-3.5" />Optimize</button>}{selectedSpots.length > 0 && <button type="button" onClick={() => setRouteIds([])} className="text-xs font-bold text-rose-400">Clear</button>}</div></div>
           {selectedSpots.length === 0 ? <div className="surface-card rounded-[1.5rem] px-5 py-8 text-center"><Milestone className="mx-auto h-7 w-7 text-accent-400" /><p className="mt-3 text-sm font-extrabold text-primary">Add your first stop</p><p className="mt-1 text-xs text-muted">Choose from your saved spots below.</p></div> : <div className="space-y-2">
             {selectedSpots.map((spot, index) => <div key={spot.id} className="surface-card flex items-center gap-3 rounded-[1.35rem] p-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-500 text-sm font-black text-[#211603]">{index + 1}</span>
@@ -109,6 +140,16 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
             </div>)}
           </div>}
         </section>
+
+        {selectedSpots.length > 0 && <section className="surface-card rounded-[1.6rem] p-4">
+          <div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">Trip estimate</p><h2 className="mt-1 text-lg font-extrabold text-primary">Route overview</h2></div><Clock3 className="h-5 w-5 text-accent-400" /></div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/[0.04] p-3 text-center"><p className="text-lg font-black text-primary">{selectedSpots.length}</p><p className="mt-1 text-[11px] font-bold text-muted">Stops</p></div>
+            <div className="rounded-2xl bg-white/[0.04] p-3 text-center"><p className="text-lg font-black text-primary">{distance > 0 ? distance.toFixed(distance < 10 ? 1 : 0) : '—'}</p><p className="mt-1 text-[11px] font-bold text-muted">{units === 'km' ? 'Kilometers' : 'Miles'}</p></div>
+            <div className="rounded-2xl bg-white/[0.04] p-3 text-center"><p className="text-sm font-black leading-6 text-primary">{formatDriveTime(estimatedDriveMinutes)}</p><p className="mt-1 text-[11px] font-bold text-muted">Drive time</p></div>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted">Distance and time are planning estimates. Your maps app will calculate live traffic and the exact roads.</p>
+        </section>}
 
         <section>
           <div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">Saved spots</p><h2 className="mt-1 text-lg font-extrabold text-primary">Add a stop</h2></div>{routeIds.length >= MAX_ROUTE_STOPS && <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-300">Route full</span>}</div>
@@ -119,7 +160,7 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
         </section>
       </div>
 
-      {selectedSpots.length > 0 && <div className="fixed bottom-[6.75rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-2 shadow-2xl backdrop-blur-2xl"><div className="mb-2 flex items-center justify-between px-2 text-xs"><span className="font-bold text-secondary">{selectedSpots.length} stop{selectedSpots.length === 1 ? '' : 's'}</span>{distance > 0 && <span className="text-muted">≈ {distance.toFixed(distance < 10 ? 1 : 0)} {units} between pins</span>}</div><div className="grid grid-cols-2 gap-2"><Link to={previewUrl} className="flex min-h-12 items-center justify-center gap-2 rounded-[1rem] bg-white/[0.06] text-sm font-extrabold text-secondary"><Milestone className="h-4 w-4" />Preview</Link><DirectionsLauncher googleUrl={googleUrl} appleUrl={appleUrl} title="Start this route" googleDescription="Open all route stops in Google Maps" appleDescription="Open all route stops in Apple Maps" className="flex min-h-12 items-center justify-center gap-2 rounded-[1rem] bg-accent-500 text-sm font-extrabold text-[#211603]"><Navigation className="h-4 w-4" />Navigate</DirectionsLauncher></div></div>}
+      {selectedSpots.length > 0 && <div className="fixed bottom-[6.75rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-2 shadow-2xl backdrop-blur-2xl"><div className="mb-2 flex items-center justify-between px-2 text-xs"><span className="font-bold text-secondary">{selectedSpots.length} stop{selectedSpots.length === 1 ? '' : 's'}</span>{distance > 0 && <span className="text-muted">≈ {distance.toFixed(distance < 10 ? 1 : 0)} {units} · {formatDriveTime(estimatedDriveMinutes)}</span>}</div><div className="grid grid-cols-2 gap-2"><Link to={previewUrl} className="flex min-h-12 items-center justify-center gap-2 rounded-[1rem] bg-white/[0.06] text-sm font-extrabold text-secondary"><Milestone className="h-4 w-4" />Preview map</Link><DirectionsLauncher googleUrl={googleUrl} appleUrl={appleUrl} title="Start this route" googleDescription="Open all route stops in Google Maps" appleDescription="Open all route stops in Apple Maps" className="flex min-h-12 items-center justify-center gap-2 rounded-[1rem] bg-accent-500 text-sm font-extrabold text-[#211603]"><Navigation className="h-4 w-4" />Navigate</DirectionsLauncher></div></div>}
     </div>
   );
 }
