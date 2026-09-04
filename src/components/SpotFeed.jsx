@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, Camera, ChevronLeft, ChevronRight, Clock3, Heart, ImagePlus, LocateFixed, MapPin, MessageCircle, MoreHorizontal, Navigation, Pencil, Send, Sparkles, Trash2, User, X } from 'lucide-react';
+import { CalendarDays, Camera, ChevronLeft, ChevronRight, Clock3, Heart, ImagePlus, LocateFixed, MapPin, MessageCircle, MoreHorizontal, Navigation, Pencil, Send, Share2, Sparkles, Trash2, User, X } from 'lucide-react';
 import { addPostComment, compressPostImage, createPost, deletePost, deletePostComment, fetchPosts, reportPost, subscribeToFeed, togglePostLike, updatePost } from '../api/posts';
 import { fetchEvent, fetchUpcomingEvents } from '../api/events';
 import { getFriendConnections } from '../api/follows';
@@ -22,6 +22,7 @@ function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [working, setWorking] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const image = post.images[slide];
   const isOwn = currentUser?.id === post.userId;
@@ -33,6 +34,49 @@ function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
     if (!currentUser) return showToast?.('Sign in to like posts.');
     const ok = await togglePostLike(post.id, post.likedByMe);
     if (ok) onChanged?.();
+  };
+
+  const sharePost = async () => {
+    if (sharing) return;
+    setSharing(true);
+    const url = `${window.location.origin}${window.location.pathname || ''}#/explore?post=${post.id}`;
+    const creator = post.author?.display_name || post.author?.username || 'a SnapMap creator';
+    const text = post.caption?.trim() ? `${post.caption.trim().slice(0, 180)}${post.caption.trim().length > 180 ? '…' : ''}` : `Photo from ${post.locationName} by ${creator}`;
+    try {
+      if (navigator.share) {
+        const imageUrl = post.images[0]?.public_url;
+        if (imageUrl && navigator.canShare) {
+          try {
+            const response = await fetch(imageUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/jpeg' ? 'jpg' : 'webp';
+              const file = new File([blob], `snapmap-${post.id}.${extension}`, { type: blob.type || 'image/webp' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: `${post.locationName} · SnapMap`, text, url });
+                return;
+              }
+            }
+          } catch (imageShareError) {
+            if (imageShareError?.name === 'AbortError') return;
+          }
+        }
+        await navigator.share({ title: `${post.locationName} · SnapMap`, text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast?.('Post link copied.');
+    } catch (shareError) {
+      if (shareError?.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast?.('Post link copied.');
+      } catch {
+        showToast?.('Could not share this post.');
+      }
+    } finally {
+      setSharing(false);
+    }
   };
 
   const submitComment = async (event) => {
@@ -92,6 +136,7 @@ function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
         <div className="flex items-center gap-2">
           <button type="button" onClick={handleLike} className={`flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold ${post.likedByMe ? 'text-rose-400' : 'text-secondary'}`}><Heart className={`h-5 w-5 ${post.likedByMe ? 'fill-current' : ''}`} />{post.likeCount || ''}</button>
           <button type="button" onClick={() => setCommentsOpen((open) => !open)} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary"><MessageCircle className="h-5 w-5" />{post.comments.length || ''}</button>
+          <button type="button" onClick={sharePost} disabled={sharing} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary disabled:opacity-50" aria-label="Share post outside SnapMap"><Share2 className="h-5 w-5" /></button>
           {currentUser && <Link to="/messages" state={{ share: { type: 'post', id: post.id, title: post.locationName, subtitle: `Post by ${post.author?.display_name || post.author?.username || 'a creator'}`, imageUrl: post.images[0]?.public_url || '' } }} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary" aria-label="Send post to a friend"><Send className="h-5 w-5" /></Link>}
           <div className="ml-auto flex items-center gap-2">
             {distance && <span className="hidden text-[11px] font-bold text-muted sm:inline">{distance}</span>}
