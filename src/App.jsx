@@ -775,7 +775,7 @@ export default function App() {
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
           <Route path="/user/:username" element={<Profile allSpots={allSpots} currentUser={currentUser} onProfileUpdated={setCurrentUserProfile} unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} />} />
-          <Route path="/notifications" element={<Notifications currentUser={currentUser} onRead={() => setUnreadNotifications(0)} />} />
+          <Route path="/notifications" element={<Notifications currentUser={currentUser} onUnreadChange={setUnreadNotifications} />} />
           <Route path="/messages" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
           <Route path="/messages/:username" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
           <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />

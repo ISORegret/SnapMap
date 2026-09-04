@@ -59,6 +59,43 @@ export async function markAllNotificationsRead() {
   return !error;
 }
 
+export async function markNotificationRead(notificationId) {
+  if (!hasSupabase || !notificationId) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId)
+    .eq('recipient_id', user.id)
+    .is('read_at', null);
+  return !error;
+}
+
+export async function deleteNotification(notificationId) {
+  if (!hasSupabase || !notificationId) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', notificationId)
+    .eq('recipient_id', user.id);
+  return !error;
+}
+
+export async function deleteReadNotifications() {
+  if (!hasSupabase) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('recipient_id', user.id)
+    .not('read_at', 'is', null);
+  return !error;
+}
+
 export function subscribeToNotifications(userId, onChange) {
   if (!hasSupabase || !userId) return () => {};
   const channel = supabase
