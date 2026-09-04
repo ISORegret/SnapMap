@@ -17,7 +17,7 @@ function timeAgo(value) {
   return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
+function PostCard({ post, currentUser, units, recommendationReason = '', onChanged, onEdit, showToast }) {
   const [slide, setSlide] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comment, setComment] = useState('');
@@ -110,6 +110,7 @@ function PostCard({ post, currentUser, units, onChanged, onEdit, showToast }) {
           <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>
           <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted"><MapPin className="h-3 w-3 shrink-0 text-accent-400" /><span className="truncate">{post.locationName}</span><span>·</span><span className="shrink-0">{timeAgo(post.createdAt)}</span></p>
           {post.event && <Link to={`/event/${post.event.id}`} className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-cyan-300"><CalendarDays className="h-3 w-3 shrink-0" /><span className="truncate">{post.event.title}</span></Link>}
+          {recommendationReason && <p className="mt-1 flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-accent-400"><Sparkles className="h-3 w-3" />{recommendationReason}</p>}
         </div>
         <div className="relative">
           <button type="button" onClick={() => setMenuOpen((open) => !open)} className="icon-button h-9 w-9 rounded-xl" aria-label="Post options"><MoreHorizontal className="h-4 w-4" /></button>
@@ -345,7 +346,7 @@ function Composer({ open, onClose, onCreated, allSpots = [], availableEvents = [
   </div>, document.body);
 }
 
-export default function SpotFeed({ allSpots = [], currentUser, userPosition, requestPosition, units = 'mi', showToast } = {}) {
+export default function SpotFeed({ allSpots = [], favoriteIds = [], currentUser, userPosition, requestPosition, units = 'mi', showToast } = {}) {
   const [searchParams] = useSearchParams();
   const focusedPostId = searchParams.get('post');
   const composeSpotId = searchParams.get('spot');
@@ -392,22 +393,45 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     }
   }, [currentUser?.id, focusedPostId]);
 
+  const savedSpotIds = useMemo(() => new Set(favoriteIds.map(String)), [favoriteIds]);
+  const savedCategories = useMemo(() => new Set(allSpots
+    .filter((spot) => savedSpotIds.has(String(spot.id)))
+    .map((spot) => String(spot.category || '').trim().toLowerCase())
+    .filter(Boolean)), [allSpots, savedSpotIds]);
+  const eventRsvpById = useMemo(() => new Map(events.map((event) => [String(event.id), event.rsvpStatus])), [events]);
+
   const displayed = useMemo(() => {
-    const withDistance = posts.map((post) => ({ ...post, distanceKm: userPosition && post.latitude != null ? haversineKm(userPosition.lat, userPosition.lng, post.latitude, post.longitude) : null }));
+    const withDistance = posts.map((post) => ({
+      ...post,
+      distanceKm: userPosition && post.latitude != null ? haversineKm(userPosition.lat, userPosition.lng, post.latitude, post.longitude) : null,
+      recommendationEventStatus: post.eventId ? eventRsvpById.get(String(post.eventId)) : null,
+    }));
     if (mode === 'nearby') return withDistance.filter((post) => post.distanceKm != null && post.distanceKm <= 160).sort((a, b) => a.distanceKm - b.distanceKm);
     if (mode === 'for_you') return [...withDistance].sort((a, b) => {
       const score = (post) => {
         const ageHours = Math.max(0, (Date.now() - new Date(post.createdAt).getTime()) / 3600000);
         const relationship = post.userId === currentUser?.id ? 420 : friendIds.has(post.userId) ? 520 : 0;
+        const savedPlace = post.spotId && savedSpotIds.has(String(post.spotId)) ? 360 : 0;
+        const rsvp = post.recommendationEventStatus === 'going' ? 320 : post.recommendationEventStatus === 'interested' ? 180 : 0;
         const nearby = post.distanceKm == null ? 0 : Math.max(0, 160 - post.distanceKm) * 2.5;
         const recency = Math.max(0, 240 - ageHours);
         const activity = (post.likeCount || 0) * 8 + (post.comments?.length || 0) * 12;
-        return relationship + nearby + recency + activity;
+        return relationship + savedPlace + rsvp + nearby + recency + activity;
       };
       return score(b) - score(a);
     });
     return withDistance;
-  }, [posts, userPosition, mode, currentUser?.id, friendIds]);
+  }, [posts, userPosition, mode, currentUser?.id, friendIds, savedSpotIds, eventRsvpById]);
+
+  const recommendationReason = useCallback((post) => {
+    if (friendIds.has(post.userId)) return 'From a friend';
+    if (post.spotId && savedSpotIds.has(String(post.spotId))) return 'At a saved spot';
+    if (post.recommendationEventStatus === 'going') return 'Event you’re attending';
+    if (post.recommendationEventStatus === 'interested') return 'Event you’re interested in';
+    if (post.distanceKm != null && post.distanceKm <= 40) return 'Near you';
+    if ((post.likeCount || 0) + (post.comments?.length || 0) >= 3) return 'Active in the community';
+    return 'Recently posted';
+  }, [friendIds, savedSpotIds]);
 
   const featuredEvents = useMemo(() => events.map((event) => {
     const lat = event.latitude ?? event.spot?.latitude;
@@ -415,18 +439,24 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     const distanceKm = userPosition && lat != null && lng != null ? haversineKm(userPosition.lat, userPosition.lng, lat, lng) : null;
     return { ...event, distanceKm };
   }).sort((a, b) => {
+    const savedA = a.spotId && savedSpotIds.has(String(a.spotId));
+    const savedB = b.spotId && savedSpotIds.has(String(b.spotId));
+    if (savedA !== savedB) return savedA ? -1 : 1;
     const interestA = a.rsvpStatus === 'going' ? 0 : a.rsvpStatus === 'interested' ? 1 : 2;
     const interestB = b.rsvpStatus === 'going' ? 0 : b.rsvpStatus === 'interested' ? 1 : 2;
     if (interestA !== interestB) return interestA - interestB;
     if (a.distanceKm != null && b.distanceKm != null && Math.abs(a.distanceKm - b.distanceKm) > 30) return a.distanceKm - b.distanceKm;
     return new Date(a.startsAt) - new Date(b.startsAt);
-  }).slice(0, 4), [events, userPosition]);
+  }).slice(0, 4), [events, userPosition, savedSpotIds]);
 
   const freshSpots = useMemo(() => allSpots.map((spot) => ({
     spot,
     createdTime: spot.createdAt ? new Date(spot.createdAt).getTime() : 0,
     distanceKm: userPosition && spot.latitude != null && spot.longitude != null ? haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude) : null,
   })).sort((a, b) => {
+    const categoryA = savedCategories.has(String(a.spot.category || '').trim().toLowerCase());
+    const categoryB = savedCategories.has(String(b.spot.category || '').trim().toLowerCase());
+    if (categoryA !== categoryB) return categoryA ? -1 : 1;
     if (userPosition) {
       const localA = a.distanceKm != null && a.distanceKm <= 160;
       const localB = b.distanceKm != null && b.distanceKm <= 160;
@@ -434,7 +464,7 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     }
     if (a.createdTime !== b.createdTime) return b.createdTime - a.createdTime;
     return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
-  }).slice(0, 6), [allSpots, userPosition]);
+  }).slice(0, 6), [allSpots, userPosition, savedCategories]);
 
   useEffect(() => { if (mode === 'nearby' || mode === 'for_you') requestPosition?.(); }, [mode, requestPosition]);
   useEffect(() => {
@@ -452,7 +482,7 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     {mode === 'for_you' && !loading && <div className="mb-5 space-y-5">
       <div className="rounded-[1.5rem] border border-accent-500/20 bg-accent-500/[0.06] p-4">
         <p className="flex items-center gap-2 text-sm font-extrabold text-primary"><Sparkles className="h-4 w-4 text-accent-400" />Picked for your next shoot</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted">Friends first, then active posts and places close to you.</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted">Based on your friends, saved spots, location, events, and community activity.</p>
       </div>
       {featuredEvents.length > 0 && <div>
         <div className="mb-2.5 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-extrabold text-primary"><CalendarDays className="h-4 w-4 text-cyan-300" />Coming up</p><Link to="/explore?view=events" className="text-xs font-extrabold text-accent-400">All events</Link></div>
@@ -476,7 +506,7 @@ export default function SpotFeed({ allSpots = [], currentUser, userPosition, req
     {loading ? <div className="space-y-4">{[0, 1].map((item) => <div key={item} className="surface-card aspect-[4/5] animate-pulse rounded-[1.65rem]" />)}</div>
     : mode === 'nearby' && !userPosition ? <div className="surface-card rounded-[1.65rem] px-6 py-12 text-center"><LocateFixed className="mx-auto h-8 w-8 text-accent-400" /><p className="mt-4 font-extrabold text-primary">Turn on location for nearby posts</p><button type="button" onClick={requestPosition} className="primary-button mt-4 px-5 py-2.5 text-sm">Use my location</button></div>
     : displayed.length === 0 ? <div className="surface-card rounded-[1.65rem] px-6 py-12 text-center"><Camera className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-extrabold text-primary">{mode === 'friends' ? 'Your friends haven’t posted yet' : mode === 'nearby' ? 'No posts nearby yet' : mode === 'for_you' ? 'Your photo feed is ready to grow' : 'The feed is ready for its first frame'}</p><p className="mt-1 text-sm text-muted">{currentUser ? 'Share a photo from a location worth finding.' : 'Sign in and help start the community.'}</p>{currentUser && <button type="button" onClick={() => setComposerOpen(true)} className="primary-button mt-5 px-5 py-2.5 text-sm">Create a post</button>}</div>
-    : <div className="space-y-5">{displayed.map((post) => <PostCard key={post.id} post={post} currentUser={currentUser} units={units} onChanged={() => refresh(true)} onEdit={setEditingPost} showToast={showToast} />)}</div>}
+    : <div className="space-y-5">{displayed.map((post) => <PostCard key={post.id} post={post} currentUser={currentUser} units={units} recommendationReason={mode === 'for_you' ? recommendationReason(post) : ''} onChanged={() => refresh(true)} onEdit={setEditingPost} showToast={showToast} />)}</div>}
     <Composer key={`${composeSpotId || 'spot'}-${composeEvent?.id || composeEventId || 'event'}`} open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={() => refresh(true)} allSpots={allSpots} availableEvents={events} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} initialSpotId={composeSpotId} initialEvent={composeEvent} />
     <PostEditor post={editingPost} open={Boolean(editingPost)} onClose={() => setEditingPost(null)} onSaved={() => refresh(true)} allSpots={allSpots} availableEvents={events} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} />
   </section>;
