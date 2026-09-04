@@ -11,6 +11,7 @@ import { getFriendConnections, sendFriendRequest, acceptFriendRequest, removeFri
 import { getBlockedUserIds } from '../api/safety';
 import SpotFeed from '../components/SpotFeed';
 import EventHub from '../components/EventHub';
+import DiscoverSearch from '../components/DiscoverSearch';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -36,7 +37,7 @@ export default function Explore({
 } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
-  const [viewMode, setViewMode] = useState(['feed', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed');
+  const [viewMode, setViewMode] = useState(['feed', 'search', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
@@ -52,6 +53,11 @@ export default function Explore({
   const [blockedUserIds, setBlockedUserIds] = useState([]);
   const sortChosenRef = useRef(false);
   const userPosition = userPositionProp;
+
+  useEffect(() => {
+    const nextView = ['feed', 'search', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed';
+    setViewMode(nextView);
+  }, [requestedView]);
 
   const selectView = (nextView) => {
     setViewMode(nextView);
@@ -201,10 +207,10 @@ export default function Explore({
             <div>
               <p className="eyebrow">Explore SnapMap</p>
               <h1 className="mt-1 text-[2rem] font-extrabold leading-none tracking-[-0.045em] text-primary sm:text-4xl">
-                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'creators' ? 'Meet the creators.' : 'Meet at the frame.'}
+                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'search' ? 'Search everything.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'creators' ? 'Meet the creators.' : 'Meet at the frame.'}
               </h1>
               <p className="mt-2 text-sm font-medium text-muted">
-                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : `${allSpots.length} community locations ready to explore`}
+                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'search' ? 'One search across the whole community' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : `${allSpots.length} community locations ready to explore`}
               </p>
             </div>
             <Link to="/about" className="icon-button h-11 w-11 shrink-0 rounded-2xl" aria-label="About SnapMap">
@@ -222,9 +228,12 @@ export default function Explore({
               className="surface-input w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-sm font-semibold placeholder:text-[var(--text-muted)] focus:shadow-none"
             />
           </div>}
-          <div className="mt-3 grid grid-cols-4 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
+          <div className="mt-3 grid grid-cols-5 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
             <button type="button" onClick={() => selectView('feed')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <Camera className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Feed
+            </button>
+            <button type="button" onClick={() => selectView('search')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'search' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Search className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Search
             </button>
             <button type="button" onClick={() => selectView('spots')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <MapPin className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Spots
@@ -242,6 +251,8 @@ export default function Explore({
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-6">
         {viewMode === 'feed' ? (
           <SpotFeed allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
+        ) : viewMode === 'search' ? (
+          <DiscoverSearch allSpots={allSpots} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} />
         ) : viewMode === 'events' ? (
           <EventHub allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} units={units} showToast={showToast} />
         ) : viewMode === 'creators' ? (
