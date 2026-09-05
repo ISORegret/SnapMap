@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, Check, Clock3, MapPin, Plus, Search, SlidersHorizontal, Users, X } from 'lucide-react';
-import { createEventSeries, fetchUpcomingEvents, setEventRsvpStatus, subscribeToEvents } from '../api/events';
+import { CalendarDays, Check, Clock3, ImagePlus, MapPin, Plus, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import { fetchUpcomingEvents, setEventRsvpStatus, subscribeToEvents } from '../api/events';
+import { createHostedEventSeries } from '../api/hostedEvents';
+import { compressPostImage } from '../api/posts';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, milesToKm } from '../utils/geo';
 import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';
@@ -48,7 +50,17 @@ function localDateTime(value) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-const EMPTY_FORM = { title: '', description: '', spotId: '', startsAt: '', endsAt: '', maxAttendees: '', eventType: 'meetup' };
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  spotId: '',
+  venueName: '',
+  address: '',
+  startsAt: '',
+  endsAt: '',
+  maxAttendees: '',
+  eventType: 'meetup',
+};
 
 export default function EventHub({ allSpots = [], currentUser, userPosition = null, units = 'mi', showToast } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,7 +80,14 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
   const [distanceMiles, setDistanceMiles] = useState(null);
   const [attendingOnly, setAttendingOnly] = useState(false);
   const [liveCounts, setLiveCounts] = useState({});
+  const [coverPhoto, setCoverPhoto] = useState(null);
+  const [photoError, setPhotoError] = useState('');
+  const photoInputRef = useRef(null);
   const cloudSpots = useMemo(() => allSpots.filter((spot) => UUID_PATTERN.test(String(spot.id || ''))), [allSpots]);
+
+  useEffect(() => () => {
+    if (coverPhoto?.previewUrl) URL.revokeObjectURL(coverPhoto.previewUrl);
+  }, [coverPhoto?.previewUrl]);
 
   const visibleEvents = useMemo(() => {
     const now = new Date();
@@ -136,6 +155,8 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
       title: source.title || '',
       description: source.description || '',
       spotId: source.spotId || '',
+      venueName: source.venueName || '',
+      address: source.address || '',
       startsAt: localDateTime(nextStart),
       endsAt: duration ? localDateTime(new Date(nextStart.getTime() + duration)) : '',
       maxAttendees: source.maxAttendees || '',
@@ -148,15 +169,38 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
     setSearchParams(nextParams, { replace: true });
   }, [events, searchParams, setSearchParams]);
 
+  const chooseCoverPhoto = async (changeEvent) => {
+    const file = changeEvent.target.files?.[0];
+    changeEvent.target.value = '';
+    if (!file) return;
+    setPhotoError('');
+    try {
+      const processed = await compressPostImage(file);
+      setCoverPhoto(processed);
+    } catch (nextError) {
+      setPhotoError(nextError?.message || 'That photo could not be processed.');
+    }
+  };
+
+  const chooseSpot = (spotId) => {
+    const selectedSpot = cloudSpots.find((spot) => String(spot.id) === String(spotId));
+    setForm((current) => ({
+      ...current,
+      spotId,
+      venueName: selectedSpot && !current.venueName.trim() ? selectedSpot.name || '' : current.venueName,
+      address: selectedSpot && !current.address.trim() ? selectedSpot.address || '' : current.address,
+    }));
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    if (!form.title.trim() || !form.spotId || !form.startsAt) return;
+    if (!form.title.trim() || !form.startsAt) return;
     if (new Date(form.startsAt).getTime() <= Date.now()) {
       showToast?.('Choose a future date and time.');
       return;
     }
     setSubmitting(true);
-    const result = await createEventSeries({ ...form, repeat, occurrences });
+    const result = await createHostedEventSeries({ ...form, repeat, occurrences, coverPhoto });
     setSubmitting(false);
     if (result.error) {
       showToast?.(result.error);
@@ -166,8 +210,11 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
     setForm(EMPTY_FORM);
     setRepeat('none');
     setOccurrences(4);
+    setCoverPhoto(null);
+    setPhotoError('');
     setComposerOpen(false);
-    showToast?.(result.events.length > 1 ? `${result.events.length} events published.` : 'Event published.');
+    if (result.warning) showToast?.(result.warning);
+    else showToast?.(result.events.length > 1 ? `${result.events.length} events published.` : 'Event published.');
   };
 
   const chooseRsvp = async (event, selectedStatus) => {
@@ -215,13 +262,36 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
           <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">New meetup</p><h3 className="mt-1 text-lg font-extrabold text-primary">Host an event</h3></div><button type="button" onClick={() => setComposerOpen(false)} className="icon-button h-9 w-9 rounded-xl" aria-label="Close event form"><X className="h-4 w-4" /></button></div>
           <div className="mt-4 space-y-3">
             <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={100} required placeholder="Event name" className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm" />
-            <div className="grid grid-cols-2 gap-3"><select value={form.eventType} onChange={(event) => setForm((current) => ({ ...current, eventType: event.target.value }))} className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="meetup">Meetup</option><option value="car_show">Car show</option><option value="cruise_in">Cruise-in</option><option value="cars_and_coffee">Cars & coffee</option></select><select value={form.spotId} onChange={(event) => setForm((current) => ({ ...current, spotId: event.target.value }))} required className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">Choose a spot</option>{cloudSpots.map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}</select></div>
+
+            <div>
+              <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseCoverPhoto} className="hidden" />
+              {coverPhoto?.previewUrl ? (
+                <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                  <img src={coverPhoto.previewUrl} alt="Event cover preview" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => { setCoverPhoto(null); setPhotoError(''); }} className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl bg-black/65 text-white backdrop-blur" aria-label="Remove event cover"><X className="h-4 w-4" /></button>
+                </div>
+              ) : null}
+              <button type="button" onClick={() => photoInputRef.current?.click()} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] px-3 text-sm font-extrabold text-cyan-300"><ImagePlus className="h-4 w-4" />{coverPhoto ? 'Change cover photo' : 'Add cover photo'}</button>
+              <p className="mt-1.5 text-[11px] text-muted">Optional. Use the event flyer or a photo from the event.</p>
+              {photoError && <p className="mt-1.5 text-xs font-bold text-rose-400">{photoError}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <select value={form.eventType} onChange={(event) => setForm((current) => ({ ...current, eventType: event.target.value }))} className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="meetup">Meetup</option><option value="car_show">Car show</option><option value="cruise_in">Cruise-in</option><option value="cars_and_coffee">Cars & coffee</option></select>
+              <select value={form.spotId} onChange={(event) => chooseSpot(event.target.value)} className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm font-semibold"><option value="">SnapMap spot (optional)</option>{cloudSpots.map((spot) => <option key={spot.id} value={spot.id}>{spot.name}</option>)}</select>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input value={form.venueName} onChange={(event) => setForm((current) => ({ ...current, venueName: event.target.value }))} maxLength={160} placeholder="Venue name (optional)" className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm" />
+              <input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} maxLength={300} placeholder="Address (optional)" className="surface-input w-full rounded-2xl px-3.5 py-3 text-sm" />
+            </div>
+
             <div className="grid grid-cols-2 gap-3"><label className="block text-xs font-bold text-muted">Starts<input type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} required className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm text-primary" /></label><label className="block text-xs font-bold text-muted">Ends <span className="font-normal">(optional)</span><input type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm text-primary" /></label></div>
             <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={1200} rows={3} placeholder="What’s the plan? Add arrival details, what to bring, or the kind of shots you’re after." className="surface-input w-full resize-none rounded-2xl px-3.5 py-3 text-sm" />
             <label className="block text-xs font-bold text-muted">Attendance limit <span className="font-normal">(optional)</span><input type="number" min="2" max="500" value={form.maxAttendees} onChange={(event) => setForm((current) => ({ ...current, maxAttendees: event.target.value }))} placeholder="No limit" className="surface-input mt-1.5 w-full rounded-2xl px-3.5 py-3 text-sm" /></label>
             <div className="rounded-2xl bg-white/[0.035] p-3"><p className="text-xs font-bold text-muted">Repeat</p><div className="mt-2 grid grid-cols-3 gap-2">{[['none', 'One time'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([value, label]) => <button key={value} type="button" onClick={() => setRepeat(value)} className={`rounded-xl px-2 py-2.5 text-xs font-extrabold ${repeat === value ? 'bg-accent-500 text-[#211603]' : 'bg-white/[0.05] text-secondary'}`}>{label}</button>)}</div>{repeat !== 'none' && <label className="mt-3 flex items-center justify-between gap-3 text-xs font-bold text-secondary"><span>Number of events</span><select value={occurrences} onChange={(event) => setOccurrences(Number(event.target.value))} className="surface-input rounded-xl px-3 py-2 text-sm">{Array.from({ length: 11 }, (_, index) => index + 2).map((count) => <option key={count} value={count}>{count}</option>)}</select></label>}</div>
           </div>
-          <button type="submit" disabled={submitting || !form.title.trim() || !form.spotId || !form.startsAt} className="primary-button mt-4 w-full py-3 text-sm disabled:opacity-50">{submitting ? 'Publishing…' : repeat === 'none' ? 'Publish event' : `Publish ${occurrences} events`}</button>
+          <button type="submit" disabled={submitting || !form.title.trim() || !form.startsAt} className="primary-button mt-4 w-full py-3 text-sm disabled:opacity-50">{submitting ? 'Publishing…' : repeat === 'none' ? 'Publish event' : `Publish ${occurrences} events`}</button>
         </form>
       )}
 
@@ -249,7 +319,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
                   {liveCounts[event.id] > 0 && <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#06291d] shadow-[0_0_20px_rgba(52,211,153,0.5)]"><i className="h-2 w-2 animate-pulse rounded-full bg-[#06291d]" />Live · {liveCounts[event.id]}</span>}
                 </Link>
                 <div className="p-4">
-                  <Link to={`/event/${event.id}`}><h3 className="line-clamp-1 text-base font-extrabold text-primary">{event.title}</h3><p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-secondary"><Clock3 className="h-3.5 w-3.5 text-accent-400" />{date.time}</p><p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="h-3.5 w-3.5 text-accent-400" />{event.venueName || event.spot?.name || 'Event location'}</p></Link>
+                  <Link to={`/event/${event.id}`}><h3 className="line-clamp-1 text-base font-extrabold text-primary">{event.title}</h3><p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-secondary"><Clock3 className="h-3.5 w-3.5 text-accent-400" />{date.time}</p><p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="h-3.5 w-3.5 text-accent-400" />{event.venueName || event.spot?.name || 'Location TBD'}</p></Link>
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
                     {event.listingType === 'listed' ? <span className="truncate text-[11px] font-bold text-secondary">Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=creators'} className="flex min-w-0 items-center gap-2"><span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-accent-500/15">{event.host?.avatar_url && <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="truncate text-[11px] font-bold text-secondary">{event.host?.display_name || event.host?.username || 'Creator'}</span></Link>}
                     {isHost ? <span className="shrink-0 rounded-xl bg-accent-500/10 px-3 py-2 text-[11px] font-extrabold text-accent-400">Hosting</span> : currentUser ? <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => chooseRsvp(event, 'interested')} disabled={rsvpBusy === event.id} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-white/[0.055] text-secondary'}`}>Interested</button><button type="button" onClick={() => chooseRsvp(event, 'going')} disabled={rsvpBusy === event.id || (full && event.rsvpStatus !== 'going')} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'going' ? 'bg-emerald-400/15 text-emerald-400' : 'bg-accent-500 text-[#211603]'}`}>{rsvpBusy === event.id ? '…' : full && event.rsvpStatus !== 'going' ? 'Full' : 'Going'}</button></div> : <Link to="/signin" className="text-[11px] font-extrabold text-accent-400">Sign in to RSVP</Link>}
