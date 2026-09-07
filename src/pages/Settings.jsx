@@ -24,10 +24,13 @@ import { isCurrentUserAdmin } from '../api/moderation';
 import { getMapAppPreference, MAP_APP_OPTIONS, setMapAppPreference } from '../utils/mapNavigation';
 import { browserNotificationPermission, requestBrowserNotifications } from '../api/eventReminders';
 
+// These ids intentionally match Map.jsx. Keep the persisted value stable across
+// Settings and the actual map renderer.
 const MAP_STYLES = [
-  { id: 'streets', label: 'Streets' },
-  { id: 'imagery', label: 'Satellite' },
-  { id: 'topographic', label: 'Terrain' },
+  { id: 'midnight', label: 'Midnight' },
+  { id: 'street', label: 'Street' },
+  { id: 'satellite', label: 'Satellite' },
+  { id: 'terrain', label: 'Terrain' },
 ];
 
 function SettingRow({ icon: Icon, title, subtitle, children }) {
