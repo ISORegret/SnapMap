@@ -15,90 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Patch spot share flow
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          path = Path('src/pages/SpotDetail.jsx')
-          text = path.read_text()
-
-          text = text.replace("import { toPng } from 'html-to-image';\n", "import { createSpotSharePng } from '../utils/shareSpotCard';\n", 1)
-          text = text.replace("  const shareCardRef = useRef(null);\n", "", 1)
-
-          start = text.index("  const shareAsImage = async () => {")
-          end = text.index("  const canReport =", start)
-          replacement = '''  const shareAsImage = async () => {
-    if (shareImageLoading) return;
-    setShareImageError(null);
-    setShareImageLoading(true);
-    try {
-      const locationText = (spot.address && spot.address !== 'Not specified')
-        ? spot.address
-        : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
-      const dataUrl = await createSpotSharePng({ spot, locationText });
-      const base64 = dataUrl.split(',')[1];
-      if (!base64) throw new Error('Failed to create share image.');
-
-      const safeName = (spot.name || 'spot')
-        .replace(/\\s+/g, '-')
-        .replace(/[^a-zA-Z0-9-]/g, '')
-        .slice(0, 30);
-      const fileName = `snapmap-${safeName || 'spot'}.png`;
-
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform()) {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        const { Share } = await import('@capacitor/share');
-        await Filesystem.writeFile({
-          path: fileName,
-          data: base64,
-          directory: Directory.Cache,
-        });
-        const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
-        await Share.share({
-          url: uri,
-          dialogTitle: 'Share spot image',
-        });
-      } else {
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], fileName, { type: 'image/png' });
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file] });
-        } else {
-          const objectUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = objectUrl;
-          a.download = file.name;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        }
-      }
-    } catch (e) {
-      console.warn('Share as image failed', e);
-      setShareImageError(e?.message || 'Could not share image');
-    } finally {
-      setShareImageLoading(false);
-    }
-  };
-
-'''
-          text = text[:start] + replacement + text[end:]
-
-          text = text.replace("  const primaryImage = getSpotPrimaryImage(spot);\n", "", 1)
-
-          marker_start = text.index("      {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}")
-          marker_end = text.index("\n\n      <header", marker_start)
-          text = text[:marker_start] + text[marker_end+2:]
-
-          if 'shareCardRef' in text or 'toPng' in text:
-            raise SystemExit('Old share-card implementation still present')
-          if "text: shareText" in text:
-            raise SystemExit('Share text payload still present')
-
-          path.write_text(text)
-          PY
+        run: python3 scripts/patch-spot-share.py
 
       - name: Build
         run: |
@@ -106,7 +23,6 @@ jobs:
           npm run build
 
       - name: Commit fix
-        shell: bash
         run: |
           git config user.name "SnapMap automation"
           git config user.email "actions@users.noreply.github.com"
