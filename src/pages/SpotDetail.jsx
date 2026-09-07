@@ -62,15 +62,17 @@ function SpotImageGallery({ images, spotName }) {
                 />
               ))}
             </div>
-            <p className="absolute bottom-8 left-2 right-2 text-center text-[10px] text-white/80 drop-shadow">
-              Photo by {current.photoBy} · {index + 1}/{images.length}
-            </p>
+            <div className="absolute bottom-7 left-2 right-2 text-center text-[10px] text-white/80 drop-shadow">
+              <p>Photo by {current.photoBy}</p>
+              <p className="mt-0.5">Uploaded by {current.uploadedBy} · {index + 1}/{images.length}</p>
+            </div>
           </>
         )}
-        {images.length === 1 && current.photoBy && (
-          <p className="absolute bottom-2 left-2 text-[10px] text-white/80 drop-shadow">
-            Photo by {current.photoBy}
-          </p>
+        {images.length === 1 && (current.photoBy || current.uploadedBy) && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-white/80 drop-shadow">
+            {current.photoBy && <p>Photo by {current.photoBy}</p>}
+            {current.uploadedBy && <p className="mt-0.5">Uploaded by {current.uploadedBy}</p>}
+          </div>
         )}
       </div>
       {/* Thumbnail gallery - show all photos when more than one */}
@@ -471,7 +473,7 @@ export default function SpotDetail({
     resizeImageToDataUrl(file, 1200)
       .then((dataUrl) => {
         const current = getSpotImages(spot);
-        updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo }] });
+        updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo, uploadedBy: attributedTo }] });
       })
       .finally(() => setAddPhotoLoading(false));
   };

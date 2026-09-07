@@ -36,19 +36,26 @@ export function resizeImageToDataUrl(file, maxDim = 1200, quality = 0.85) {
 }
 
 /**
- * Returns an array of { uri, photoBy } for a spot.
- * Supports both legacy (imageUri + photoBy) and new (images[]) shapes.
+ * Returns an array of { uri, photoBy, uploadedBy } for a spot.
+ * photoBy is the photographer credit; uploadedBy identifies who submitted the image.
+ * Older images fall back to the spot creator as the uploader when available.
  */
 export function getSpotImages(spot) {
   if (!spot) return [];
+  const legacyUploader = (spot.createdByDisplayName || '').trim() || 'Unknown';
   if (spot.images?.length) {
     return spot.images.map((img) => ({
       uri: img.uri || DEFAULT_IMAGE,
       photoBy: img.photoBy || 'Unknown',
+      uploadedBy: img.uploadedBy || legacyUploader,
     }));
   }
   const uri = spot.imageUri?.trim() || DEFAULT_IMAGE;
-  return [{ uri, photoBy: spot.photoBy?.trim() || 'Unknown' }];
+  return [{
+    uri,
+    photoBy: spot.photoBy?.trim() || 'Unknown',
+    uploadedBy: legacyUploader,
+  }];
 }
 
 /** First image URI for cards / thumbnails */

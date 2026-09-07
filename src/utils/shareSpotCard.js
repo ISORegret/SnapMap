@@ -126,10 +126,12 @@ export async function createSpotSharePng({ spot, locationText = '' }) {
 
   const images = getSpotImages(spot);
   const photoBy = images[0]?.photoBy && images[0].photoBy !== 'Unknown' ? images[0].photoBy : '';
-  if (photoBy) {
+  const uploadedBy = images[0]?.uploadedBy && images[0].uploadedBy !== 'Unknown' ? images[0].uploadedBy : '';
+  if (photoBy || uploadedBy) {
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.font = '500 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(`Uploaded by ${photoBy}`, 56, photoHeight - 42);
+    if (photoBy) ctx.fillText(`Photo by ${photoBy}`, 56, photoHeight - (uploadedBy ? 76 : 42));
+    if (uploadedBy) ctx.fillText(`Uploaded by ${uploadedBy}`, 56, photoHeight - 38);
   }
 
   const left = 64;

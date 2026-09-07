@@ -42,7 +42,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   );
   const [bestTime, setBestTime] = useState('');
   const [crowdLevel, setCrowdLevel] = useState('');
-  const [images, setImages] = useState([]); // [{ uri, photoBy }]
+  const [images, setImages] = useState([]); // [{ uri, photoBy, uploadedBy }]
   const [tags, setTags] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
@@ -100,11 +100,15 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
       setPhotoError('Please choose an image file.');
       return;
     }
-    const defaultPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
-      || 'You';
+    const uploaderName = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
+      || 'SnapMap user';
     Promise.all(files.map((file) => resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)))
       .then((dataUrls) => {
-        setImages((prev) => [...prev, ...dataUrls.map((uri) => ({ uri, photoBy: defaultPhotoBy }))]);
+        setImages((prev) => [...prev, ...dataUrls.map((uri) => ({
+          uri,
+          photoBy: uploaderName,
+          uploadedBy: uploaderName,
+        }))]);
       })
       .catch(() => setPhotoError('Could not load photo. Try another.'));
   };
@@ -242,13 +246,15 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     if (errors.name || errors.latitude || errors.longitude) return;
 
     const creatorPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
-      || 'You';
+      || 'SnapMap user';
+    const fallbackUploader = (editSpot?.createdByDisplayName || '').trim() || creatorPhotoBy;
     const validImages = images
       .filter((img) => img?.uri && String(img.uri).trim())
       .map((img) => {
-        const by = (img.photoBy || 'You').trim();
+        const by = (img.photoBy || creatorPhotoBy).trim();
         const photoBy = (by === 'You' && currentUserProfile) ? creatorPhotoBy : by;
-        return { uri: img.uri.trim(), photoBy };
+        const uploadedBy = String(img.uploadedBy || fallbackUploader).trim() || fallbackUploader;
+        return { uri: img.uri.trim(), photoBy, uploadedBy };
       });
     const hasRealPhoto = validImages.some((img) => img.uri && img.uri !== DEFAULT_IMAGE);
     if (!editSpot && !hasRealPhoto) {
@@ -256,7 +262,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
       return;
     }
     setPhotoError('');
-    const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
+    const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: creatorPhotoBy, uploadedBy: fallbackUploader }];
 
     const latitude = validLat ? latNum : editSpot?.latitude;
     const longitude = validLng ? lngNum : editSpot?.longitude;
@@ -630,9 +636,12 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   type="text"
                   value={img.photoBy || ''}
                   onChange={(e) => setPhotoBy(index, e.target.value)}
-                  placeholder="Photo by (e.g. You, @handle)"
+                  placeholder="Photo by (photographer name)"
                   className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500"
                 />
+                <p className="mt-1 px-1 text-[11px] text-slate-500">
+                  Uploaded by {img.uploadedBy || (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() || editSpot?.createdByDisplayName || 'SnapMap user'}
+                </p>
               </div>
             ))}
             <button
