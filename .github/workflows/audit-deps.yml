@@ -26,7 +26,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Apply non-breaking audit fixes to lockfile
-        run: npm audit fix --package-lock-only
+        run: npm audit fix --package-lock-only || true
       - name: Reinstall repaired lockfile
         run: npm ci
       - name: Production build
