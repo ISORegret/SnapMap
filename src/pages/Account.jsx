@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Profile from './Profile';
 import SignIn from './SignIn';
 
 export default function Account({ allSpots, currentUser, currentUserProfile }) {

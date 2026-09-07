@@ -1,22 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, hasSupabase } from '../api/supabase';
 
-function getAuthParamsFromUrl() {
-  if (typeof window === 'undefined') return { access_token: null, refresh_token: null, type: null };
-  const hash = window.location.hash.slice(1);
-  const qInHash = hash.indexOf('?');
-  const searchFromHash = qInHash >= 0 ? hash.slice(qInHash + 1) : hash;
-  const fromHash = new URLSearchParams(searchFromHash);
-  const fromQuery = new URLSearchParams(window.location.search || '');
-  return {
-    access_token: fromHash.get('access_token') || fromQuery.get('access_token'),
-    refresh_token: fromHash.get('refresh_token') || fromQuery.get('refresh_token'),
-    type: fromHash.get('type') || fromQuery.get('type'),
-  };
-}
-
 export default function SignIn({ onSuccess, currentUser }) {
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState('password'); // 'password' | 'link'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,35 +13,21 @@ export default function SignIn({ onSuccess, currentUser }) {
   const [signUpConfirm, setSignUpConfirm] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [sentReset, setSentReset] = useState(false);
-  const [showSetNewPassword, setShowSetNewPassword] = useState(false);
+  const [showSetNewPassword, setShowSetNewPassword] = useState(() => searchParams.get('recovery') === '1');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [exchanging, setExchanging] = useState(true);
   const navigate = useNavigate();
 
-  // When user lands from magic link or password reset, exchange tokens for session
   useEffect(() => {
-    if (!hasSupabase || !supabase) return;
-    const { access_token, refresh_token, type } = getAuthParamsFromUrl();
-    if (!access_token) {
-      setExchanging(false);
-      return;
+    if (searchParams.get('recovery') === '1') {
+      setShowSetNewPassword(true);
+      setForgotPassword(false);
+      setSentReset(false);
+      setError('');
     }
-    supabase.auth
-      .setSession({ access_token, refresh_token: refresh_token || '' })
-      .then(() => {
-        if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname + '#/');
-        if (type === 'recovery') {
-          setShowSetNewPassword(true);
-        } else {
-          navigate('/', { replace: true });
-        }
-      })
-      .catch(() => setExchanging(false))
-      .finally(() => setExchanging(false));
-  }, [hasSupabase, navigate]);
+  }, [searchParams]);
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +71,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     setError('');
     setLoading(true);
     try {
-      let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+      let redirectTo = window.location.origin + (window.location.pathname || '');
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
@@ -139,7 +112,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     if (!hasSupabase || !email.trim()) return;
     setError('');
     setLoading(true);
-    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+    let redirectTo = window.location.origin + (window.location.pathname || '');
     try {
       const { Capacitor } = await import('@capacitor/core');
       if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
@@ -161,7 +134,7 @@ export default function SignIn({ onSuccess, currentUser }) {
     if (!hasSupabase || !supabase || !email.trim()) return;
     setError('');
     setLoading(true);
-    let redirectTo = window.location.origin + (window.location.pathname || '') + '#/';
+    let redirectTo = window.location.origin + (window.location.pathname || '');
     try {
       const { Capacitor } = await import('@capacitor/core');
       if (Capacitor.isNativePlatform()) redirectTo = 'snapmap://auth/callback';
@@ -197,14 +170,6 @@ export default function SignIn({ onSuccess, currentUser }) {
     setShowSetNewPassword(false);
     navigate('/', { replace: true });
   };
-
-  if (exchanging) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
-        <p className="text-slate-400">Signing you in…</p>
-      </div>
-    );
-  }
 
   if (currentUser) {
     return (

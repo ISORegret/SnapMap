@@ -34,6 +34,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const [profilePosts, setProfilePosts] = useState([]);
   const [profileEvents, setProfileEvents] = useState([]);
   const avatarInputRef = React.useRef(null);
+  const profileDisplayName = String(profile?.display_name || '').trim() || 'SnapMap user';
 
   const userSpots = useMemo(() => {
     if (!profile?.username || !allSpots.length) return [];
@@ -58,6 +59,15 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setProfile(null);
+    setEditing(false);
+    setEditError('');
+    setProfilePosts([]);
+    setProfileEvents([]);
+    setConnections({ friends: [], incoming: [], outgoing: [] });
+    setFriendState('none');
+    setBlocked(false);
     let cancelled = false;
     getProfileByUsername(username).then((p) => {
       if (!cancelled) {
@@ -120,14 +130,14 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     if (friendState === 'none') ok = await sendFriendRequest(profile.id);
     else if (friendState === 'incoming') ok = await acceptFriendRequest(profile.id);
     else if (friendState === 'outgoing') ok = await removeFriend(profile.id);
-    else if (friendState === 'friends' && window.confirm(`Remove ${profile.display_name || profile.username} from your friends?`)) ok = await removeFriend(profile.id);
+    else if (friendState === 'friends' && window.confirm(`Remove ${profileDisplayName} from your friends?`)) ok = await removeFriend(profile.id);
     setFollowLoading(false);
     if (ok) await refreshConnections();
   };
 
   const handleBlock = async () => {
     if (!profile?.id || followLoading) return;
-    if (!blocked && !window.confirm(`Block ${profile.display_name || profile.username}? You won't see their comments or receive requests from them.`)) return;
+    if (!blocked && !window.confirm(`Block ${profileDisplayName}? You won't see their comments or receive requests from them.`)) return;
     setFollowLoading(true);
     const ok = blocked ? await unblockUser(profile.id) : await blockUser(profile.id);
     setFollowLoading(false);
@@ -171,10 +181,10 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
 
   const sharePortfolio = async () => {
     const url = `${window.location.origin}${window.location.pathname || ''}#/user/${profile.username}?portfolio=1`;
-    const title = `${profile.display_name || profile.username} on SnapMap`;
+    const title = `${profileDisplayName} on SnapMap`;
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: `View ${profile.display_name || profile.username}’s photography portfolio on SnapMap.`, url });
+        await navigator.share({ title, text: `View ${profileDisplayName}’s photography portfolio on SnapMap.`, url });
         return;
       }
       await navigator.clipboard.writeText(url);
@@ -192,7 +202,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   };
 
   const startEditing = () => {
-    setEditDisplayName(profile.display_name || profile.username || '');
+    setEditDisplayName(profile.display_name || '');
     setEditBio(profile.bio || '');
     setEditAvatarUrl(profile.avatar_url || '');
     setEditError('');
@@ -227,7 +237,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     setEditError('');
     setEditSaving(true);
     const payload = {
-      displayName: editDisplayName.trim() || profile.username,
+      displayName: editDisplayName.trim() || 'SnapMap user',
       bio: editBio.trim().slice(0, 500),
     };
     if (editAvatarUrl.trim() !== (profile.avatar_url || '')) payload.avatarUrl = editAvatarUrl.trim() || null;
@@ -236,7 +246,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     if (ok) {
       const nextProfile = {
         ...profile,
-        display_name: editDisplayName.trim() || profile.username,
+        display_name: editDisplayName.trim() || 'SnapMap user',
         bio: editBio.trim().slice(0, 500),
         avatar_url: editAvatarUrl.trim() || profile.avatar_url,
       };
@@ -266,7 +276,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl px-5 pb-6 md:px-8">
               <div className="flex items-end gap-4">
                 <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] border-2 border-accent-400/50 bg-[var(--bg-card-solid)] text-accent-400 shadow-2xl">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-9 w-9" />}</div>
-                <div className="min-w-0 pb-1"><p className="eyebrow text-accent-300">Creator portfolio</p><h1 className="mt-1 truncate text-3xl font-black tracking-tight text-white sm:text-4xl">{profile.display_name || profile.username}</h1><p className="mt-1 text-sm font-semibold text-white/60">@{profile.username}</p></div>
+                <div className="min-w-0 pb-1"><p className="eyebrow text-accent-300">Creator portfolio</p><h1 className="mt-1 truncate text-3xl font-black tracking-tight text-white sm:text-4xl">{profileDisplayName}</h1><p className="mt-1 text-sm font-semibold text-white/60">Creator on SnapMap</p></div>
               </div>
             </div>
           </div>
@@ -345,7 +355,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             )}
             <p className="eyebrow">Creator profile</p>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-primary">
-              {profile.display_name || profile.username}
+              {profileDisplayName}
             </h1>
             <p className="text-sm text-slate-500">@{profile.username}</p>
             {profile.bio && (

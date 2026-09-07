@@ -145,32 +145,15 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null);
+      if (event === 'PASSWORD_RECOVERY') navigate('/signin?recovery=1', { replace: true });
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
-  // When user lands from magic link: tokens can be in hash (#access_token=...) or query (?access_token=...)
-  useEffect(() => {
-    if (!hasSupabase || !supabase || typeof window === 'undefined') return;
-    const hash = window.location.hash.slice(1);
-    const qInHash = hash.indexOf('?');
-    const searchFromHash = qInHash >= 0 ? hash.slice(qInHash + 1) : hash;
-    const fromHash = new URLSearchParams(searchFromHash);
-    const fromQuery = new URLSearchParams(window.location.search || '');
-    const access_token = fromHash.get('access_token') || fromQuery.get('access_token');
-    const refresh_token = fromHash.get('refresh_token') || fromQuery.get('refresh_token');
-    if (!access_token) return;
-    supabase.auth
-      .setSession({ access_token, refresh_token: refresh_token || '' })
-      .then(() => {
-        window.history.replaceState(null, '', window.location.pathname + '#/');
-        navigate('/', { replace: true });
-      })
-      .catch(() => {});
-  }, [hasSupabase, navigate]);
-
+  // Web auth callbacks are handled once by supabase-js (detectSessionInUrl). The
+  // native custom scheme still needs to hand its tokens into the web client.
   // Native app: when opened via magic link (snapmap://auth/callback#access_token=...), exchange for session
   useEffect(() => {
     if (!hasSupabase || !supabase) return;
@@ -183,11 +166,12 @@ export default function App() {
       const params = new URLSearchParams(search);
       const access_token = params.get('access_token');
       const refresh_token = params.get('refresh_token');
+      const type = params.get('type');
       if (!access_token) return;
       supabase.auth
         .setSession({ access_token, refresh_token: refresh_token || '' })
-        .then(() => navigate('/', { replace: true }))
-        .catch(() => {});
+        .then(() => navigate(type === 'recovery' ? '/signin?recovery=1' : '/', { replace: true }))
+        .catch((error) => console.warn('SnapMap: native auth callback failed', error));
     };
     let listener;
     (async () => {
@@ -208,16 +192,27 @@ export default function App() {
   useEffect(() => {
     if (!currentUser?.id || !hasSupabase) return;
     let cancelled = false;
-    getProfileById(currentUser.id).then((p) => {
+    (async () => {
+      const existing = await getProfileById(currentUser.id);
       if (cancelled) return;
-      if (!p) {
-        const u = (currentUser.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 32) || 'user';
-        createProfile({ id: currentUser.id, username: u, displayName: u });
-        setCurrentUserProfile({ id: currentUser.id, username: u, display_name: u, avatar_url: null, bio: '' });
-      } else {
-        setCurrentUserProfile(p);
+      if (existing) {
+        setCurrentUserProfile(existing);
+        return;
       }
-    });
+      const preferredUsername = (currentUser.email || '').split('@')[0]
+        .toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 32) || 'user';
+      const result = await createProfile({
+        id: currentUser.id,
+        username: preferredUsername,
+        displayName: preferredUsername,
+      });
+      if (cancelled) return;
+      if (result.ok && result.profile) setCurrentUserProfile(result.profile);
+      else {
+        setCurrentUserProfile(null);
+        console.warn('SnapMap: profile provisioning failed', result.error);
+      }
+    })();
     return () => { cancelled = true; };
   }, [currentUser?.id, currentUser?.email]);
 
@@ -329,7 +324,7 @@ export default function App() {
     if (!isOnline) return;
     let intervalId = null;
     const schedule = () => {
-      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible' || intervalId) return;
       intervalId = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
         fetchCommunitySpots().then(setCommunitySpots);

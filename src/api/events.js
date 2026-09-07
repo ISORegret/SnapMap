@@ -135,31 +135,86 @@ function repeatDate(value, index, repeat) {
   return date;
 }
 
-export async function createEventSeries({ title, description = '', spotId, startsAt, endsAt = null, maxAttendees = null, eventType = 'meetup', repeat = 'none', occurrences = 1 }) {
-  if (!hasSupabase) return { event: null, error: 'Events need cloud sync.' };
+export async function createEventSeries({
+  title,
+  description = '',
+  spotId = null,
+  venueName = '',
+  address = '',
+  latitude = null,
+  longitude = null,
+  startsAt,
+  endsAt = null,
+  maxAttendees = null,
+  eventType = 'meetup',
+  repeat = 'none',
+  occurrences = 1,
+}) {
+  if (!hasSupabase) return { events: [], event: null, error: 'Events need cloud sync.' };
   const userId = await currentUserId();
-  if (!userId) return { event: null, error: 'Sign in to host an event.' };
-  const count = repeat === 'none' ? 1 : Math.min(12, Math.max(2, Number(occurrences) || 2));
+  if (!userId) return { events: [], event: null, error: 'Sign in to host an event.' };
+
+  const cleanTitle = String(title || '').trim().slice(0, 100);
+  if (!cleanTitle) return { events: [], event: null, error: 'Add an event name.' };
+
   const validRepeat = ['none', 'weekly', 'monthly'].includes(repeat) ? repeat : 'none';
+  const count = validRepeat === 'none' ? 1 : Math.min(12, Math.max(2, Number(occurrences) || 2));
   const start = new Date(startsAt);
   const end = endsAt ? new Date(endsAt) : null;
-  if (Number.isNaN(start.getTime()) || (end && (Number.isNaN(end.getTime()) || end <= start))) return { events: [], event: null, error: 'Choose a valid event time.' };
+  if (Number.isNaN(start.getTime()) || (end && (Number.isNaN(end.getTime()) || end <= start))) {
+    return { events: [], event: null, error: 'Choose a valid event time.' };
+  }
+
+  const attendeeLimit = maxAttendees === '' || maxAttendees == null ? null : Number(maxAttendees);
+  if (attendeeLimit != null && (!Number.isInteger(attendeeLimit) || attendeeLimit < 1 || attendeeLimit > 100000)) {
+    return { events: [], event: null, error: 'Attendee limit must be a positive whole number.' };
+  }
+
+  const lat = latitude === '' || latitude == null ? null : Number(latitude);
+  const lng = longitude === '' || longitude == null ? null : Number(longitude);
+  if ((lat == null) !== (lng == null)
+    || (lat != null && (!Number.isFinite(lat) || lat < -90 || lat > 90))
+    || (lng != null && (!Number.isFinite(lng) || lng < -180 || lng > 180))) {
+    return { events: [], event: null, error: 'Choose a valid map location.' };
+  }
+
   const duration = end ? end.getTime() - start.getTime() : null;
   const payloads = Array.from({ length: count }, (_, index) => {
     const occurrenceStart = repeatDate(start, index, validRepeat);
-    return {
+    const payload = {
       host_id: userId,
-      spot_id: spotId,
-      title: String(title || '').trim().slice(0, 100),
+      spot_id: spotId || null,
+      title: cleanTitle,
       description: String(description || '').trim().slice(0, 1200),
+      venue_name: String(venueName || '').trim().slice(0, 160),
+      address: String(address || '').trim().slice(0, 300),
       starts_at: occurrenceStart.toISOString(),
       ends_at: duration == null ? null : new Date(occurrenceStart.getTime() + duration).toISOString(),
-      max_attendees: maxAttendees ? Number(maxAttendees) : null,
+      max_attendees: attendeeLimit,
       event_type: ['car_show', 'cruise_in', 'cars_and_coffee', 'meetup'].includes(eventType) ? eventType : 'meetup',
     };
+    // Location overrides were added after standalone venue/address support. Omit
+    // these keys unless a coordinate pair is actually supplied so older databases
+    // that have migration 033 but not 034 can still create ordinary events.
+    if (lat != null && lng != null) {
+      payload.latitude = lat;
+      payload.longitude = lng;
+    }
+    return payload;
   });
-  const { data, error } = await supabase.from('events').insert(payloads).select(EVENT_SELECT);
-  if (error || !data?.length) return { events: [], event: null, error: error?.code === '42P01' || error?.code === 'PGRST205' ? 'Apply migration 032 before creating events.' : (error?.message || 'Could not create event.') };
+
+  // EVENT_SELECT_BASE contains the fields guaranteed by the event-listing schema
+  // and avoids making creation depend on later cover/status migrations.
+  const { data, error } = await supabase.from('events').insert(payloads).select(EVENT_SELECT_BASE);
+  if (error || !data?.length) {
+    return {
+      events: [],
+      event: null,
+      error: error?.code === '42P01' || error?.code === 'PGRST205'
+        ? 'Apply migration 032 before creating events.'
+        : (error?.message || 'Could not create event.'),
+    };
+  }
   const events = data.map((item) => normalizeEvent(item, userId));
   return { events, event: events[0], error: null };
 }
@@ -177,20 +232,31 @@ export async function updateEvent(eventId, updates) {
     return { event: null, error: 'Choose a valid map location.' };
   }
   if ((latitude == null) !== (longitude == null)) return { event: null, error: 'Set both latitude and longitude.' };
+
+  const start = new Date(updates.startsAt);
+  const end = updates.endsAt ? new Date(updates.endsAt) : null;
+  if (!String(updates.title || '').trim() || Number.isNaN(start.getTime()) || (end && (Number.isNaN(end.getTime()) || end <= start))) {
+    return { event: null, error: 'Add an event name and valid event time.' };
+  }
+
+  const attendeeLimit = updates.maxAttendees === '' || updates.maxAttendees == null ? null : Number(updates.maxAttendees);
+  if (attendeeLimit != null && (!Number.isInteger(attendeeLimit) || attendeeLimit < 1 || attendeeLimit > 100000)) {
+    return { event: null, error: 'Attendee limit must be a positive whole number.' };
+  }
+
   const payload = {
     title: String(updates.title || '').trim().slice(0, 100),
     description: String(updates.description || '').trim().slice(0, 1200),
     venue_name: String(updates.venueName || '').trim().slice(0, 160),
     address: String(updates.address || '').trim().slice(0, 300),
     event_type: ['car_show', 'cruise_in', 'cars_and_coffee', 'meetup'].includes(updates.eventType) ? updates.eventType : 'meetup',
-    starts_at: new Date(updates.startsAt).toISOString(),
-    ends_at: updates.endsAt ? new Date(updates.endsAt).toISOString() : null,
-    max_attendees: updates.maxAttendees ? Number(updates.maxAttendees) : null,
+    starts_at: start.toISOString(),
+    ends_at: end ? end.toISOString() : null,
+    max_attendees: attendeeLimit,
     latitude,
     longitude,
     updated_at: new Date().toISOString(),
   };
-  if (!payload.title || Number.isNaN(new Date(payload.starts_at).getTime())) return { event: null, error: 'Add an event name and valid start time.' };
   const userId = await currentUserId();
   let { data, error } = await supabase.from('events').update(payload).eq('id', eventId).select(EVENT_SELECT_WITH_COVER).single();
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
