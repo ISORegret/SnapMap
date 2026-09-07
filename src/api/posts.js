@@ -37,12 +37,13 @@ function normalizePost(post, currentUserId = null) {
 export async function fetchPosts({ mode = 'newest', profileId = null, eventId = null, limit = 40 } = {}) {
   if (!hasSupabase) return [];
   const { data: { user } } = await supabase.auth.getUser();
-  let query = supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(Math.min(Math.max(limit, 1), 75));
+  const safeLimit = Math.min(Math.max(Number(limit) || 40, 1), 75);
+  let query = supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(safeLimit);
   if (profileId) query = query.eq('user_id', profileId);
   if (eventId) query = query.eq('event_id', eventId);
   let { data, error } = await query;
   if (error && !eventId && ['42703', 'PGRST200', 'PGRST204'].includes(error.code)) {
-    let legacyQuery = supabase.from('posts').select(POST_SELECT_LEGACY).order('created_at', { ascending: false }).limit(Math.min(Math.max(limit, 1), 75));
+    let legacyQuery = supabase.from('posts').select(POST_SELECT_LEGACY).order('created_at', { ascending: false }).limit(safeLimit);
     if (profileId) legacyQuery = legacyQuery.eq('user_id', profileId);
     ({ data, error } = await legacyQuery);
   }
@@ -53,7 +54,12 @@ export async function fetchPosts({ mode = 'newest', profileId = null, eventId = 
   let posts = data || [];
   if (user?.id) {
     const blocked = new Set(await getBlockedUserIds());
-    posts = posts.filter((post) => !blocked.has(post.user_id));
+    posts = posts
+      .filter((post) => !blocked.has(post.user_id))
+      .map((post) => ({
+        ...post,
+        comments: (post.comments || []).filter((comment) => !blocked.has(comment.user_id)),
+      }));
     if (mode === 'friends' && !profileId) {
       const connections = await getFriendConnections(user.id);
       const allowed = new Set([user.id, ...connections.friends.map((friend) => friend.id)]);
@@ -67,6 +73,7 @@ export async function fetchPosts({ mode = 'newest', profileId = null, eventId = 
 
 export async function fetchMapPosts(limit = 100) {
   if (!hasSupabase) return [];
+  const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('posts')
     .select(`
@@ -75,23 +82,26 @@ export async function fetchMapPosts(limit = 100) {
       images:post_images(public_url, position)
     `)
     .order('created_at', { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 150));
+    .limit(Math.min(Math.max(Number(limit) || 100, 1), 150));
   if (error) {
     console.warn('SnapMap: map posts fetch failed', error);
     return [];
   }
-  return (data || []).map((post) => ({
-    id: post.id,
-    userId: post.user_id,
-    spotId: post.spot_id,
-    locationName: post.location_name,
-    latitude: post.latitude,
-    longitude: post.longitude,
-    locationPrecision: post.location_precision,
-    createdAt: post.created_at,
-    author: post.author,
-    imageUrl: [...(post.images || [])].sort((a, b) => a.position - b.position)[0]?.public_url || null,
-  }));
+  const blocked = user?.id ? new Set(await getBlockedUserIds()) : new Set();
+  return (data || [])
+    .filter((post) => !blocked.has(post.user_id))
+    .map((post) => ({
+      id: post.id,
+      userId: post.user_id,
+      spotId: post.spot_id,
+      locationName: post.location_name,
+      latitude: post.latitude,
+      longitude: post.longitude,
+      locationPrecision: post.location_precision,
+      createdAt: post.created_at,
+      author: post.author,
+      imageUrl: [...(post.images || [])].sort((a, b) => a.position - b.position)[0]?.public_url || null,
+    }));
 }
 
 function loadImage(file, src) {
@@ -209,7 +219,7 @@ export async function togglePostLike(postId, liked) {
     ? supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', user.id)
     : supabase.from('post_likes').insert({ post_id: postId, user_id: user.id });
   const { error } = await request;
-  return !error;
+  return !error || error?.code === '23505';
 }
 
 export async function addPostComment(postId, body) {
