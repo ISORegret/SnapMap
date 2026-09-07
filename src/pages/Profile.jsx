@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Cloc
 import { getProfileByUsername, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
 import { getSpotPrimaryImage } from '../utils/spotImages';
+import { navigateBackOr } from '../utils/navigation';
 import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
 import { fetchPosts } from '../api/posts';
 import { fetchProfileEvents } from '../api/events';
@@ -197,8 +198,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const goBack = () => {
     const returnTo = location.state?.from;
     if (returnTo) navigate(returnTo);
-    else if (Number(window.history.state?.idx) > 0) navigate(-1);
-    else navigate(isOwnProfile ? '/' : '/explore?view=creators');
+    else navigateBackOr(navigate, isOwnProfile ? '/' : '/explore?view=creators');
   };
 
   const startEditing = () => {
