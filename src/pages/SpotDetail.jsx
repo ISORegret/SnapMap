@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera } from 'lucide-react';
 import SunCalc from 'suncalc';
-import { toPng } from 'html-to-image';
+import { createSpotSharePng } from '../utils/shareSpotCard';
 import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
 import { insertSpotReport, fetchSpotNotes, insertSpotNote, deleteSpotNote } from '../api/spots';
@@ -238,7 +238,6 @@ export default function SpotDetail({
   const [userRating, setUserRating] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
   const addPhotoInputRef = useRef(null);
-  const shareCardRef = useRef(null);
   const conditionsRef = useRef(null);
   const visibleNotes = useMemo(() => notes.filter((note) => !blockedUserIds.includes(note.userId)), [notes, blockedUserIds]);
   const rootNotes = useMemo(() => visibleNotes.filter((note) => !note.parentId), [visibleNotes]);
@@ -363,128 +362,50 @@ export default function SpotDetail({
   };
 
   const shareAsImage = async () => {
-    if (!shareCardRef.current || shareImageLoading) return;
+    if (shareImageLoading) return;
     setShareImageError(null);
     setShareImageLoading(true);
     try {
-      const primaryImage = getSpotPrimaryImage(spot);
-      const imgEl = shareCardRef.current.querySelector('img');
-      if (imgEl && primaryImage && (primaryImage.startsWith('http:') || primaryImage.startsWith('https:'))) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const proxyUrl =
-          supabaseUrl && supabaseKey
-            ? `${supabaseUrl}/functions/v1/image-proxy?url=${encodeURIComponent(primaryImage)}`
-            : null;
-        const tryFetch = (url, opts) =>
-          fetch(url, opts)
-            .then((r) => {
-              if (!r.ok) throw new Error(r.status);
-              return r.blob();
-            })
-            .then(
-              (blob) =>
-                new Promise((res, rej) => {
-                  const reader = new FileReader();
-                  reader.onload = () => res(reader.result);
-                  reader.onerror = rej;
-                  reader.readAsDataURL(blob);
-                })
-            );
-        const proxyOpts = proxyUrl && supabaseKey
-          ? { mode: 'cors', headers: { Authorization: `Bearer ${supabaseKey}` } }
-          : null;
-        const tryProxy = () => proxyUrl && proxyOpts ? tryFetch(proxyUrl, proxyOpts) : null;
-        const tryDirect = () => tryFetch(primaryImage, { mode: 'cors' });
-        let imageDataUrl = null;
-        if (primaryImage.includes('supabase.co') && proxyUrl) {
-          try {
-            imageDataUrl = await tryProxy();
-          } catch {
-            // ignore
-          }
-          if (!imageDataUrl) {
-            try {
-              imageDataUrl = await tryDirect();
-            } catch {
-              // leave null
-            }
-          }
-        } else {
-          try {
-            imageDataUrl = await tryDirect();
-          } catch {
-            if (proxyUrl) {
-              try {
-                imageDataUrl = await tryProxy();
-              } catch {
-                // leave null
-              }
-            }
-          }
-        }
-        if (imageDataUrl) {
-          imgEl.src = imageDataUrl;
-          await new Promise((resolve, reject) => {
-            imgEl.onload = () => resolve();
-            imgEl.onerror = reject;
-            if (imgEl.complete && imgEl.naturalWidth) resolve();
-          });
-          await new Promise((r) => setTimeout(r, 150));
-        }
-      }
-      const card = shareCardRef.current;
-      const prevOpacity = card.style.opacity;
-      const prevZIndex = card.style.zIndex;
-      card.style.opacity = '1';
-      card.style.zIndex = '99999';
-      await new Promise((r) => requestAnimationFrame(r));
-      await new Promise((r) => requestAnimationFrame(r));
-      const dataUrl = await toPng(card, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#0f0e12',
-      });
-      card.style.opacity = prevOpacity;
-      card.style.zIndex = prevZIndex;
+      const shareLocationText = (spot.address && spot.address !== 'Not specified')
+        ? spot.address
+        : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
+      const dataUrl = await createSpotSharePng({ spot, locationText: shareLocationText });
       const base64 = dataUrl.split(',')[1];
-      if (!base64) throw new Error('Failed to create image');
+      if (!base64) throw new Error('Failed to create share image.');
+
+      const safeName = (spot.name || 'spot')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9-]/g, '')
+        .slice(0, 30);
+      const fileName = `snapmap-${safeName || 'spot'}.png`;
 
       const { Capacitor } = await import('@capacitor/core');
       if (Capacitor.isNativePlatform()) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         const { Share } = await import('@capacitor/share');
-        const fileName = `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 30)}.png`;
         await Filesystem.writeFile({
           path: fileName,
           data: base64,
           directory: Directory.Cache,
         });
         const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
-        const shareText = [spot.name, spot.address || locationText, mapsUrl ? `Open in Maps: ${mapsUrl}` : null]
-          .filter(Boolean)
-          .join('\n');
         await Share.share({
           url: uri,
-          title: spot.name,
-          text: shareText,
-          dialogTitle: 'Share spot',
+          dialogTitle: 'Share spot image',
         });
       } else {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], `snapmap-${(spot.name || 'spot').replace(/\s+/g, '-').slice(0, 30)}.png`, { type: 'image/png' });
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], fileName, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          const shareText = [spot.name, spot.address || locationText, mapsUrl ? `Open in Maps: ${mapsUrl}` : null]
-            .filter(Boolean)
-            .join('\n');
-          await navigator.share({ files: [file], title: spot.name, text: shareText });
+          await navigator.share({ files: [file] });
         } else {
+          const objectUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
+          a.href = objectUrl;
           a.download = file.name;
           a.click();
-          URL.revokeObjectURL(a.href);
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
         }
       }
     } catch (e) {
@@ -555,7 +476,6 @@ export default function SpotDetail({
       .finally(() => setAddPhotoLoading(false));
   };
 
-  const primaryImage = getSpotPrimaryImage(spot);
     const locationText = (spot.address && spot.address !== 'Not specified')
       ? spot.address
       : (latitude != null && longitude != null ? `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}` : '');
@@ -580,36 +500,6 @@ export default function SpotDetail({
           )}
         </div>
       )}
-      {/* Card for share-as-image: in-view but invisible so mobile WebView renders it */}
-      <div
-        ref={shareCardRef}
-        className="fixed left-0 top-0 z-[-1] w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] text-left opacity-0 pointer-events-none"
-        style={{ fontFamily: 'system-ui, sans-serif' }}
-        aria-hidden
-      >
-        <div className="aspect-[4/3] w-full bg-slate-800">
-          <img src={primaryImage} alt="" className="h-full w-full object-cover" crossOrigin="anonymous" />
-        </div>
-        <div className="px-4 py-3">
-          <h2 className="text-lg font-semibold text-white">{spot.name}</h2>
-          {locationText && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {locationText}
-            </p>
-          )}
-          {spot.bestTime && spot.bestTime !== 'Not specified' && (
-            <p className="mt-1 text-xs text-slate-500">Best time: {spot.bestTime}</p>
-          )}
-          {mapsUrl && (
-            <p className="mt-2 break-all text-[10px] text-accent-500/90">
-              Open in Maps: {mapsUrl}
-            </p>
-          )}
-          <p className="mt-2 text-[10px] text-slate-600">SnapMap</p>
-        </div>
-      </div>
-
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-nav)] px-4 py-3 backdrop-blur-2xl">
         <button
           type="button"
