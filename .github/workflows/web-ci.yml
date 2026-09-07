@@ -1,0 +1,59 @@
+name: Web CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+
+      - name: Source regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MARKERS=$(grep -RInE 'TODO|FIXME|HACK|XXX' src --include='*.js' --include='*.jsx' || true)
+          if [ -n "$MARKERS" ]; then
+            echo "Unfinished source markers found:"
+            echo "$MARKERS"
+            exit 1
+          fi
+
+          RAW_BACKS=$(grep -RInF 'navigate(-1)' src --include='*.js' --include='*.jsx' | grep -v 'src/utils/navigation.js' || true)
+          if [ -n "$RAW_BACKS" ]; then
+            echo "Raw back-navigation calls found outside shared helper:"
+            echo "$RAW_BACKS"
+            exit 1
+          fi
+
+          VISIBLE_HANDLES=$(grep -RInE '>@\{|`@\$\{|>@\$\{|@\{profile\.username\}|@\{creator\.username\}' src --include='*.jsx' --include='*.js' || true)
+          if [ -n "$VISIBLE_HANDLES" ]; then
+            echo "Public username rendering found:"
+            echo "$VISIBLE_HANDLES"
+            exit 1
+          fi
+
+      - name: Production dependency security gate
+        run: npm audit --omit=dev --audit-level=high
