@@ -41,3 +41,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m 'Harden production dependencies'
           git push origin HEAD:audit/production-hardening-2026-09-07
+
+# One-time audit workflow; removed before merging to main.
