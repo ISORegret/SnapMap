@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:phone": "vite --host",
     "build": "vite build",
-    "build:android": "node scripts/sync-version.js && vite build && npx cap sync android",
+    "build:android": "node scripts/sync-version.js && vite build --mode android && npx cap sync android",
     "build:apk": "node scripts/bump-version.js && npm run build:android && cd android && .\\gradlew.bat assembleDebug",
     "sync-version": "node scripts/sync-version.js",
     "cap:sync": "npx cap sync android",
