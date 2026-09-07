@@ -2,8 +2,54 @@ import { supabase, hasSupabase } from './supabase';
 
 const DEFAULT_IMAGE_URI = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 
+function parseArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null || value === '') return [];
+  if (typeof value !== 'string') return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn('SnapMap: ignored malformed legacy array field', error);
+    return [];
+  }
+}
+
+function normalizeImageList(row) {
+  const uploader = String(row?.created_by_display_name || row?.created_by || '').trim();
+  const legacyPhotoBy = String(row?.photo_by || '').trim() || 'Unknown';
+  const parsed = parseArray(row?.images)
+    .map((image) => {
+      if (typeof image === 'string') {
+        const uri = image.trim();
+        return uri ? { uri, photoBy: legacyPhotoBy, uploadedBy: uploader || undefined } : null;
+      }
+      if (!image || typeof image !== 'object') return null;
+      const uri = String(image.uri || image.url || '').trim();
+      if (!uri) return null;
+      return {
+        ...image,
+        uri,
+        photoBy: String(image.photoBy || image.photo_by || legacyPhotoBy).trim() || 'Unknown',
+        ...(image.uploadedBy || uploader ? { uploadedBy: String(image.uploadedBy || uploader).trim() } : {}),
+      };
+    })
+    .filter(Boolean);
+
+  if (parsed.length) return parsed;
+
+  const legacyUri = String(row?.image_uri || '').trim();
+  if (!legacyUri) return [];
+  return [{
+    uri: legacyUri,
+    photoBy: legacyPhotoBy,
+    ...(uploader ? { uploadedBy: uploader } : {}),
+  }];
+}
+
 function rowToSpot(row) {
   if (!row) return null;
+  const images = normalizeImageList(row);
   return {
     id: row.id,
     name: row.name ?? '',
@@ -16,8 +62,12 @@ function rowToSpot(row) {
     bestTime: row.best_time ?? '',
     crowdLevel: row.crowd_level ?? '',
     score: row.score ?? 0,
-    tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags) : []),
-    images: Array.isArray(row.images) ? row.images : (row.images ? JSON.parse(row.images) : []),
+    tags: parseArray(row.tags),
+    images,
+    // Keep legacy fields available because several UI helpers intentionally support
+    // records created before the images JSON column existed.
+    imageUri: String(row.image_uri || images[0]?.uri || '').trim(),
+    photoBy: String(row.photo_by || images[0]?.photoBy || '').trim(),
     linkUrl: row.link_url ?? '',
     linkLabel: row.link_label ?? 'More info',
     createdAt: row.created_at,
@@ -38,17 +88,17 @@ export async function fetchCommunitySpots() {
     console.warn('SnapMap: fetch community spots failed', error);
     return [];
   }
-  return (data || []).map(rowToSpot);
+  return (data || []).map(rowToSpot).filter(Boolean);
 }
 
 export async function insertCommunitySpot(spot) {
   if (!hasSupabase) return { spot: null, error: 'Supabase not configured (missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)' };
-  const imageList = spot.images ?? [];
+  const imageList = Array.isArray(spot.images) ? spot.images.filter(Boolean) : [];
   const firstImage = imageList.length ? imageList[0] : null;
-  const rawUri = firstImage?.uri ?? firstImage?.url ?? '';
+  const rawUri = typeof firstImage === 'string' ? firstImage : (firstImage?.uri ?? firstImage?.url ?? '');
   const firstUri = typeof rawUri === 'string' ? rawUri.trim() : '';
   const imageUriValue = firstUri.length > 0 ? firstUri : DEFAULT_IMAGE_URI;
-  const photoBy = firstImage?.photoBy ? String(firstImage.photoBy).trim() : 'You';
+  const photoBy = typeof firstImage === 'object' && firstImage?.photoBy ? String(firstImage.photoBy).trim() : 'Unknown';
   const row = {
     name: spot.name,
     description: spot.description ?? '',
@@ -60,9 +110,9 @@ export async function insertCommunitySpot(spot) {
     best_time: spot.bestTime ?? '',
     crowd_level: spot.crowdLevel ?? '',
     score: spot.score ?? 0,
-    tags: spot.tags ?? [],
+    tags: Array.isArray(spot.tags) ? spot.tags : [],
     images: imageList,
-    photo_by: photoBy || 'You',
+    photo_by: photoBy || 'Unknown',
     link_url: spot.linkUrl ?? '',
     link_label: spot.linkLabel ?? 'More info',
     created_by: ((spot.createdBy ?? '').trim().slice(0, 100)) || '',
@@ -103,8 +153,18 @@ export async function updateCommunitySpot(id, updates) {
   if (updates.bestTime != null) payload.best_time = updates.bestTime;
   if (updates.crowdLevel != null) payload.crowd_level = updates.crowdLevel;
   if (updates.score != null) payload.score = updates.score;
-  if (updates.tags != null) payload.tags = updates.tags;
-  if (updates.images != null) payload.images = updates.images;
+  if (updates.tags != null) payload.tags = Array.isArray(updates.tags) ? updates.tags : [];
+  if (updates.images != null) {
+    const images = Array.isArray(updates.images) ? updates.images.filter(Boolean) : [];
+    payload.images = images;
+    const first = images[0];
+    const firstUri = String(typeof first === 'string' ? first : (first?.uri || first?.url || '')).trim();
+    const firstPhotoBy = String(typeof first === 'object' ? (first?.photoBy || first?.photo_by || '') : '').trim();
+    // Keep the old columns synchronized so older clients and legacy fallback logic
+    // continue to show the current primary photo.
+    payload.image_uri = firstUri || DEFAULT_IMAGE_URI;
+    payload.photo_by = firstPhotoBy || 'Unknown';
+  }
   if (updates.linkUrl != null) payload.link_url = updates.linkUrl;
   if (updates.linkLabel != null) payload.link_label = updates.linkLabel;
   if (updates.lastEditedBy !== undefined) payload.last_edited_by = (updates.lastEditedBy ?? '').toString().trim().slice(0, 100);
