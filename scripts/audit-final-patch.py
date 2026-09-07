@@ -67,3 +67,4 @@ new_unsigned = """          ) : (\n            <p className=\"mt-1 rounded-2xl b
 replace('src/pages/Add.jsx', old_unsigned, new_unsigned)
 
 print('Final audit patch applied.')
+# Triggered after workflow installation.
