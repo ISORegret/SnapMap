@@ -20,6 +20,8 @@ export default function SignIn({ onSuccess, currentUser }) {
   const [mode, setMode] = useState('password'); // 'password' | 'link'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const [sent, setSent] = useState(false);
   const [signUpConfirm, setSignUpConfirm] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -77,9 +79,20 @@ export default function SignIn({ onSuccess, currentUser }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if (!hasSupabase || !supabase || !email.trim() || !password) return;
+    if (!hasSupabase || !supabase) {
+      setError('Account creation is temporarily unavailable.');
+      return;
+    }
+    if (!email.trim() || !password || !passwordConfirm) {
+      setError('Enter your email and both password fields.');
+      return;
+    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError('Passwords do not match.');
       return;
     }
     setError('');
@@ -357,22 +370,22 @@ export default function SignIn({ onSuccess, currentUser }) {
     <div className="page-shell-narrow flex min-h-[72vh] max-w-md flex-col justify-center py-12">
       <div className="surface-card rounded-[1.75rem] p-6 sm:p-8">
       <p className="eyebrow">SnapMap account</p>
-      <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">Welcome back</h1>
+      <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">{creatingAccount ? 'Create your account' : 'Welcome back'}</h1>
       <p className="mt-2 text-sm font-medium leading-relaxed text-muted">
-        {isPassword ? 'Sign in with your email and password.' : 'We&apos;ll send you a link to sign in. No password needed.'}
+        {isPassword ? creatingAccount ? 'Join SnapMap to share spots, events, and photos with other creators.' : 'Sign in with your email and password.' : 'We&apos;ll send you a link to sign in. No password needed.'}
       </p>
 
       <div className="mt-4 flex gap-2 rounded-2xl border border-white/10 p-1">
         <button
           type="button"
-          onClick={() => { setMode('password'); setError(''); }}
+          onClick={() => { setMode('password'); setCreatingAccount(false); setError(''); }}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${isPassword ? 'bg-accent-500/20 text-accent-400' : 'text-slate-400 hover:text-slate-300'}`}
         >
           Password
         </button>
         <button
           type="button"
-          onClick={() => { setMode('link'); setError(''); }}
+          onClick={() => { setMode('link'); setCreatingAccount(false); setError(''); }}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${!isPassword ? 'bg-accent-500/20 text-accent-400' : 'text-slate-400 hover:text-slate-300'}`}
         >
           Email link
@@ -380,7 +393,7 @@ export default function SignIn({ onSuccess, currentUser }) {
       </div>
 
       {isPassword ? (
-        <form onSubmit={handlePasswordSubmit} className="mt-6 space-y-4">
+        <form onSubmit={creatingAccount ? handleSignUp : handlePasswordSubmit} className="mt-6 space-y-4">
           <div>
             <label htmlFor="email" className="block text-xs font-medium text-slate-500">Email</label>
             <input
@@ -403,34 +416,52 @@ export default function SignIn({ onSuccess, currentUser }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              autoComplete="current-password"
+              autoComplete={creatingAccount ? 'new-password' : 'current-password'}
               minLength={6}
               className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
           </div>
+          {creatingAccount && <div>
+            <label htmlFor="password-confirm" className="block text-xs font-medium text-slate-500">Confirm password</label>
+            <input
+              id="password-confirm"
+              type="password"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            />
+          </div>}
           {error && <p className="text-sm text-amber-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
             className="primary-button w-full py-3.5 text-sm disabled:opacity-50"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? creatingAccount ? 'Creating account…' : 'Signing in…' : creatingAccount ? 'Create account' : 'Sign in'}
           </button>
           <button
             type="button"
-            onClick={handleSignUp}
+            onClick={() => {
+              setCreatingAccount((value) => !value);
+              setPasswordConfirm('');
+              setError('');
+            }}
             disabled={loading}
             className="w-full rounded-2xl border border-white/10 py-3 font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
           >
-            Create account
+            {creatingAccount ? 'Back to sign in' : 'Create account'}
           </button>
-          <button
+          {!creatingAccount && <button
             type="button"
             onClick={() => { setForgotPassword(true); setError(''); }}
             className="w-full py-2 text-sm text-slate-500 hover:text-accent-400"
           >
             Forgot password?
-          </button>
+          </button>}
         </form>
       ) : (
         <form onSubmit={handleLinkSubmit} className="mt-6 space-y-4">
