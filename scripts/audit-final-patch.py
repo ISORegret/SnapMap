@@ -66,5 +66,16 @@ old_unsigned = """          ) : (\n            <>\n              <p className=\"
 new_unsigned = """          ) : (\n            <p className=\"mt-1 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-xs text-slate-500\">\n              Saved as Anonymous on this device. Sign in to publish spots under your display name.\n            </p>\n          )}\n"""
 replace('src/pages/Add.jsx', old_unsigned, new_unsigned)
 
+# Profile portfolio back behavior uses the same safe history policy as every other screen.
+replace(
+    'src/pages/Profile.jsx',
+    "import { getSpotPrimaryImage } from '../utils/spotImages';",
+    "import { getSpotPrimaryImage } from '../utils/spotImages';\nimport { navigateBackOr } from '../utils/navigation';",
+)
+replace(
+    'src/pages/Profile.jsx',
+    "  const goBack = () => {\n    const returnTo = location.state?.from;\n    if (returnTo) navigate(returnTo);\n    else if (Number(window.history.state?.idx) > 0) navigate(-1);\n    else navigate(isOwnProfile ? '/' : '/explore?view=creators');\n  };",
+    "  const goBack = () => {\n    const returnTo = location.state?.from;\n    if (returnTo) navigate(returnTo);\n    else navigateBackOr(navigate, isOwnProfile ? '/' : '/explore?view=creators');\n  };",
+)
+
 print('Final audit patch applied.')
-# Triggered after workflow installation.
