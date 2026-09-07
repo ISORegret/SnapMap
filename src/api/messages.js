@@ -41,40 +41,55 @@ export async function getUnreadMessageCount() {
 export async function fetchInbox(limit = 300) {
   const user = await signedInUser();
   if (!user) return [];
+  const safeLimit = Math.min(Math.max(Number(limit) || 300, 1), 500);
   const { data, error } = await supabase.from('private_messages')
     .select(MESSAGE_SELECT)
     .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
     .order('created_at', { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 500));
+    .limit(safeLimit);
   if (error) {
     console.warn('SnapMap: inbox fetch failed', error);
     return [];
   }
+
+  // Rows arrive newest-first. Build conversation summaries in one pass rather than
+  // filtering the entire inbox again for every row (which became quadratic as the
+  // inbox grew).
   const conversations = new Map();
-  (data || []).forEach((row) => {
+  for (const row of data || []) {
     const message = normalizeMessage(row);
     const mine = message.senderId === user.id;
     const other = mine ? row.recipient : row.sender;
-    if (!other || conversations.has(other.id) && conversations.get(other.id).latest.createdAt > message.createdAt) return;
-    const unreadCount = (data || []).filter((item) => item.sender_id === other.id && item.recipient_id === user.id && !item.read_at).length;
-    conversations.set(other.id, { profile: other, latest: message, unreadCount });
-  });
+    if (!other?.id) continue;
+
+    let conversation = conversations.get(other.id);
+    if (!conversation) {
+      conversation = { profile: other, latest: message, unreadCount: 0 };
+      conversations.set(other.id, conversation);
+    }
+    if (!mine && !message.readAt) conversation.unreadCount += 1;
+  }
+
   return [...conversations.values()].sort((a, b) => new Date(b.latest.createdAt) - new Date(a.latest.createdAt));
 }
 
 export async function fetchConversation(otherUserId, limit = 150) {
   const user = await signedInUser();
   if (!user || !otherUserId) return [];
+  const safeLimit = Math.min(Math.max(Number(limit) || 150, 1), 300);
   const { data, error } = await supabase.from('private_messages')
     .select(MESSAGE_SELECT)
     .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`)
-    .order('created_at', { ascending: true })
-    .limit(Math.min(Math.max(limit, 1), 300));
+    // Limit the newest messages, then reverse them for chronological rendering.
+    // The previous ascending+limit query permanently hid the newest messages once
+    // a conversation exceeded the limit.
+    .order('created_at', { ascending: false })
+    .limit(safeLimit);
   if (error) {
     console.warn('SnapMap: conversation fetch failed', error);
     return [];
   }
-  return (data || []).map(normalizeMessage);
+  return (data || []).map(normalizeMessage).reverse();
 }
 
 export async function sendMessage({ recipientId, body = '', share = null }) {
@@ -118,4 +133,3 @@ export function subscribeToMessages(onChange) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
-
