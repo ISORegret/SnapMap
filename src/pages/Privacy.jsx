@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, Shield } from 'lucide-react';
 
 export default function Privacy() {
@@ -10,7 +11,7 @@ export default function Privacy() {
       <header className="page-header">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => navigateBackOr(navigate, '/')}
           className="icon-button mb-5 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"
         >
           <ArrowLeft className="h-4 w-4" />

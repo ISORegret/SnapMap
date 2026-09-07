@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, BadgeCheck, Ban, CheckCircle2, ExternalLink, Flag, ShieldCheck, Trash2, XCircle } from 'lucide-react';
 import { dismissReport, fetchEventClaims, fetchModerationQueue, isCurrentUserAdmin, removeReportedContent, reviewEventClaim, suspendUser } from '../api/moderation';
 
@@ -127,12 +128,12 @@ export default function Admin({ currentUser, showToast }) {
 
   if (loading || allowed == null) return <div className="page-shell flex min-h-[55vh] items-center justify-center"><ShieldCheck className="h-8 w-8 animate-pulse text-accent-400" /></div>;
 
-  if (!currentUser || !allowed) return <div className="page-shell px-4 py-16 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-muted" /><h1 className="mt-4 text-xl font-extrabold text-primary">Admin access required</h1><p className="mx-auto mt-2 max-w-sm text-sm text-muted">This area is restricted to SnapMap moderators.</p><button type="button" onClick={() => navigate(-1)} className="primary-button mt-5 px-5 py-2.5 text-sm">Go back</button></div>;
+  if (!currentUser || !allowed) return <div className="page-shell px-4 py-16 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-muted" /><h1 className="mt-4 text-xl font-extrabold text-primary">Admin access required</h1><p className="mx-auto mt-2 max-w-sm text-sm text-muted">This area is restricted to SnapMap moderators.</p><button type="button" onClick={() => navigateBackOr(navigate, '/')} className="primary-button mt-5 px-5 py-2.5 text-sm">Go back</button></div>;
 
   return <div className="page-shell pb-28 animate-fade-in">
     <header className="page-header sticky top-0 z-20">
       <div className="mx-auto max-w-4xl">
-        <button type="button" onClick={() => navigate(-1)} className="icon-button mb-4 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"><ArrowLeft className="h-5 w-5" />Back</button>
+        <button type="button" onClick={() => navigateBackOr(navigate, '/')} className="icon-button mb-4 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"><ArrowLeft className="h-5 w-5" />Back</button>
         <div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Private controls</p><h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary">Moderation</h1><p className="mt-2 text-sm text-muted">Review community reports and take action.</p></div><div className="flex h-12 min-w-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-400"><ShieldCheck className="h-5 w-5" /></div></div>
       </div>
     </header>

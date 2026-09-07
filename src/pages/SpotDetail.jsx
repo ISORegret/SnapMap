@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { createSpotSharePng } from '../utils/shareSpotCard';
@@ -505,7 +506,7 @@ export default function SpotDetail({
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-nav)] px-4 py-3 backdrop-blur-2xl">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => navigateBackOr(navigate, '/')}
           className="icon-button gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"
         >
           <ArrowLeft className="h-5 w-5" />

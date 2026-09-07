@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import {
   ArrowLeft,
   Bell,
@@ -131,7 +132,7 @@ export default function Settings({
   return (
     <div className="page-shell pb-32 animate-fade-in">
       <header className="page-header">
-        <button type="button" onClick={() => navigate(-1)} className="icon-button mb-5" aria-label="Go back">
+        <button type="button" onClick={() => navigateBackOr(navigate, '/profile')} className="icon-button mb-5" aria-label="Go back">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <p className="eyebrow">Your SnapMap</p>

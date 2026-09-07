@@ -484,7 +484,7 @@ export default function App() {
           payload = {
             ...payload,
             createdBy: profile.username,
-            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || profile.username,
+            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || 'SnapMap user',
           };
         }
       }
@@ -525,8 +525,9 @@ export default function App() {
     async (spotId, updates) => {
       const inUser = userSpots.find((s) => s.id === spotId);
       const isCloudId = spotId && !String(spotId).startsWith('user-');
-      const payload = currentUserProfile?.username
-        ? { ...updates, lastEditedBy: currentUserProfile.username }
+      const editorDisplayName = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim();
+      const payload = currentUserProfile
+        ? { ...updates, lastEditedBy: editorDisplayName || 'SnapMap user' }
         : updates;
 
       if (inUser) {

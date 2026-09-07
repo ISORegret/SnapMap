@@ -357,7 +357,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-primary">
               {profileDisplayName}
             </h1>
-            <p className="text-sm text-slate-500">@{profile.username}</p>
+            <p className="text-sm text-slate-500">SnapMap creator</p>
             {profile.bio && (
               <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
             )}
@@ -491,7 +491,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                         {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
                       </div>
-                      <div className="min-w-0"><p className="truncate text-sm font-bold text-primary">{creator.display_name || creator.username}</p><p className="truncate text-xs text-slate-500">@{creator.username}</p></div>
+                      <div className="min-w-0"><p className="truncate text-sm font-bold text-primary">{creator.display_name || 'SnapMap user'}</p><p className="truncate text-xs text-slate-500">SnapMap creator</p></div>
                     </Link>
                     <button type="button" onClick={async () => { await acceptFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl bg-accent-500 px-3 py-2 text-xs font-extrabold text-[#211603]">Accept</button>
                     <button type="button" onClick={async () => { await declineFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl border border-white/10 px-2.5 py-2 text-xs font-bold text-slate-500">Decline</button>
@@ -510,8 +510,8 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                     <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                       {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
                     </div>
-                    <p className="mt-2 truncate text-xs font-extrabold text-primary">{creator.display_name || creator.username}</p>
-                    <p className="truncate text-[10px] text-slate-500">@{creator.username}</p>
+                    <p className="mt-2 truncate text-xs font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</p>
+                    <p className="truncate text-[10px] text-slate-500">SnapMap creator</p>
                   </Link>
                 ))}
               </div>
@@ -519,7 +519,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
           )}
 
           {isOwnProfile && connections.outgoing.length > 0 && (
-            <p className="mt-3 text-xs text-slate-500">Pending requests: {connections.outgoing.map((creator) => `@${creator.username}`).join(', ')}</p>
+            <p className="mt-3 text-xs text-slate-500">Pending requests: {connections.outgoing.map((creator) => creator.display_name || 'SnapMap user').join(', ')}</p>
           )}
         </section>
       )}

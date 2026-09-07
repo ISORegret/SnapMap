@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
@@ -624,11 +625,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   }, []);
 
   const goBack = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/', { replace: true });
-    }
+    navigateBackOr(navigate, '/');
   }, [navigate]);
 
   useEffect(() => {

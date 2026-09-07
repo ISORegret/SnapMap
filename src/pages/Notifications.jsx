@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, Bell, CalendarDays, Check, CheckCheck, Heart, MapPin, MessageCircle, Trash2, User, UserCheck, UserPlus, Users } from 'lucide-react';
 import {
   deleteNotification,
@@ -156,7 +157,7 @@ export default function Notifications({ currentUser, onUnreadChange }) {
     <div className="page-shell pb-24 animate-fade-in">
       <header className="page-header sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateBackOr(navigate, '/profile')} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button>
           <div className="min-w-0 flex-1"><p className="eyebrow">Activity center</p><h1 className="mt-1 text-2xl font-extrabold tracking-tight text-primary">Notifications</h1></div>
           {unreadCount > 0 && <button type="button" onClick={markEverythingRead} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-xs font-extrabold text-accent-400 transition hover:bg-accent-500/10" aria-label="Mark all notifications read"><CheckCheck className="h-4 w-4" />All read</button>}
         </div>

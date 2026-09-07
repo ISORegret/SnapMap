@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowDown, ArrowLeft, ArrowUp, Clock3, LocateFixed, MapPin, Milestone, Navigation, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleMultiStopDirectionsUrl, googleMultiStopDirectionsUrl } from '../utils/mapNavigation';
@@ -115,7 +116,7 @@ export default function RoutePlanner({ allSpots = [], favoriteIds = [], collecti
   return (
     <div className="page-shell pb-32 animate-fade-in">
       <header className="page-header">
-        <button type="button" onClick={() => navigate(-1)} className="icon-button mb-5 gap-2 rounded-2xl px-3" aria-label="Go back"><ArrowLeft className="h-5 w-5" />Back</button>
+        <button type="button" onClick={() => navigateBackOr(navigate, '/')} className="icon-button mb-5 gap-2 rounded-2xl px-3" aria-label="Go back"><ArrowLeft className="h-5 w-5" />Back</button>
         <p className="eyebrow">Shoot-day planner</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary">Plan a route</h1>
         <p className="mt-2 text-sm text-muted">Choose up to eight saved spots, optimize the order, then open the complete trip in your maps app.</p>

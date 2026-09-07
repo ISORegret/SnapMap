@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, BadgeCheck, Bell, BellOff, CalendarDays, Camera, Copy, Flag, LocateFixed, LogOut, MapPin, MessageCircle, Navigation, Pencil, Radio, Share2, ShieldCheck, Trash2, User, Users, X } from 'lucide-react';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import EventDiscussion from '../components/EventDiscussion';
@@ -227,7 +228,7 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
     <div className="page-shell pb-36 animate-fade-in">
       <header className="page-header sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateBackOr(navigate, '/explore?view=events')} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button>
           <p className="eyebrow">Event details</p>
           <button type="button" onClick={share} className="icon-button" aria-label="Share event"><Share2 className="h-5 w-5" /></button>
         </div>
