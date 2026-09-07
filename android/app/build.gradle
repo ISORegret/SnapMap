@@ -8,10 +8,16 @@ if (keystorePropertiesFile.exists()) {
 
 def versionPropsFile = file('version.properties')
 def versionNameFromPackage = "1.0"
+def versionCodeFromPackage = 1
 if (versionPropsFile.exists()) {
     def versionProps = new Properties()
     versionProps.load(new FileInputStream(versionPropsFile))
     versionNameFromPackage = versionProps['VERSION_NAME'] ?: "1.0"
+    try {
+        versionCodeFromPackage = (versionProps['VERSION_CODE'] ?: "1").toInteger()
+    } catch (Exception ignored) {
+        versionCodeFromPackage = 1
+    }
 }
 
 android {
@@ -21,7 +27,7 @@ android {
         applicationId "com.snapmap.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode versionCodeFromPackage
         versionName versionNameFromPackage
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -74,7 +80,7 @@ dependencies {
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$espressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
