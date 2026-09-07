@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ImagePlus, MapPin, User, ChevronDown, FileClock, X } from 'lucide-react';
+import { ImagePlus, MapPin, User, ChevronDown, FileClock, X, Search, CheckCircle2 } from 'lucide-react';
 import { getSpotImages, resizeImageToDataUrl } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
 import { getCurrentPosition } from '../utils/geo';
@@ -8,6 +8,19 @@ import { getCurrentPosition } from '../utils/geo';
 const MAX_IMAGE_DIM = 1200;
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 const DRAFT_KEY = 'snapmap_add_draft';
+
+async function geocodeAddress(query) {
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) throw new Error('Address lookup failed.');
+  const result = (await response.json())?.[0];
+  if (!result) return null;
+  const latitude = Number(result.lat);
+  const longitude = Number(result.lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return { latitude, longitude, label: result.display_name || query };
+}
 
 export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }) {
   const location = useLocation();
@@ -22,10 +35,10 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const [parking, setParking] = useState('');
   const [howToAccess, setHowToAccess] = useState('');
   const [lat, setLat] = useState(() =>
-    fromMap ? String(location.state.lat) : '37.8021'
+    fromMap ? String(location.state.lat) : ''
   );
   const [lng, setLng] = useState(() =>
-    fromMap ? String(location.state.lng) : '-122.4488'
+    fromMap ? String(location.state.lng) : ''
   );
   const [bestTime, setBestTime] = useState('');
   const [crowdLevel, setCrowdLevel] = useState('');
@@ -37,6 +50,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const [photoError, setPhotoError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [addressSearching, setAddressSearching] = useState(false);
+  const [addressMatch, setAddressMatch] = useState('');
+  const [addressDirty, setAddressDirty] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({ name: '', latitude: '', longitude: '' });
   const [saveFeedback, setSaveFeedback] = useState(null); // 'success' | 'error' | null
@@ -54,8 +70,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setAddress(editSpot.address ?? '');
     setParking(editSpot.parking ?? '');
     setHowToAccess(editSpot.howToAccess ?? '');
-    setLat(editSpot.latitude != null ? String(editSpot.latitude) : '37.8021');
-    setLng(editSpot.longitude != null ? String(editSpot.longitude) : '-122.4488');
+    setLat(editSpot.latitude != null ? String(editSpot.latitude) : '');
+    setLng(editSpot.longitude != null ? String(editSpot.longitude) : '');
     setBestTime(editSpot.bestTime ?? '');
     setCrowdLevel(editSpot.crowdLevel ?? '');
     setImages(getSpotImages(editSpot));
@@ -63,6 +79,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setLinkUrl(editSpot.linkUrl ?? '');
     setLinkLabel(editSpot.linkLabel ?? 'More info');
     setCreatedBy(editSpot.createdBy ?? '');
+    setAddressDirty(false);
+    setAddressMatch('');
     setFieldErrors({ name: '', latitude: '', longitude: '' });
     setSaveFeedback(null);
   }, [editSpot]);
@@ -98,8 +116,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setAddress(draft.address || '');
     setParking(draft.parking || '');
     setHowToAccess(draft.howToAccess || '');
-    setLat(draft.lat || '37.8021');
-    setLng(draft.lng || '-122.4488');
+    setLat(draft.lat || '');
+    setLng(draft.lng || '');
     setBestTime(draft.bestTime || '');
     setCrowdLevel(draft.crowdLevel || '');
     setImages(Array.isArray(draft.images) ? draft.images : []);
@@ -108,6 +126,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setLinkLabel(draft.linkLabel || '');
     setCreatedBy(draft.createdBy || '');
     setShowDetails(Boolean(draft.showDetails));
+    setAddressDirty(Boolean(draft.address));
+    setAddressMatch('');
   }, []);
 
   const resumeDraft = () => {
@@ -148,32 +168,75 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const searchAddress = useCallback(async () => {
+    const query = address.trim();
+    if (!query) {
+      setLocationError('Enter an address or place name first.');
+      return null;
+    }
+    setLocationError(null);
+    setAddressMatch('');
+    setAddressSearching(true);
+    try {
+      const match = await geocodeAddress(query);
+      if (!match) {
+        setLocationError('Address not found. Add the city/state or try a nearby business or landmark.');
+        return null;
+      }
+      setLat(match.latitude.toFixed(6));
+      setLng(match.longitude.toFixed(6));
+      setAddressMatch(match.label);
+      setAddressDirty(false);
+      setFieldErrors((prev) => ({ ...prev, latitude: '', longitude: '' }));
+      return match;
+    } catch {
+      setLocationError('Address search is unavailable right now. Try again or use your current location.');
+      return null;
+    } finally {
+      setAddressSearching(false);
+    }
+  }, [address]);
+
   const useMyLocation = useCallback(async () => {
     setLocationError(null);
+    setAddressMatch('');
     setLocationLoading(true);
     const pos = await getCurrentPosition();
     setLocationLoading(false);
     if (pos) {
       setLat(pos.lat.toFixed(6));
       setLng(pos.lng.toFixed(6));
+      setAddressDirty(false);
+      setFieldErrors((prev) => ({ ...prev, latitude: '', longitude: '' }));
     } else {
-      setLocationError('Location unavailable. Allow access or enter coordinates.');
+      setLocationError('Location unavailable. Allow access or search by address.');
     }
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || addressSearching) return;
 
     const errors = { name: '', latitude: '', longitude: '' };
     if (!name.trim()) errors.name = 'Name is required.';
-    const latNum = parseFloat(String(lat).trim());
-    const lngNum = parseFloat(String(lng).trim());
-    const validLat = Number.isFinite(latNum) && latNum >= -90 && latNum <= 90;
-    const validLng = Number.isFinite(lngNum) && lngNum >= -180 && lngNum <= 180;
+
+    let latNum = parseFloat(String(lat).trim());
+    let lngNum = parseFloat(String(lng).trim());
+    let validLat = Number.isFinite(latNum) && latNum >= -90 && latNum <= 90;
+    let validLng = Number.isFinite(lngNum) && lngNum >= -180 && lngNum <= 180;
+
+    if (address.trim() && (addressDirty || !validLat || !validLng)) {
+      const match = await searchAddress();
+      if (!match) return;
+      latNum = match.latitude;
+      lngNum = match.longitude;
+      validLat = true;
+      validLng = true;
+    }
+
     if (!editSpot) {
-      if (!validLat) errors.latitude = 'Enter a valid latitude (-90 to 90).';
-      if (!validLng) errors.longitude = 'Enter a valid longitude (-180 to 180).';
+      if (!validLat) errors.latitude = 'Search an address or use your location.';
+      if (!validLng) errors.longitude = 'Search an address or use your location.';
     }
     setFieldErrors(errors);
     if (errors.name || errors.latitude || errors.longitude) return;
@@ -195,10 +258,14 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     setPhotoError('');
     const finalImages = validImages.length ? validImages : [{ uri: DEFAULT_IMAGE, photoBy: 'You' }];
 
-    const latitude = validLat ? latNum : (editSpot?.latitude ?? 37.8);
-    const longitude = validLng ? lngNum : (editSpot?.longitude ?? -122.4);
+    const latitude = validLat ? latNum : editSpot?.latitude;
+    const longitude = validLng ? lngNum : editSpot?.longitude;
+    if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
+      setLocationError('Search an address or use your current location before saving.');
+      return;
+    }
     const addressOrLocation = address.trim()
-      || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      || `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`;
     setSubmitting(true);
     try {
       const payload = {
@@ -207,8 +274,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         address: addressOrLocation,
         parking: parking.trim() || '',
         howToAccess: howToAccess.trim() || '',
-        latitude,
-        longitude,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
         bestTime: bestTime.trim() || 'Not specified',
         crowdLevel: crowdLevel === 'quiet' || crowdLevel === 'moderate' || crowdLevel === 'busy' ? crowdLevel : '',
         score: editSpot ? (editSpot.score ?? 0) : 0,
@@ -302,14 +369,41 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-500">Address</label>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Street, city"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
-          />
+          <label className="block text-xs font-medium text-slate-500">Address or place</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">Search a street address, business, park, or landmark. SnapMap will place the coordinates for you.</p>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                setAddressDirty(true);
+                setAddressMatch('');
+                setLocationError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchAddress();
+                }
+              }}
+              placeholder="e.g. 1000 Riverside Ave, Jacksonville, FL"
+              autoComplete="street-address"
+              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            />
+            <button
+              type="button"
+              onClick={searchAddress}
+              disabled={addressSearching || !address.trim()}
+              className="primary-button min-w-24 shrink-0 px-3 py-2.5 text-xs disabled:opacity-50"
+            >
+              <Search className={`h-4 w-4 ${addressSearching ? 'animate-pulse' : ''}`} />
+              {addressSearching ? 'Finding…' : 'Search'}
+            </button>
+          </div>
+          {addressMatch && (
+            <p className="mt-2 flex items-start gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2">Found: {addressMatch}</span></p>
+          )}
         </div>
         <button type="button" onClick={() => setShowDetails((open) => !open)} className="surface-card flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-left">
           <span>
@@ -347,7 +441,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           </p>
         )}
         <div className="surface-card rounded-[1.5rem] p-5">
-          <p className="eyebrow mb-3">Location</p>
+          <p className="eyebrow mb-1">Location</p>
+          <p className="mb-3 text-xs text-slate-500">Search the address above or use your current location. Coordinates are filled automatically.</p>
           <button
             type="button"
             onClick={useMyLocation}
@@ -360,17 +455,22 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           {locationError && (
             <p className="mb-3 text-xs text-amber-400">{locationError}</p>
           )}
+          {lat && lng && !locationError && (
+            <p className="mb-3 flex items-center gap-1.5 rounded-xl bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-400"><CheckCircle2 className="h-4 w-4" />Location set · {Number(lat).toFixed(5)}, {Number(lng).toFixed(5)}</p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500">Latitude</label>
+              <label className="block text-xs font-medium text-slate-500">Latitude <span className="font-normal">(advanced)</span></label>
               <input
                 type="text"
                 value={lat}
                 onChange={(e) => {
                   setLat(e.target.value);
+                  setAddressDirty(false);
+                  setAddressMatch('');
                   if (fieldErrors.latitude) setFieldErrors((prev) => ({ ...prev, latitude: '' }));
                 }}
-                placeholder="37.8021"
+                placeholder="Auto-filled"
                 className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.latitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
@@ -380,15 +480,17 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500">Longitude</label>
+              <label className="block text-xs font-medium text-slate-500">Longitude <span className="font-normal">(advanced)</span></label>
               <input
                 type="text"
                 value={lng}
                 onChange={(e) => {
                   setLng(e.target.value);
+                  setAddressDirty(false);
+                  setAddressMatch('');
                   if (fieldErrors.longitude) setFieldErrors((prev) => ({ ...prev, longitude: '' }));
                 }}
-                placeholder="-122.4488"
+                placeholder="Auto-filled"
                 className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.longitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
@@ -548,10 +650,10 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         </div>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || addressSearching}
           className="primary-button w-full py-4 text-sm disabled:pointer-events-none disabled:opacity-60"
         >
-          {submitting ? (editSpot ? 'Saving…' : 'Adding…') : editSpot ? 'Save changes' : 'Add spot'}
+          {submitting ? (editSpot ? 'Saving…' : 'Adding…') : addressSearching ? 'Finding address…' : editSpot ? 'Save changes' : 'Add spot'}
         </button>
         {editSpot && saveFeedback === 'success' && (
           <p className="mt-2 text-center text-sm text-accent-400" role="status">
