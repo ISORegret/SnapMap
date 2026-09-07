@@ -129,7 +129,7 @@ export async function createSpotSharePng({ spot, locationText = '' }) {
   if (photoBy) {
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.font = '500 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(`Photo by ${photoBy}`, 56, photoHeight - 42);
+    ctx.fillText(`Uploaded by ${photoBy}`, 56, photoHeight - 42);
   }
 
   const left = 64;
