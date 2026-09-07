@@ -22,11 +22,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Dependency security summary
+        continue-on-error: true
+        run: |
+          echo '===== Production dependencies ====='
+          npm audit --omit=dev || true
+          echo '===== Full dependency tree ====='
+          npm audit || true
+
+      - name: Capacitor doctor
+        continue-on-error: true
+        run: npx cap doctor
 
       - name: Production web build
         run: npm run build
@@ -52,5 +64,7 @@ jobs:
           grep -RInE '@\{|@\$\{|profile\.username|author\.username|\.username[[:space:]]*\}' src --include='*.jsx' --include='*.js' || true
           echo '===== Explicit placeholder/mock/stub markers ====='
           grep -RInEi 'not implemented|coming soon|placeholder data|mock data|temporary implementation|stub' src --include='*.jsx' --include='*.js' || true
+          echo '===== Console errors/warnings left intentionally for diagnostics ====='
+          grep -RInE 'console\.(error|warn)' src --include='*.jsx' --include='*.js' || true
           echo '===== Source file inventory ====='
           find src -type f \( -name '*.js' -o -name '*.jsx' \) | sort
