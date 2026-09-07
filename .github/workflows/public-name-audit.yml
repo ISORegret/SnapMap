@@ -1,0 +1,22 @@
+name: Public name audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/public-name-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find username references in app source
+        shell: bash
+        run: |
+          echo '=== username references ==='
+          grep -RIn --include='*.jsx' --include='*.js' 'username' src || true
+          echo '=== @ render candidates ==='
+          grep -RIn --include='*.jsx' '@{' src || true
