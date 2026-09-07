@@ -1,9 +1,14 @@
-import { createEventSeries, replaceEventCoverImage, updateEvent } from './events';
+import { createEventSeries, replaceEventCoverImage } from './events';
 
 export async function createHostedEventSeries({ coverPhoto = null, venueName = '', address = '', ...form }) {
+  // Venue/address belong in the initial insert. Keeping them out of a second update
+  // prevents recurring series from being partially created when one follow-up save
+  // fails after the events already exist.
   const created = await createEventSeries({
     ...form,
     spotId: form.spotId || null,
+    venueName: venueName.trim(),
+    address: address.trim(),
   });
 
   if (created.error || !created.events?.length) return created;
@@ -11,29 +16,8 @@ export async function createHostedEventSeries({ coverPhoto = null, venueName = '
   let events = created.events;
   const warnings = [];
 
-  if (venueName.trim() || address.trim()) {
-    const updated = await Promise.all(events.map(async (event) => {
-      const result = await updateEvent(event.id, {
-        title: event.title,
-        description: event.description,
-        venueName: venueName.trim(),
-        address: address.trim(),
-        eventType: event.eventType,
-        startsAt: event.startsAt,
-        endsAt: event.endsAt,
-        maxAttendees: event.maxAttendees,
-        latitude: event.latitude,
-        longitude: event.longitude,
-      });
-      if (result.error) return { event, error: result.error };
-      return { event: result.event, error: null };
-    }));
-
-    const failed = updated.find((item) => item.error);
-    if (failed) warnings.push(`Event created, but venue details could not be saved: ${failed.error}`);
-    events = updated.map((item) => item.event);
-  }
-
+  // The cover image necessarily happens after the event has an id. If an upload
+  // fails, keep the successfully-created event and surface a non-destructive warning.
   if (coverPhoto?.blob) {
     const covered = await Promise.all(events.map(async (event) => {
       const result = await replaceEventCoverImage(event, coverPhoto);
