@@ -527,21 +527,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               </div>
             </>
           ) : (
-            <>
-              <p className="mt-0.5 text-[11px] text-slate-500">Show as &quot;Added by @handle&quot; or leave blank for Anonymous.</p>
-              <div className="mt-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2">
-                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
-                  <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-4 w-4" /></div>
-                </div>
-                <input
-                  type="text"
-                  value={createdBy}
-                  onChange={(e) => setCreatedBy(e.target.value)}
-                  placeholder="e.g. yourname"
-                  className="min-w-0 flex-1 bg-transparent text-white placeholder-slate-500 focus:outline-none"
-                />
-              </div>
-            </>
+            <p className="mt-1 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-xs text-slate-500">
+              Saved as Anonymous on this device. Sign in to publish spots under your display name.
+            </p>
           )}
         </div>
         <div>

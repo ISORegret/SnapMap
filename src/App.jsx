@@ -564,7 +564,7 @@ export default function App() {
       }
       return true; // no cloud id, nothing to sync
     },
-    [userSpots, currentUserProfile?.username]
+    [userSpots, currentUserProfile]
   );
 
   const deleteSpot = useCallback(async (spotId) => {
@@ -631,7 +631,14 @@ export default function App() {
           }
         } else {
           const ok = await removeFavoriteApi(effectiveSyncCode, spotId);
-          setSyncStatus(ok ? 'saved' : 'failed');
+          if (!ok) {
+            setFavoriteIds(favoriteIds);
+            saveFavorites(favoriteIds);
+            setSyncStatus('failed');
+            showToast('Could not sync removed spot.');
+          } else {
+            setSyncStatus('saved');
+          }
         }
       }
     },

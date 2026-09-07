@@ -145,7 +145,7 @@ function WeatherAtSpot({ latitude, longitude, units = 'mi' }) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [latitude, longitude, retry]);
+  }, [latitude, longitude, units, retry]);
 
   if (loading) {
     return (
@@ -195,6 +195,21 @@ function photoByLabel(profile) {
   const name = (profile.display_name || profile.displayName || '').trim();
   if (name) return name;
   return 'SnapMap user';
+}
+
+function publicEditorLabel(spot, profile) {
+  const raw = String(spot?.lastEditedBy || '').trim();
+  if (!raw) return '';
+  const profileUsername = String(profile?.username || '').trim();
+  const profileDisplayName = String(profile?.display_name || profile?.displayName || '').trim();
+  if (profileUsername && raw.toLowerCase() === profileUsername.toLowerCase()) return profileDisplayName || 'SnapMap user';
+  const creatorUsername = String(spot?.createdBy || '').trim();
+  const creatorDisplayName = String(spot?.createdByDisplayName || '').trim();
+  if (creatorUsername && raw.toLowerCase() === creatorUsername.toLowerCase()) return creatorDisplayName || 'SnapMap user';
+  // Legacy versions stored lowercase account handles here. Hide those rather than
+  // leaking the internal route/login identifier into the public UI.
+  if (/^[a-z0-9_]{1,32}$/.test(raw)) return 'SnapMap user';
+  return raw;
 }
 
 export default function SpotDetail({
@@ -283,7 +298,7 @@ export default function SpotDetail({
   }, [spot?.id]);
 
   const sunTimes = useMemo(() => {
-    if (!spot?.latitude || !spot?.longitude) return null;
+    if (spot?.latitude == null || spot?.longitude == null) return null;
     const d = new Date(sunDate);
     const times = SunCalc.getTimes(d, spot.latitude, spot.longitude);
     const { sunrise, sunset, dawn, dusk, goldenHour, goldenHourEnd } = times;
@@ -580,13 +595,7 @@ export default function SpotDetail({
         )}
         {(spot.lastEditedBy != null && String(spot.lastEditedBy).trim()) ? (
           <p className="mt-0.5 text-xs text-slate-500">
-            Last edited by{' '}
-            <Link
-              to={`/user/${encodeURIComponent(String(spot.lastEditedBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
-              className="text-accent-400 hover:underline"
-            >
-              {(currentUserProfile?.username === String(spot.lastEditedBy).trim() ? (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() : '') || (String(spot.createdBy || '').trim() === String(spot.lastEditedBy).trim() ? String(spot.createdByDisplayName || '').trim() : '') || 'SnapMap user'}
-            </Link>
+            Last edited by <span className="text-accent-400">{publicEditorLabel(spot, currentUserProfile)}</span>
           </p>
         ) : null}
         {hasSupabase && (
