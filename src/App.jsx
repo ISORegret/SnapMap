@@ -489,7 +489,7 @@ export default function App() {
           payload = {
             ...payload,
             createdBy: profile.username,
-            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || profile.username,
+            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || 'SnapMap user',
           };
         }
       }

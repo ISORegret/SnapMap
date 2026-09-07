@@ -20,7 +20,7 @@ const FILTERS = [
 const EVENT_TYPES = new Set(['event_reminder', 'event_rsvp', 'event_claim_approved', 'event_claim_rejected']);
 
 function notificationCopy(item) {
-  const name = item.actor?.display_name || item.actor?.username || 'A creator';
+  const name = item.actor?.display_name || 'A creator';
   if (item.type === 'event_reminder') {
     const starts = item.event?.starts_at ? new Date(item.event.starts_at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'soon';
     return { icon: CalendarDays, text: `${item.event?.title || 'Your event'} starts ${starts}`, detail: 'Event reminder', href: item.eventId ? `/event/${item.eventId}` : '/explore?view=events', tone: 'event' };

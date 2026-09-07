@@ -191,8 +191,7 @@ function photoByLabel(profile) {
   if (!profile) return 'You';
   const name = (profile.display_name || profile.displayName || '').trim();
   if (name) return name;
-  if (profile.username) return `@${profile.username}`;
-  return 'You';
+  return 'SnapMap user';
 }
 
 export default function SpotDetail({
@@ -677,7 +676,7 @@ export default function SpotDetail({
                 to={`/user/${encodeURIComponent(String(spot.createdBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
                 className="text-accent-400 hover:underline"
               >
-                @{String(spot.createdBy).trim()}
+                {String(spot.createdByDisplayName || '').trim() || (currentUserProfile?.username === String(spot.createdBy).trim() ? (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() : '') || 'SnapMap user'}
               </Link>
             ) : (
               <span className="text-slate-400">{String(spot.createdByDisplayName).trim()}</span>
@@ -693,7 +692,7 @@ export default function SpotDetail({
               to={`/user/${encodeURIComponent(String(spot.lastEditedBy).trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_'))}`}
               className="text-accent-400 hover:underline"
             >
-              @{String(spot.lastEditedBy).trim()}
+              {(currentUserProfile?.username === String(spot.lastEditedBy).trim() ? (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() : '') || (String(spot.createdBy || '').trim() === String(spot.lastEditedBy).trim() ? String(spot.createdByDisplayName || '').trim() : '') || 'SnapMap user'}
             </Link>
           </p>
         ) : null}
@@ -930,7 +929,7 @@ export default function SpotDetail({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-x-2">
-                          {author?.username ? <Link to={`/user/${author.username}`} className="text-xs font-extrabold text-primary hover:text-accent-400">{author.display_name || author.username}</Link> : <span className="text-xs font-extrabold text-primary">Community member</span>}
+                          {author?.username ? <Link to={`/user/${author.username}`} className="text-xs font-extrabold text-primary hover:text-accent-400">{author.display_name || 'Community member'}</Link> : <span className="text-xs font-extrabold text-primary">Community member</span>}
                           <span className="text-[10px] text-slate-500">{comment.createdAt ? new Date(comment.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}</span>
                         </div>
                         <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-secondary">{comment.body}</p>
@@ -948,7 +947,7 @@ export default function SpotDetail({
             </div>
             {currentUser ? (
               <div className="surface-card rounded-[1.35rem] p-3">
-                {replyTo && <div className="mb-2 flex items-center justify-between rounded-xl bg-accent-500/10 px-3 py-2 text-xs text-accent-400"><span>Replying to {replyTo.profile?.display_name || replyTo.profile?.username || 'comment'}</span><button type="button" onClick={() => setReplyTo(null)} className="font-extrabold">Cancel</button></div>}
+                {replyTo && <div className="mb-2 flex items-center justify-between rounded-xl bg-accent-500/10 px-3 py-2 text-xs text-accent-400"><span>Replying to {replyTo.profile?.display_name || 'Community member'}</span><button type="button" onClick={() => setReplyTo(null)} className="font-extrabold">Cancel</button></div>}
                 <div className="flex gap-2">
                   <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder={replyTo ? 'Write a reply…' : 'Share access tips, conditions, or a question…'} rows={2} maxLength={1000} className="min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none" />
                   <button type="button" onClick={addNote} disabled={!noteText.trim() || noteSubmitting} className="primary-button self-end px-4 py-2.5 text-xs disabled:opacity-50">{noteSubmitting ? '…' : replyTo ? 'Reply' : 'Post'}</button>

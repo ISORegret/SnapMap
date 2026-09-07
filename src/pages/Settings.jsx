@@ -142,7 +142,7 @@ export default function Settings({
           <div className="surface-card rounded-[1.5rem] px-4">
             {currentUserProfile ? (
               <Link to={`/user/${currentUserProfile.username}`} className="block">
-                <SettingRow icon={User} title={currentUserProfile.display_name || currentUserProfile.username} subtitle={currentUser?.email || `@${currentUserProfile.username}`}>
+                <SettingRow icon={User} title={currentUserProfile.display_name || 'SnapMap user'} subtitle={currentUser?.email || 'Signed in'}>
                   <ChevronRight className="h-4 w-4 text-slate-600" />
                 </SettingRow>
               </Link>

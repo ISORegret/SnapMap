@@ -40,7 +40,7 @@ function PostCard({ post, currentUser, units, recommendationReason = '', onChang
     if (sharing) return;
     setSharing(true);
     const url = `${window.location.origin}${window.location.pathname || ''}#/explore?post=${post.id}`;
-    const creator = post.author?.display_name || post.author?.username || 'a SnapMap creator';
+    const creator = post.author?.display_name || 'a SnapMap creator';
     const text = post.caption?.trim() ? `${post.caption.trim().slice(0, 180)}${post.caption.trim().length > 180 ? '…' : ''}` : `Photo from ${post.locationName} by ${creator}`;
     try {
       if (navigator.share) {
@@ -107,7 +107,7 @@ function PostCard({ post, currentUser, units, recommendationReason = '', onChang
           {post.author?.avatar_url ? <img src={post.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>
+          <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || 'Creator'}</Link>
           <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted"><MapPin className="h-3 w-3 shrink-0 text-accent-400" /><span className="truncate">{post.locationName}</span><span>·</span><span className="shrink-0">{timeAgo(post.createdAt)}</span></p>
           {post.event && <Link to={`/event/${post.event.id}`} className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-cyan-300"><CalendarDays className="h-3 w-3 shrink-0" /><span className="truncate">{post.event.title}</span></Link>}
           {recommendationReason && <p className="mt-1 flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-accent-400"><Sparkles className="h-3 w-3" />{recommendationReason}</p>}
@@ -138,20 +138,20 @@ function PostCard({ post, currentUser, units, recommendationReason = '', onChang
           <button type="button" onClick={handleLike} className={`flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold ${post.likedByMe ? 'text-rose-400' : 'text-secondary'}`}><Heart className={`h-5 w-5 ${post.likedByMe ? 'fill-current' : ''}`} />{post.likeCount || ''}</button>
           <button type="button" onClick={() => setCommentsOpen((open) => !open)} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary"><MessageCircle className="h-5 w-5" />{post.comments.length || ''}</button>
           <button type="button" onClick={sharePost} disabled={sharing} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary disabled:opacity-50" aria-label="Share post outside SnapMap"><Share2 className="h-5 w-5" /></button>
-          {currentUser && <Link to="/messages" state={{ share: { type: 'post', id: post.id, title: post.locationName, subtitle: `Post by ${post.author?.display_name || post.author?.username || 'a creator'}`, imageUrl: post.images[0]?.public_url || '' } }} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary" aria-label="Send post to a friend"><Send className="h-5 w-5" /></Link>}
+          {currentUser && <Link to="/messages" state={{ share: { type: 'post', id: post.id, title: post.locationName, subtitle: `Post by ${post.author?.display_name || 'a creator'}`, imageUrl: post.images[0]?.public_url || '' } }} className="flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-extrabold text-secondary" aria-label="Send post to a friend"><Send className="h-5 w-5" /></Link>}
           <div className="ml-auto flex items-center gap-2">
             {distance && <span className="hidden text-[11px] font-bold text-muted sm:inline">{distance}</span>}
             {post.spotId ? <Link to={`/spot/${post.spotId}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />View spot</Link> : post.latitude != null && <Link to={`/?lat=${post.latitude}&lng=${post.longitude}`} className="flex items-center gap-1.5 rounded-xl bg-accent-500/10 px-3 py-2 text-xs font-extrabold text-accent-400"><Navigation className="h-3.5 w-3.5" />Map</Link>}
           </div>
         </div>
-        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="mr-1 font-extrabold text-primary">{post.author?.display_name || post.author?.username || 'Creator'}</Link>{post.caption}{post.updated_at && new Date(post.updated_at).getTime() > new Date(post.createdAt).getTime() + 1000 && <span className="ml-1.5 text-[10px] font-semibold text-muted">Edited</span>}</p>}
+        {post.caption && <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary"><Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="mr-1 font-extrabold text-primary">{post.author?.display_name || 'Creator'}</Link>{post.caption}{post.updated_at && new Date(post.updated_at).getTime() > new Date(post.createdAt).getTime() + 1000 && <span className="ml-1.5 text-[10px] font-semibold text-muted">Edited</span>}</p>}
         {!commentsOpen && post.comments.length > 0 && <button type="button" onClick={() => setCommentsOpen(true)} className="mt-2 text-xs font-semibold text-muted">View {post.comments.length === 1 ? 'comment' : `all ${post.comments.length} comments`}</button>}
         {commentsOpen && <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
           <div className="max-h-64 space-y-3 overflow-y-auto">
             {post.comments.length === 0 && <p className="text-xs text-muted">No comments yet. Start the conversation.</p>}
             {post.comments.map((item) => <div key={item.id} className="group flex gap-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/10 text-accent-400">{item.author?.avatar_url ? <img src={item.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</div>
-              <div className="min-w-0 flex-1 rounded-2xl bg-black/10 px-3 py-2"><p className="text-xs"><Link to={`/user/${item.author?.username}`} state={{ from: '/explore' }} className="font-extrabold text-primary">{item.author?.display_name || item.author?.username}</Link><span className="ml-2 text-secondary">{item.body}</span></p><p className="mt-1 text-[10px] text-muted">{timeAgo(item.created_at)}</p></div>
+              <div className="min-w-0 flex-1 rounded-2xl bg-black/10 px-3 py-2"><p className="text-xs"><Link to={`/user/${item.author?.username}`} state={{ from: '/explore' }} className="font-extrabold text-primary">{item.author?.display_name || 'Community member'}</Link><span className="ml-2 text-secondary">{item.body}</span></p><p className="mt-1 text-[10px] text-muted">{timeAgo(item.created_at)}</p></div>
               {currentUser?.id === item.user_id && <button type="button" onClick={async () => { if (await deletePostComment(item.id)) onChanged?.(); }} className="self-center p-1 text-muted opacity-0 transition group-hover:opacity-100" aria-label="Delete comment"><Trash2 className="h-3.5 w-3.5" /></button>}
             </div>)}
           </div>

@@ -15,7 +15,7 @@ function relativeTime(value) {
 }
 
 function Comment({ item, currentUser, canManage, busy, onDelete }) {
-  const name = item.author?.display_name || item.author?.username || 'Creator';
+  const name = item.author?.display_name || 'Creator';
   const canDelete = currentUser?.id === item.userId || canManage;
   return <article className={`group rounded-2xl p-3.5 ${item.isOrganizerUpdate ? 'border border-cyan-400/20 bg-cyan-400/[0.07]' : 'bg-white/[0.035]'}`}>
     <div className="flex items-start gap-3">

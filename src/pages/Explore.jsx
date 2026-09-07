@@ -271,7 +271,7 @@ export default function Explore({
             ) : creatorsLoading ? (
               <div className="grid gap-3 md:grid-cols-2">{[0, 1, 2, 3].map((item) => <div key={item} className="surface-card h-32 animate-pulse rounded-[1.5rem]" />)}</div>
             ) : creatorCards.length === 0 ? (
-              <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Search className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">No creators matched that search</p><p className="mt-1 text-sm text-muted">Try a username, name, or photography specialty.</p></div>
+              <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Search className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">No creators matched that search</p><p className="mt-1 text-sm text-muted">Try a name or photography specialty.</p></div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {creatorCards.map((creator) => {
@@ -287,8 +287,8 @@ export default function Explore({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
                           <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=creators' }} className="min-w-0 flex-1">
-                            <h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || creator.username}</h3>
-                            <p className="truncate text-xs text-muted">@{creator.username}</p>
+                            <h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</h3>
+                            
                           </Link>
                           {nearby && <span className="shrink-0 rounded-full bg-accent-500/10 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-accent-400">Near you</span>}
                         </div>

@@ -885,7 +885,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
               <div className="flex items-start gap-2">
                 <Link to={`/explore?post=${selectedPost.id}`} className="min-w-0 flex-1">
                   <p className="truncate text-sm font-extrabold text-primary">{selectedPost.locationName}</p>
-                  <p className="mt-1 truncate text-xs text-slate-500">Photo by {selectedPost.author?.display_name || selectedPost.author?.username || 'a creator'}</p>
+                  <p className="mt-1 truncate text-xs text-slate-500">Photo by {selectedPost.author?.display_name || 'a creator'}</p>
                 </Link>
                 <button type="button" onClick={() => setSelectedPostId(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white/5" aria-label="Close post preview"><X className="h-4 w-4" /></button>
               </div>

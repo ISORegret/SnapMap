@@ -101,7 +101,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
       return;
     }
     const defaultPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
-      || (currentUserProfile?.username ? `@${currentUserProfile.username}` : 'You');
+      || 'You';
     Promise.all(files.map((file) => resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)))
       .then((dataUrls) => {
         setImages((prev) => [...prev, ...dataUrls.map((uri) => ({ uri, photoBy: defaultPhotoBy }))]);
@@ -242,7 +242,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     if (errors.name || errors.latitude || errors.longitude) return;
 
     const creatorPhotoBy = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
-      || (currentUserProfile?.username ? `@${currentUserProfile.username}` : 'You');
+      || 'You';
     const validImages = images
       .filter((img) => img?.uri && String(img.uri).trim())
       .map((img) => {
@@ -285,7 +285,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
         linkLabel: linkLabel.trim() || 'More info',
         createdBy: (currentUserProfile?.username && !editSpot) ? currentUserProfile.username : (createdBy.trim() || ''),
         createdByDisplayName: (currentUserProfile && !editSpot)
-          ? ((currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || currentUserProfile.username || '')
+          ? ((currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || 'SnapMap user')
           : '',
       };
       if (editSpot && onUpdate) {
@@ -516,7 +516,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   )}
                 </div>
                 <span className="text-sm font-medium text-primary">
-                  {(currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || `@${currentUserProfile.username}`}
+                  {(currentUserProfile.display_name || currentUserProfile.displayName || '').trim() || 'SnapMap user'}
                 </span>
               </div>
             </>
