@@ -9,6 +9,7 @@ import { haversineKm, milesToKm } from '../utils/geo';
 import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EVENTS_PER_PAGE = 12;
 
 function eventDate(value) {
   const date = new Date(value);
@@ -82,6 +83,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
   const [liveCounts, setLiveCounts] = useState({});
   const [coverPhoto, setCoverPhoto] = useState(null);
   const [photoError, setPhotoError] = useState('');
+  const [visibleCount, setVisibleCount] = useState(EVENTS_PER_PAGE);
   const photoInputRef = useRef(null);
   const cloudSpots = useMemo(() => allSpots.filter((spot) => UUID_PATTERN.test(String(spot.id || ''))), [allSpots]);
 
@@ -111,6 +113,11 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
       return true;
     });
   }, [events, searchQuery, whenFilter, typeFilter, attendingOnly, distanceMiles, userPosition, allSpots]);
+  const paginatedEvents = useMemo(() => visibleEvents.slice(0, visibleCount), [visibleEvents, visibleCount]);
+
+  useEffect(() => {
+    setVisibleCount(EVENTS_PER_PAGE);
+  }, [searchQuery, whenFilter, typeFilter, attendingOnly, distanceMiles]);
 
   const activeFilterCount = [whenFilter !== 'all', typeFilter !== 'all', distanceMiles != null, attendingOnly].filter(Boolean).length;
   const clearFilters = () => {
@@ -122,7 +129,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
   };
 
   const refresh = useCallback(async () => {
-    const result = await fetchUpcomingEvents();
+    const result = await fetchUpcomingEvents(100);
     setEvents(result.events);
     setError(result.error || '');
     setLoading(false);
@@ -304,8 +311,13 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
       ) : visibleEvents.length === 0 ? (
         <div className="surface-card rounded-[1.6rem] px-6 py-14 text-center"><Search className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-extrabold text-primary">No matching events</p><p className="mt-1 text-sm text-muted">Try widening the date, type, or distance.</p><button type="button" onClick={clearFilters} className="mt-4 text-sm font-extrabold text-accent-400">Clear filters</button></div>
       ) : (
+        <>
+        <div className="mb-3 flex items-center justify-between gap-3 text-xs font-bold text-muted" aria-live="polite">
+          <span>Showing {paginatedEvents.length} of {visibleEvents.length}</span>
+          {visibleEvents.length !== events.length && <span>{events.length} total upcoming</span>}
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {visibleEvents.map((event) => {
+          {paginatedEvents.map((event) => {
             const date = eventDate(event.startsAt);
             const spot = allSpots.find((item) => String(item.id) === String(event.spotId)) || event.spot;
             const full = event.maxAttendees && event.attendeeCount >= event.maxAttendees;
@@ -321,7 +333,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
                 <div className="p-4">
                   <Link to={`/event/${event.id}`}><h3 className="line-clamp-1 text-base font-extrabold text-primary">{event.title}</h3><p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-secondary"><Clock3 className="h-3.5 w-3.5 text-accent-400" />{date.time}</p><p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="h-3.5 w-3.5 text-accent-400" />{event.venueName || event.spot?.name || 'Location TBD'}</p></Link>
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
-                    {event.listingType === 'listed' ? <span className="truncate text-[11px] font-bold text-secondary">Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=creators'} className="flex min-w-0 items-center gap-2"><span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-accent-500/15">{event.host?.avatar_url && <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="truncate text-[11px] font-bold text-secondary">{event.host?.display_name || 'Creator'}</span></Link>}
+                    {event.listingType === 'listed' ? <span className="truncate text-[11px] font-bold text-secondary">Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=community'} className="flex min-w-0 items-center gap-2"><span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-accent-500/15">{event.host?.avatar_url && <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="truncate text-[11px] font-bold text-secondary">{event.host?.display_name || 'Creator'}</span></Link>}
                     {isHost ? <span className="shrink-0 rounded-xl bg-accent-500/10 px-3 py-2 text-[11px] font-extrabold text-accent-400">Hosting</span> : currentUser ? <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => chooseRsvp(event, 'interested')} disabled={rsvpBusy === event.id} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-white/[0.055] text-secondary'}`}>Interested</button><button type="button" onClick={() => chooseRsvp(event, 'going')} disabled={rsvpBusy === event.id || (full && event.rsvpStatus !== 'going')} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'going' ? 'bg-emerald-400/15 text-emerald-400' : 'bg-accent-500 text-[#211603]'}`}>{rsvpBusy === event.id ? '…' : full && event.rsvpStatus !== 'going' ? 'Full' : 'Going'}</button></div> : <Link to="/signin" className="text-[11px] font-extrabold text-accent-400">Sign in to RSVP</Link>}
                   </div>
                   <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted"><Users className="h-3.5 w-3.5" />{event.attendeeCount} going · {event.interestedCount || 0} interested{event.maxAttendees ? ` · ${event.maxAttendees} max` : ''}</p>
@@ -330,6 +342,12 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
             );
           })}
         </div>
+        {paginatedEvents.length < visibleEvents.length && (
+          <button type="button" onClick={() => setVisibleCount((count) => count + EVENTS_PER_PAGE)} className="surface-card mt-4 min-h-12 w-full rounded-2xl text-sm font-extrabold text-accent-400 transition hover:border-accent-500/35 hover:bg-accent-500/[0.06]">
+            Load {Math.min(EVENTS_PER_PAGE, visibleEvents.length - paginatedEvents.length)} more events
+          </button>
+        )}
+        </>
       )}
     </section>
   );

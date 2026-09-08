@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, Camera, CalendarDays } from 'lucide-react';
+import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, CalendarDays } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
@@ -24,6 +24,12 @@ function matchesSearch(spot, q) {
   );
 }
 
+function normalizeExploreView(value) {
+  if (value === 'events') return 'events';
+  if (value === 'spots') return 'spots';
+  return 'community';
+}
+
 export default function Explore({
   allSpots = [],
   favoriteIds = [],
@@ -37,8 +43,10 @@ export default function Explore({
 } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
-  const [viewMode, setViewMode] = useState(['feed', 'search', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed');
+  const [viewMode, setViewMode] = useState(() => normalizeExploreView(requestedView));
+  const [searchOpen, setSearchOpen] = useState(requestedView === 'search');
   const [searchQuery, setSearchQuery] = useState('');
+  const [creatorSearchQuery, setCreatorSearchQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [spotRatings, setSpotRatings] = useState({});
   const [sortMode, setSortMode] = useState(userPositionProp ? 'nearest' : 'newest');
@@ -55,31 +63,42 @@ export default function Explore({
   const userPosition = userPositionProp;
 
   useEffect(() => {
-    const nextView = ['feed', 'search', 'spots', 'creators', 'events'].includes(requestedView) ? requestedView : 'feed';
-    setViewMode(nextView);
+    setViewMode(normalizeExploreView(requestedView));
+    setSearchOpen(requestedView === 'search');
   }, [requestedView]);
 
   const selectView = (nextView) => {
     setViewMode(nextView);
     setSearchQuery('');
+    setCreatorSearchQuery('');
+    setSearchOpen(false);
     const nextParams = new URLSearchParams();
-    if (nextView !== 'feed') nextParams.set('view', nextView);
+    if (nextView !== 'community') nextParams.set('view', nextView);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const toggleUniversalSearch = () => {
+    const nextOpen = !searchOpen;
+    setSearchOpen(nextOpen);
+    const nextParams = new URLSearchParams();
+    if (nextOpen) nextParams.set('view', 'search');
+    else if (viewMode !== 'community') nextParams.set('view', viewMode);
     setSearchParams(nextParams, { replace: true });
   };
 
   useEffect(() => {
-    if (viewMode !== 'creators' || !hasSupabase) return;
+    if (viewMode !== 'community' || !hasSupabase) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       setCreatorsLoading(true);
-      searchProfiles(searchQuery).then((result) => {
+      searchProfiles(creatorSearchQuery).then((result) => {
         if (!cancelled) setCreators(result);
       }).finally(() => {
         if (!cancelled) setCreatorsLoading(false);
       });
-    }, searchQuery ? 250 : 0);
+    }, creatorSearchQuery ? 250 : 0);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [viewMode, searchQuery]);
+  }, [viewMode, creatorSearchQuery]);
 
   const refreshFriendConnections = async () => {
     if (!currentUser?.id) return;
@@ -87,7 +106,7 @@ export default function Explore({
   };
 
   useEffect(() => {
-    if (viewMode === 'creators' && currentUser?.id) {
+    if (viewMode === 'community' && currentUser?.id) {
       refreshFriendConnections();
       getBlockedUserIds().then(setBlockedUserIds);
     }
@@ -203,56 +222,55 @@ export default function Explore({
             <div>
               <p className="eyebrow">Explore SnapMap</p>
               <h1 className="mt-1 text-[2rem] font-extrabold leading-none tracking-[-0.045em] text-primary sm:text-4xl">
-                {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'search' ? 'Search everything.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'creators' ? 'Meet the creators.' : 'Meet at the frame.'}
+                {searchOpen ? 'Search everything.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'events' ? 'Meet at the frame.' : 'See what’s out there.'}
               </h1>
               <p className="mt-2 text-sm font-medium text-muted">
-                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'search' ? 'One search across the whole community' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : viewMode === 'creators' ? 'Photographers and car enthusiasts in the community' : `${allSpots.length} community locations ready to explore`}
+                {searchOpen ? 'One search across spots, events, and people' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : viewMode === 'spots' ? `${allSpots.length} community locations ready to explore` : 'Photos, places, and the people who found them'}
               </p>
             </div>
-            <Link to="/about" className="icon-button h-11 w-11 shrink-0 rounded-2xl" aria-label="About SnapMap">
-              <Info className="h-5 w-5" />
-            </Link>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={toggleUniversalSearch} className={`icon-button h-11 w-11 rounded-2xl ${searchOpen ? 'border-accent-500/40 text-accent-400' : ''}`} aria-label={searchOpen ? 'Close search' : 'Search SnapMap'} aria-pressed={searchOpen}>
+                {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              </button>
+              <Link to="/about" className="icon-button h-11 w-11 rounded-2xl" aria-label="About SnapMap">
+                <Info className="h-5 w-5" />
+              </Link>
+            </div>
           </div>
 
-          {['spots', 'creators'].includes(viewMode) && <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
+          {!searchOpen && viewMode === 'spots' && <div className="surface-card relative mt-5 rounded-[1.25rem] p-1.5">
             <Search className="absolute left-5 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-muted" />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={viewMode === 'spots' ? 'Search locations, cities, or tags' : 'Search creators or specialties'}
+              placeholder="Search locations, cities, or tags"
               className="surface-input w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-sm font-semibold placeholder:text-[var(--text-muted)] focus:shadow-none"
             />
           </div>}
-          <div className="mt-3 grid grid-cols-5 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
-            <button type="button" onClick={() => selectView('feed')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'feed' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <Camera className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Feed
-            </button>
-            <button type="button" onClick={() => selectView('search')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'search' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <Search className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Search
-            </button>
+          <div className="mt-3 grid grid-cols-3 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1">
             <button type="button" onClick={() => selectView('spots')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'spots' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <MapPin className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Spots
             </button>
-            <button type="button" onClick={() => selectView('creators')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'creators' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
-              <Users className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Creators
-            </button>
             <button type="button" onClick={() => selectView('events')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'events' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
               <CalendarDays className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Events
+            </button>
+            <button type="button" onClick={() => selectView('community')} className={`min-w-0 rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:text-xs ${viewMode === 'community' ? 'bg-accent-500 text-[#211603] shadow-glow-sm' : 'text-secondary'}`}>
+              <Users className="mr-1 inline h-3.5 w-3.5 sm:h-4 sm:w-4" /> Community
             </button>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 md:px-6">
-        {viewMode === 'feed' ? (
-          <SpotFeed allSpots={allSpots} favoriteIds={favoriteIds} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
-        ) : viewMode === 'search' ? (
+        {searchOpen ? (
           <DiscoverSearch allSpots={allSpots} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} />
         ) : viewMode === 'events' ? (
           <EventHub allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} units={units} showToast={showToast} />
-        ) : viewMode === 'creators' ? (
-          <section>
+        ) : viewMode === 'community' ? (
+          <>
+          <SpotFeed allSpots={allSpots} favoriteIds={favoriteIds} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
+          <section className="border-t border-[var(--border-subtle)] pt-8">
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
                 <p className="eyebrow">The people behind the pins</p>
@@ -261,6 +279,11 @@ export default function Explore({
               </div>
               <span className="rounded-full border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-bold text-muted">{creatorCards.length}</span>
             </div>
+
+            <label className="surface-input mb-4 flex min-h-12 items-center gap-2 rounded-2xl px-3.5">
+              <Search className="h-4 w-4 shrink-0 text-muted" />
+              <input value={creatorSearchQuery} onChange={(event) => setCreatorSearchQuery(event.target.value)} placeholder="Search creators or specialties" className="min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted" />
+            </label>
 
             {!hasSupabase ? (
               <div className="surface-card rounded-[1.5rem] px-6 py-14 text-center"><Users className="mx-auto h-8 w-8 text-muted" /><p className="mt-4 font-bold text-primary">Creator discovery needs cloud sync</p></div>
@@ -277,12 +300,12 @@ export default function Explore({
                   const nearby = Number.isFinite(creator.closestKm) && creator.closestKm <= 80;
                   return (
                     <article key={creator.id} className="surface-card flex gap-3 rounded-[1.5rem] p-4">
-                      <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=creators' }} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
+                      <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=community' }} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
                         {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
                       </Link>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
-                          <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=creators' }} className="min-w-0 flex-1">
+                          <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=community' }} className="min-w-0 flex-1">
                             <h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</h3>
                             
                           </Link>
@@ -304,6 +327,7 @@ export default function Explore({
               </div>
             )}
           </section>
+          </>
         ) : <>
         {userPosition && nearYouSpots.length > 0 && (
           <section>
