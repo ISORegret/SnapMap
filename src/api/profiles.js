@@ -109,27 +109,64 @@ export async function createProfile({ id, username, displayName = '' }) {
   return { ok: false, profile: null, error: 'Could not allocate a unique account identifier' };
 }
 
-function normalizeExternalLink(value, platform = 'website') {
+const SOCIAL_HOSTS = {
+  instagram: ['instagram.com', 'www.instagram.com'],
+  facebook: ['facebook.com', 'www.facebook.com', 'fb.com', 'www.fb.com'],
+  tiktok: ['tiktok.com', 'www.tiktok.com'],
+};
+
+function platformHandleUrl(platform, handle) {
+  const clean = String(handle || '').trim().replace(/^@/, '').replace(/^\/+|\/+$/g, '');
+  if (!clean || clean.includes('/') || /\s/.test(clean)) return null;
+  if (platform === 'instagram') return `https://instagram.com/${clean}`;
+  if (platform === 'facebook') return `https://facebook.com/${clean}`;
+  if (platform === 'tiktok') return `https://tiktok.com/@${clean}`;
+  return null;
+}
+
+export function normalizeExternalLink(value, platform = 'website') {
   const raw = String(value || '').trim().slice(0, 300);
   if (!raw) return null;
-  let candidate = raw;
-  if (!/^https?:\/\//i.test(candidate)) {
-    const handle = candidate.replace(/^@/, '');
-    if (platform === 'instagram' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://instagram.com/${handle}`;
-    else if (platform === 'facebook' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://facebook.com/${handle}`;
-    else if (platform === 'tiktok' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://tiktok.com/@${handle}`;
-    else candidate = `https://${candidate.replace(/^\/+/, '')}`;
+
+  if (platform === 'website') {
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, '')}`;
+    try {
+      const parsed = new URL(candidate);
+      return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : null;
+    } catch (_) {
+      return null;
+    }
   }
+
+  const hosts = SOCIAL_HOSTS[platform] || [];
+  let candidate = raw;
+
+  if (!/^https?:\/\//i.test(candidate)) {
+    const hostLike = candidate.replace(/^www\./i, '').toLowerCase();
+    if (hosts.some((host) => hostLike.startsWith(host.replace(/^www\./, '') + '/'))) {
+      candidate = `https://${candidate}`;
+    } else {
+      return platformHandleUrl(platform, candidate);
+    }
+  }
+
   try {
     const parsed = new URL(candidate);
     if (!['http:', 'https:'].includes(parsed.protocol)) return null;
-    return parsed.toString();
+    const hostname = parsed.hostname.toLowerCase();
+    if (hosts.includes(hostname)) return parsed.toString();
+
+    // Repair links produced by the old normalizer, e.g. @iso.regret -> https://iso.regret/.
+    if ((parsed.pathname === '/' || parsed.pathname === '') && !parsed.search && !parsed.hash) {
+      return platformHandleUrl(platform, hostname.replace(/^www\./, ''));
+    }
+    return null;
   } catch (_) {
     return null;
   }
 }
 
-function normalizeSocialLinks(links = {}) {
+export function normalizeSocialLinks(links = {}) {
   return ['website', 'instagram', 'facebook', 'tiktok'].reduce((result, key) => {
     const normalized = normalizeExternalLink(links?.[key], key);
     if (normalized) result[key] = normalized;
