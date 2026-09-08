@@ -55,5 +55,5 @@ jobs:
             exit 1
           fi
 
-      - name: Production dependency security gate
-        run: npm audit --omit=dev --audit-level=high
+      - name: Dependency security gate
+        run: npm audit --audit-level=moderate

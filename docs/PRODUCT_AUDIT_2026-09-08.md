@@ -43,20 +43,21 @@ Recommended navigation:
 - Backfilled every upcoming event coordinate and removed bulk address geocoding from map startup.
 - Made guest access read-only for community publishing. Adding spots, posts, or events now requires sign-in.
 - Restored ownership for three legacy spots with verified creator attribution; seven anonymous legacy spots remain unassigned pending reliable provenance.
+- Updated React Router to 7.18.3, Vite to 7.3.6, and Sharp to 0.35.4; the full dependency audit reports zero vulnerabilities. CI now checks development dependencies and moderate advisories too.
+- Lazy-loaded non-map pages, reducing the main JavaScript bundle from 811 kB to 497 kB (223 kB to 150 kB gzip) after the dependency update. Offline precaching remains enabled.
+- Collapsed legacy import, export, and sync utilities under a single expandable control on Saved.
 
 ## Prioritized backlog
 
 ### P0 — reliability and clarity
 
-1. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
-2. Add error monitoring and a small analytics funnel for map → detail → save/directions.
+1. Add error monitoring and a small analytics funnel for map → detail → save/directions.
 
 ### P1 — simplify the interface
 
-1. Move manual sync-code import, bulk export, and other rare actions into Settings or an overflow menu.
-2. Show ratings, comments, check-ins, and live activity only when they have data or clear user intent.
-3. Reduce map overlays: one search row, one filter action, one layers action, and one location action.
-4. Split large screens into smaller route components and lazy-load non-map routes. The current production JavaScript bundle is about 796 kB (217 kB gzip).
+1. Show ratings, comments, check-ins, and live activity only when they have data or clear user intent.
+2. Reduce map overlays: one search row, one filter action, one layers action, and one location action.
+3. Split the largest remaining screen components into smaller maintainable components.
 
 ### P2 — grow the core loop
 
