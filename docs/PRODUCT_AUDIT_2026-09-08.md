@@ -42,14 +42,14 @@ Recommended navigation:
 - Limited the initial Events render to 12 cards with incremental “load more” pagination.
 - Backfilled every upcoming event coordinate and removed bulk address geocoding from map startup.
 - Made guest access read-only for community publishing. Adding spots, posts, or events now requires sign-in.
+- Restored ownership for three legacy spots with verified creator attribution; seven anonymous legacy spots remain unassigned pending reliable provenance.
 
 ## Prioritized backlog
 
 ### P0 — reliability and clarity
 
-1. Backfill ownership for the 10 legacy spots with no owner where authorship is known.
-2. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
-3. Add error monitoring and a small analytics funnel for map → detail → save/directions.
+1. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
+2. Add error monitoring and a small analytics funnel for map → detail → save/directions.
 
 ### P1 — simplify the interface
 
