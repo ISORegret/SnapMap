@@ -78,6 +78,13 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatus] = useState(isOnline ? 'saved' : 'offline');
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [tutorialDone, setTutorialDone] = useState(() => {
+    try {
+      return localStorage.getItem('snapmap_tutorial_done') === '1';
+    } catch {
+      return true;
+    }
+  });
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
@@ -273,10 +280,6 @@ export default function App() {
       .then(setCommunitySpots)
       .finally(() => setCommunitySpotsLoading(false));
   }, [ready]);
-
-  useEffect(() => {
-    if (ready) requestPosition();
-  }, [ready, requestPosition]);
 
   const refetchCommunitySpots = useCallback(() => {
     if (!isOnline) return Promise.resolve();
@@ -741,8 +744,8 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <RouteScrollReset />
-      <InstallPrompt />
-      <Tutorial />
+      <InstallPrompt enabled={tutorialDone} />
+      <Tutorial onDone={() => setTutorialDone(true)} />
       <ToastHost toast={toast} onDismiss={dismissToast} />
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-950/95 px-4 py-2 text-sm font-medium text-amber-200" role="status">

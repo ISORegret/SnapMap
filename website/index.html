@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SnapMap — Photography & Spot Tracker</title>
-  <meta name="description" content="Find and save the best photography and automotive spots. Sign in to sync favorites and profile. Map, spots, best light times, and PWA in one app." />
+  <meta name="description" content="Discover photography and automotive spots, find nearby events, plan the best light, and save shoot routes with SnapMap." />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -360,10 +360,10 @@
       <header class="hero-block">
         <p class="badge-pill">Android · Free</p>
         <h1 class="hero-title">SnapMap</h1>
-        <p class="hero-nav">Map · Spots · Save · Best light</p>
+        <p class="hero-nav">Map · Spots · Events · Best light</p>
         <h2 class="hero-tagline">Find the best places for photography and cars</h2>
         <p class="hero-dots">Discover · Save · Shoot</p>
-        <p class="hero-privacy"><strong>One app.</strong> Sign in to sync favorites and profile — or use without an account. Spots are <span class="highlight">cloud saved</span> for everyone.</p>
+        <p class="hero-privacy"><strong>Plan the shot.</strong> Browse without an account, then sign in to publish spots and sync your saved places.</p>
       </header>
 
       <div class="divider-wrap" aria-hidden="true">
@@ -372,47 +372,45 @@
 
       <div class="inside-content">
         <p class="inside-lead">Everything you need</p>
-        <p>Sign in with email and password or a magic link. Create an account, set a display name and profile picture, and sync favorites across devices.</p>
-        <p>Map and feed of spots, sunrise/sunset and golden-hour times, add your own locations and photos. One app for photographers and car enthusiasts.</p>
+        <p>Discover photo locations and automotive meetups, check the light, build a route, and keep the places you want to shoot.</p>
+        <p>Use the map on the web or install SnapMap. Sign in when you want to publish, RSVP, post, or sync across devices.</p>
       </div>
 
       <div class="features">
         <div class="feature-card">
           <h3><span class="bar">|</span> Map & spots</h3>
-          <p>Browse and add spots. Spots are saved to the cloud.</p>
+          <p>Find locations by map, category, distance, or search.</p>
           <ul>
             <li>Map view — see all spots and filters</li>
-            <li>Feed — list with categories and parking</li>
-            <li>Add your own — location, photos, notes (cloud saved)</li>
+            <li>Photos, access notes, parking, and directions</li>
+            <li>Publish your own location and shooting notes</li>
           </ul>
         </div>
         <div class="feature-card">
-          <h3><span class="bar">|</span> Best light</h3>
-          <p>Plan around sun and golden hour.</p>
+          <h3><span class="bar">|</span> Shoot planning</h3>
+          <p>Know when to go and how to get there.</p>
           <ul>
             <li>Sunrise, sunset, golden & blue hour</li>
             <li>Pick a date — times update for the spot</li>
-            <li>No guessing — plan the right time to shoot</li>
+            <li>Weather, directions, and multi-stop routes</li>
           </ul>
         </div>
         <div class="feature-card">
-          <h3><span class="bar">|</span> Save & share</h3>
-          <p>Favorites and multiple photos per spot.</p>
+          <h3><span class="bar">|</span> Events</h3>
+          <p>Find car meets, photo walks, and community shoots.</p>
           <ul>
-            <li>Saved list — quick access to favorites</li>
-            <li>Sign in — favorites sync to your account</li>
-            <li>Multiple photos per spot with attribution</li>
-            <li>Optional link per spot (e.g. Google Maps)</li>
+            <li>Browse upcoming events and host your own</li>
+            <li>RSVP, reminders, and event locations</li>
+            <li>See events alongside spots on the map</li>
           </ul>
         </div>
         <div class="feature-card">
-          <h3><span class="bar">|</span> Sign in & profile</h3>
-          <p>Optional account. Favorites and identity in one place.</p>
+          <h3><span class="bar">|</span> Save & community</h3>
+          <p>Keep your plans organized and share what you find.</p>
           <ul>
-            <li>Sign in with password or email link</li>
-            <li>Create account · Forgot password · Change password</li>
-            <li>Profile — display name and profile picture</li>
-            <li>Spots show who added them; PWA and offline</li>
+            <li>Favorites, custom lists, and route planning</li>
+            <li>Profiles, posts, comments, and follows</li>
+            <li>Account sync across web and installed app</li>
           </ul>
         </div>
       </div>
@@ -440,11 +438,11 @@
       </section>
 
       <section class="cta-section">
-        <p class="privacy"><strong>Spots are cloud saved.</strong> Add a spot on your phone or the web — it syncs for everyone. Sign in to sync favorites and profile; use without an account if you prefer. We don’t sell your data.</p>
+        <p class="privacy"><strong>Browse freely.</strong> Sign in to publish spots, join events, and sync saved places across devices. We don’t sell your data.</p>
         <div class="btns">
           <div>
             <a href="./snapmap.apk" class="btn btn-primary" id="download-apk-btn" download="SnapMap.apk">Download APK</a>
-            <p class="version-under-btn">v2.3.0</p>
+            <p class="version-under-btn">v<span data-app-version>2.28.0</span></p>
           </div>
           <div>
             <a href="./app/" class="btn btn-primary">Use web app / iOS install</a>
@@ -452,7 +450,7 @@
           </div>
         </div>
         <p class="footer-note">Free · Android: APK above · Web &amp; iOS: use web app</p>
-        <p class="footer-note" style="margin-top: 0.5rem;">App v2.3.0</p>
+        <p class="footer-note" style="margin-top: 0.5rem;">App v<span data-app-version>2.28.0</span></p>
       </section>
     </div>
   </main>
@@ -471,7 +469,6 @@
     </div>
   </div>
 
-  <script src="./config.js"></script>
   <script>
     (function () {
       // Register root SW so / serves the landing page, not cached app
@@ -479,6 +476,15 @@
         navigator.serviceWorker.register('./sw.js', { scope: '/' }).catch(function () {});
       }
       var downloadBtn = document.getElementById('download-apk-btn');
+      fetch('./app/version.json', { cache: 'no-store' })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (data) {
+          if (!data || !data.version) return;
+          document.querySelectorAll('[data-app-version]').forEach(function (node) {
+            node.textContent = data.version;
+          });
+        })
+        .catch(function () {});
       if (downloadBtn) {
         downloadBtn.addEventListener('click', function (e) {
           var href = downloadBtn.getAttribute('href');

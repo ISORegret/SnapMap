@@ -6,7 +6,7 @@ Settings that make the app feel different or more configurable. Some are already
 
 - **Theme** — Light / dark. Toggle in settings (Feed & Map).
 - **Distance units** — Miles / km. Toggle in settings (Feed & Map). Affects distance on cards and Spot detail.
-- **Download count** — Shown in settings (Feed & Map) and on the website under the download button. Update `public/stats.json` and `website/stats.json` (same `downloads` number) when you have new numbers.
+- **Map style** — Street, satellite, terrain, and dark layers.
 
 ## Easy adds
 
@@ -23,7 +23,6 @@ Settings that make the app feel different or more configurable. Some are already
 ## Polish / later
 
 - **Language / locale** — If you add i18n, a setting to pick language.
-- **Map style** — If you add multiple tile layers (e.g. satellite, dark), a setting to pick default.
 - **Spot count in nav** — Show “For You (N)” in nav; optional setting to hide the count.
 - **First-day prompt** — One-time “Allow location for distance?” with a “Don’t ask again” option stored in localStorage.
 
