@@ -65,6 +65,7 @@ export default function App() {
   const [syncCode, setSyncCodeState] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  const [authReady, setAuthReady] = useState(!hasSupabase);
   const [ready, setReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [theme, setThemeState] = useState(() =>
@@ -151,9 +152,10 @@ export default function App() {
     if (!hasSupabase || !supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
-    });
+    }).finally(() => setAuthReady(true));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null);
+      setAuthReady(true);
       if (event === 'PASSWORD_RECOVERY') navigate('/signin?recovery=1', { replace: true });
     });
     return () => subscription.unsubscribe();
@@ -480,20 +482,21 @@ export default function App() {
 
   const addSpot = useCallback(
     async (spot) => {
-      let payload = { ...spot };
-      if (currentUser) {
-        const profile = await getProfileById(currentUser.id);
-        if (profile?.username) {
-          payload = {
-            ...payload,
-            createdBy: profile.username,
-            createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || 'SnapMap user',
-          };
-        }
+      if (!currentUser) {
+        showToast('Sign in to publish a spot.');
+        navigate('/signin');
+        return;
       }
-      const result = currentUser
-        ? await insertCommunitySpot(payload)
-        : { spot: null, error: null };
+      let payload = { ...spot };
+      const profile = await getProfileById(currentUser.id);
+      if (profile?.username) {
+        payload = {
+          ...payload,
+          createdBy: profile.username,
+          createdByDisplayName: (profile.display_name || profile.displayName || '').trim() || 'SnapMap user',
+        };
+      }
+      const result = await insertCommunitySpot(payload);
       if (result.spot) {
         setUserSpots((prev) => {
           const next = [result.spot, ...prev];
@@ -515,10 +518,8 @@ export default function App() {
         return next;
       });
       hapticLight();
-      setSyncStatus(!currentUser ? 'saved' : (isOnline ? 'failed' : 'offline'));
-      showToast(!currentUser
-        ? 'Spot saved on this device. Sign in to publish community spots.'
-        : (isOnline ? 'Spot saved on this device. Cloud sync needs attention.' : 'Spot saved offline.'));
+      setSyncStatus(isOnline ? 'failed' : 'offline');
+      showToast(isOnline ? 'Spot saved on this device. Cloud sync needs attention.' : 'Spot saved offline.');
       navigate('/');
     },
     [currentUser, navigate, isOnline, showToast]
@@ -676,7 +677,7 @@ export default function App() {
     setCollections(reorderCollectionSpotsInStore(collectionId, spotIds));
   }, []);
 
-  if (!ready) {
+  if (!ready || !authReady) {
     return (
       <div
         className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 animate-fade-in"
@@ -773,7 +774,12 @@ export default function App() {
             }
           />
           <Route path="/map" element={<Navigate to="/" replace />} />
-          <Route path="/add" element={<Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
+          <Route
+            path="/add"
+            element={currentUser
+              ? <Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />
+              : <Navigate to="/signin" replace state={{ from: '/add', authMessage: 'Sign in or create an account to publish a spot.' }} />}
+          />
           <Route path="/profile" element={<Account allSpots={allSpots} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/about" element={<About allSpots={allSpots} />} />
           <Route path="/privacy" element={<Privacy />} />
