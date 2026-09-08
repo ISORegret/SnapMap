@@ -256,6 +256,8 @@ export default function SpotDetail({
   const [rating, setRating] = useState({ average: 0, count: 0 });
   const [userRating, setUserRating] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [discussionOpen, setDiscussionOpen] = useState(false);
   const addPhotoInputRef = useRef(null);
   const conditionsRef = useRef(null);
   const visibleNotes = useMemo(() => notes.filter((note) => !blockedUserIds.includes(note.userId)), [notes, blockedUserIds]);
@@ -608,15 +610,11 @@ export default function SpotDetail({
           </p>
         ) : null}
         {hasSupabase && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-sm text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {(checkInCount > 0 || userHasCheckedIn) && <span className="flex items-center gap-1.5 text-sm text-slate-500">
               <MapPin className="h-4 w-4 shrink-0 text-accent-500/80" />
-              {checkInCount === 0
-                ? 'No check-ins yet'
-                : checkInCount === 1
-                  ? '1 person has been here'
-                  : `${checkInCount} people have been here`}
-            </span>
+              {checkInCount === 1 ? '1 person has been here' : `${checkInCount} people have been here`}
+            </span>}
             {!userHasCheckedIn ? (
               <button
                 type="button"
@@ -630,18 +628,18 @@ export default function SpotDetail({
                   }
                 }}
                 disabled={checkInLoading}
-                className="shrink-0 rounded-lg bg-accent-500/20 px-3 py-1.5 text-xs font-medium text-accent-400 transition hover:bg-accent-500/30 disabled:opacity-50"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-bold text-secondary transition hover:border-accent-500/25 hover:text-accent-400 disabled:opacity-50"
               >
-                {checkInLoading ? '…' : 'I was here'}
+                <MapPin className="h-3.5 w-3.5" />{checkInLoading ? '…' : 'I was here'}
               </button>
             ) : (
-              <span className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-slate-400">You&apos;ve been here</span>
+              <span className="shrink-0 rounded-xl bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-400">You&apos;ve been here</span>
             )}
           </div>
         )}
-        {hasSupabase && (
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-slate-500">Rating:</span>
+        {hasSupabase && (rating.count > 0 || userRating != null || ratingOpen ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {rating.count > 0 && <span className="text-sm font-semibold text-secondary">{rating.average.toFixed(1)} <span className="font-normal text-muted">({rating.count})</span></span>}
             <div className="flex items-center gap-0.5" role="group" aria-label="Rate this spot">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -655,26 +653,24 @@ export default function SpotDetail({
                       setUserRating(star);
                       const r = await getSpotRating(spot.id);
                       setRating(r);
+                      setRatingOpen(false);
                     }
                   }}
                   disabled={ratingLoading}
                   className="rounded p-0.5 text-amber-400 transition hover:scale-110 disabled:opacity-50"
                   aria-label={`${star} star${star > 1 ? 's' : ''}`}
                 >
-                  <Star
-                    className="h-5 w-5"
-                    fill={userRating != null && star <= userRating ? 'currentColor' : 'transparent'}
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  />
+                  <Star className="h-5 w-5" fill={userRating != null && star <= userRating ? 'currentColor' : 'transparent'} stroke="currentColor" strokeWidth={1.5} />
                 </button>
               ))}
             </div>
-            <span className="text-sm text-slate-500">
-              {rating.count === 0 ? 'No ratings yet' : `${rating.average.toFixed(1)} (${rating.count})`}
-            </span>
+            {userRating != null && <span className="text-xs font-bold text-muted">Your rating: {userRating}</span>}
           </div>
-        )}
+        ) : (
+          <button type="button" onClick={() => setRatingOpen(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-bold text-secondary transition hover:border-amber-400/30 hover:text-amber-400">
+            <Star className="h-3.5 w-3.5" />Rate this spot
+          </button>
+        ))}
         {(() => {
           const hasCoords = spot.latitude != null && spot.longitude != null;
           const locText = (spot.address && spot.address !== 'Not specified')
@@ -821,12 +817,12 @@ export default function SpotDetail({
         </div>
 
         {/* Creator discussion (cloud spots only) */}
-        {canAddNotes && (
+        {canAddNotes && (visibleNotes.length > 0 || discussionOpen) && (
           <div className="mt-5">
             <div className="mb-3 flex items-center gap-2">
               <MessageCircle className="h-4 w-4 text-accent-400" />
               <div><p className="eyebrow">At this location</p><h2 className="mt-0.5 text-base font-extrabold text-primary">Creator discussion</h2></div>
-              <span className="ml-auto rounded-full border border-white/10 px-2.5 py-1 text-xs font-bold text-slate-500">{notes.length}</span>
+              <span className="ml-auto rounded-full border border-white/10 px-2.5 py-1 text-xs font-bold text-slate-500">{visibleNotes.length}</span>
             </div>
             <div className="surface-card mb-3 space-y-3 rounded-[1.5rem] p-3">
               {rootNotes.length === 0 ? (
@@ -871,6 +867,12 @@ export default function SpotDetail({
               <Link to="/signin" className="surface-card block rounded-[1.35rem] px-4 py-3 text-center text-sm font-bold text-accent-400">Sign in to join the discussion</Link>
             )}
           </div>
+        )}
+        {canAddNotes && visibleNotes.length === 0 && !discussionOpen && (
+          <button type="button" onClick={() => setDiscussionOpen(true)} className="mt-5 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3 text-left transition hover:border-accent-500/25 hover:bg-accent-500/[0.04]">
+            <span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-accent-400" /><span><span className="block text-sm font-extrabold text-primary">Start a location discussion</span><span className="mt-0.5 block text-xs text-muted">Ask about access, lighting, or current conditions.</span></span></span>
+            <Reply className="h-4 w-4 rotate-180 text-muted" />
+          </button>
         )}
 
         {/* Share / Copy */}

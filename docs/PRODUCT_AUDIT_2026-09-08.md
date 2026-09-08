@@ -55,7 +55,7 @@ Recommended navigation:
 
 ### P1 — simplify the interface
 
-1. Show ratings, comments, check-ins, and live activity only when they have data or clear user intent.
+- Completed: ratings, comments, and check-ins now stay compact until they have data or the user explicitly opens/uses them.
 2. Reduce map overlays: one search row, one filter action, one layers action, and one location action.
 3. Split the largest remaining screen components into smaller maintainable components.
 
