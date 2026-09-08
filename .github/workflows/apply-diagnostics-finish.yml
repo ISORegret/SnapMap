@@ -40,10 +40,18 @@ jobs:
           grep -F "Optional diagnostics" src/pages/Settings.jsx
           grep -F "Opt-in diagnostics" src/pages/Admin.jsx
           grep -F "recordDiagnostic('spot_view'" src/pages/SpotDetail.jsx
-          if grep -E "message|search|latitude|longitude|caption|body" src/api/diagnostics.js | grep -vE "classifyDiagnosticPage|messages"; then
-            echo "Review diagnostics API: user-content/location tokens found"
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/api/diagnostics.js').read_text()
+          insert = text.split(".from('snapmap_diagnostics').insert({", 1)[1].split('});', 1)[0]
+          for forbidden in ('message:', 'search:', 'latitude:', 'longitude:', 'caption:', 'body:', 'note:', 'user_id:'):
+              if forbidden in insert:
+                  raise SystemExit(f'Forbidden diagnostics payload field: {forbidden}')
+          required = ('event,', 'page: safePage', 'app_version:', 'error_type:', 'source:')
+          for field in required:
+              if field not in insert:
+                  raise SystemExit(f'Missing expected diagnostics payload field: {field}')
+          PY
       - name: Commit repair
         shell: bash
         run: |
