@@ -220,6 +220,13 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting || addressSearching) return;
+    if (!currentUser) {
+      navigate('/signin', {
+        replace: true,
+        state: { from: '/add', authMessage: 'Sign in or create an account to publish a spot.' },
+      });
+      return;
+    }
 
     const errors = { name: '', latitude: '', longitude: '' };
     if (!name.trim()) errors.name = 'Name is required.';

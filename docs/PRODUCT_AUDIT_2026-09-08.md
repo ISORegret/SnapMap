@@ -41,15 +41,15 @@ Recommended navigation:
 - Moved universal search into the Explore header and grouped posts with creators under Community.
 - Limited the initial Events render to 12 cards with incremental “load more” pagination.
 - Backfilled every upcoming event coordinate and removed bulk address geocoding from map startup.
+- Made guest access read-only for community publishing. Adding spots, posts, or events now requires sign-in.
 
 ## Prioritized backlog
 
 ### P0 — reliability and clarity
 
-1. Require sign-in at the publish step and clearly label signed-out additions as local drafts.
-2. Backfill ownership for the 10 legacy spots with no owner where authorship is known.
-3. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
-4. Add error monitoring and a small analytics funnel for map → detail → save/directions.
+1. Backfill ownership for the 10 legacy spots with no owner where authorship is known.
+2. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
+3. Add error monitoring and a small analytics funnel for map → detail → save/directions.
 
 ### P1 — simplify the interface
 
