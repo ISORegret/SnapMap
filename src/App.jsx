@@ -42,6 +42,7 @@ const Messages = lazy(() => import('./pages/Messages'));
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
+import DiagnosticsTracker from './components/DiagnosticsTracker';
 import { hapticLight } from './utils/haptics';
 import { checkUpdateAvailable } from './utils/version';
 import { getUnreadNotificationCount, subscribeToNotifications } from './api/notifications';
@@ -745,6 +746,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <RouteScrollReset />
+      <DiagnosticsTracker currentUser={currentUser} />
       <InstallPrompt enabled={tutorialDone} />
       <Tutorial onDone={() => setTutorialDone(true)} />
       <ToastHost toast={toast} onDismiss={dismissToast} />

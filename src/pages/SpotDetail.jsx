@@ -14,6 +14,7 @@ import { hasSupabase, supabase } from '../api/supabase';
 import { getBlockedUserIds, reportComment } from '../api/safety';
 import DirectionsLauncher from '../components/DirectionsLauncher';
 import { appleDirectionsUrl, googleDirectionsUrl } from '../utils/mapNavigation';
+import { recordDiagnostic } from '../api/diagnostics';
 
 function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -274,6 +275,10 @@ export default function SpotDetail({
   }, [currentUser?.id]);
 
   useEffect(() => {
+    if (spot?.id && currentUser?.id) recordDiagnostic('spot_view', { page: 'spot' });
+  }, [spot?.id, currentUser?.id]);
+
+  useEffect(() => {
     if (!spot?.id || !hasSupabase) return;
     let cancelled = false;
     Promise.all([getCheckInCount(spot.id), hasCheckedIn(spot.id, getDeviceId())]).then(([count, has]) => {
@@ -529,7 +534,11 @@ export default function SpotDetail({
         </button>
         <button
           type="button"
-          onClick={() => toggleFavorite(spot.id)}
+          onClick={() => {
+            const saving = !isFavorite(spot.id);
+            toggleFavorite(spot.id);
+            if (saving) recordDiagnostic('save_spot', { page: 'spot' });
+          }}
           className="icon-button h-10 w-10 rounded-2xl"
           aria-label={isFavorite(spot.id) ? 'Unsave' : 'Save'}
         >
@@ -780,6 +789,7 @@ export default function SpotDetail({
           <div className="flex flex-wrap gap-2">
             <a
               href={googleMapsUrl}
+              onClick={() => recordDiagnostic('directions', { page: 'spot' })}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-accent-400 transition hover:bg-[var(--bg-card-hover)]"
@@ -789,6 +799,7 @@ export default function SpotDetail({
             </a>
             <a
               href={appleMapsUrl}
+              onClick={() => recordDiagnostic('directions', { page: 'spot' })}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
@@ -798,6 +809,7 @@ export default function SpotDetail({
             </a>
             <a
               href={wazeUrl}
+              onClick={() => recordDiagnostic('directions', { page: 'spot' })}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"

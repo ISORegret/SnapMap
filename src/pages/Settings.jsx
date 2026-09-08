@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { navigateBackOr } from '../utils/navigation';
 import {
+  Activity,
   ArrowLeft,
   Bell,
   Check,
@@ -24,6 +25,7 @@ import { supabase, hasSupabase } from '../api/supabase';
 import { isCurrentUserAdmin } from '../api/moderation';
 import { getMapAppPreference, MAP_APP_OPTIONS, setMapAppPreference } from '../utils/mapNavigation';
 import { browserNotificationPermission, requestBrowserNotifications } from '../api/eventReminders';
+import { isDiagnosticsEnabled, setDiagnosticsEnabled } from '../api/diagnostics';
 
 // These ids intentionally match Map.jsx. Keep the persisted value stable across
 // Settings and the actual map renderer.
@@ -69,6 +71,7 @@ export default function Settings({
   const [isAdmin, setIsAdmin] = useState(false);
   const [mapApp, setMapApp] = useState(() => getMapAppPreference());
   const [notificationPermission, setNotificationPermission] = useState(() => browserNotificationPermission());
+  const [diagnosticsEnabled, setDiagnosticsEnabledState] = useState(() => isDiagnosticsEnabled());
 
   useEffect(() => {
     if (!currentUser) { setIsAdmin(false); return; }
@@ -93,6 +96,13 @@ export default function Settings({
     if (permission === 'granted') showToast?.('Device event alerts enabled.');
     else if (permission === 'unsupported') showToast?.('This device does not support web alerts. In-app reminders will still work.');
     else showToast?.('Notification permission was not enabled. In-app reminders will still work.');
+  };
+
+  const toggleDiagnostics = () => {
+    const next = !diagnosticsEnabled;
+    setDiagnosticsEnabled(next);
+    setDiagnosticsEnabledState(next);
+    showToast?.(next ? 'Optional diagnostics enabled on this device.' : 'Optional diagnostics disabled.');
   };
 
   const clearTemporaryData = () => {
@@ -223,6 +233,11 @@ export default function Settings({
             <SettingRow icon={isOnline ? Wifi : WifiOff} title={isOnline ? 'Online' : 'Offline'} subtitle={isOnline ? 'Cloud changes can sync normally.' : 'Changes will remain on this device until you reconnect.'}>
               <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </SettingRow>
+            {currentUser && <SettingRow icon={Activity} title="Optional diagnostics" subtitle="Share fixed app-health and core-action categories. Never messages, searches, photo content, or location coordinates.">
+              <button type="button" onClick={toggleDiagnostics} className={`rounded-xl px-3 py-2 text-xs font-extrabold ${diagnosticsEnabled ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.06] text-slate-500'}`} aria-pressed={diagnosticsEnabled}>
+                {diagnosticsEnabled ? 'On' : 'Off'}
+              </button>
+            </SettingRow>}
             <button type="button" onClick={clearTemporaryData} className="block w-full text-left">
               <SettingRow icon={Database} title="Clear temporary data" subtitle="Removes search history and any unfinished Add draft.">
                 <ChevronRight className="h-4 w-4 text-slate-600" />

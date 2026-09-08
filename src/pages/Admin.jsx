@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { navigateBackOr } from '../utils/navigation';
-import { ArrowLeft, BadgeCheck, Ban, CheckCircle2, ExternalLink, Flag, ShieldCheck, Trash2, XCircle } from 'lucide-react';
+import { Activity, ArrowLeft, BadgeCheck, Ban, CheckCircle2, ExternalLink, Flag, ShieldCheck, Trash2, XCircle } from 'lucide-react';
 import { dismissReport, fetchEventClaims, fetchModerationQueue, isCurrentUserAdmin, removeReportedContent, reviewEventClaim, suspendUser } from '../api/moderation';
+import { fetchDiagnostics } from '../api/diagnostics';
 
 const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location', message: 'Private message', event: 'Event' };
 
@@ -70,18 +71,24 @@ export default function Admin({ currentUser, showToast }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [busyId, setBusyId] = useState('');
+  const [diagnostics, setDiagnostics] = useState([]);
+  const [diagnosticsError, setDiagnosticsError] = useState('');
 
   const refresh = async () => {
     setLoading(true);
     const admin = await isCurrentUserAdmin();
     setAllowed(admin);
     if (admin) {
-      const [reports, pendingClaims] = await Promise.all([fetchModerationQueue(), fetchEventClaims()]);
+      const [reports, pendingClaims, health] = await Promise.all([fetchModerationQueue(), fetchEventClaims(), fetchDiagnostics(300)]);
       setItems(reports);
       setClaims(pendingClaims);
+      setDiagnostics(health.rows);
+      setDiagnosticsError(health.error);
     } else {
       setItems([]);
       setClaims([]);
+      setDiagnostics([]);
+      setDiagnosticsError('');
     }
     setLoading(false);
   };
@@ -90,6 +97,19 @@ export default function Admin({ currentUser, showToast }) {
 
   const visibleItems = useMemo(() => filter === 'all' ? items : filter === 'claim' ? [] : items.filter((item) => item.kind === filter), [items, filter]);
   const counts = useMemo(() => ({ all: items.length + claims.length, claim: claims.length, post: items.filter((item) => item.kind === 'post').length, comment: items.filter((item) => item.kind === 'comment').length, spot: items.filter((item) => item.kind === 'spot').length, message: items.filter((item) => item.kind === 'message').length, event: items.filter((item) => item.kind === 'event').length }), [items, claims]);
+  const diagnosticsSummary = useMemo(() => {
+    const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+    const recent = diagnostics.filter((row) => new Date(row.created_at).getTime() >= cutoff);
+    const count = (event) => recent.filter((row) => row.event === event).length;
+    return {
+      errors: count('app_error'),
+      mapViews: count('map_view'),
+      spotViews: count('spot_view'),
+      saves: count('save_spot'),
+      directions: count('directions'),
+      recentErrors: diagnostics.filter((row) => row.event === 'app_error').slice(0, 6),
+    };
+  }, [diagnostics]);
 
   const complete = async (item, action) => {
     setBusyId(item.id);
@@ -134,10 +154,19 @@ export default function Admin({ currentUser, showToast }) {
     <header className="page-header sticky top-0 z-20">
       <div className="mx-auto max-w-4xl">
         <button type="button" onClick={() => navigateBackOr(navigate, '/')} className="icon-button mb-4 gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold"><ArrowLeft className="h-5 w-5" />Back</button>
-        <div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Private controls</p><h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary">Moderation</h1><p className="mt-2 text-sm text-muted">Review community reports and take action.</p></div><div className="flex h-12 min-w-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-400"><ShieldCheck className="h-5 w-5" /></div></div>
+        <div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Private controls</p><h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary">Admin</h1><p className="mt-2 text-sm text-muted">Community safety and privacy-safe app health.</p></div><div className="flex h-12 min-w-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-400"><ShieldCheck className="h-5 w-5" /></div></div>
       </div>
     </header>
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-6">
+      <section className="surface-card mb-5 rounded-[1.6rem] p-4">
+        <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">App health</p><h2 className="mt-1 text-lg font-extrabold text-primary">Opt-in diagnostics</h2><p className="mt-1 text-xs leading-5 text-muted">Last 24 hours. Fixed categories only; no messages, searches, photos, or coordinates are collected.</p></div><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-400/10 text-cyan-300"><Activity className="h-5 w-5" /></span></div>
+        {diagnosticsError ? <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">Diagnostics unavailable: {diagnosticsError}</p> : <>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[['Errors', diagnosticsSummary.errors], ['Map', diagnosticsSummary.mapViews], ['Spot views', diagnosticsSummary.spotViews], ['Saves', diagnosticsSummary.saves], ['Directions', diagnosticsSummary.directions]].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/[0.035] p-3 text-center"><p className="text-xl font-black text-primary">{value}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">{label}</p></div>)}
+          </div>
+          {diagnosticsSummary.recentErrors.length > 0 ? <div className="mt-4 space-y-2"><p className="text-[10px] font-black uppercase tracking-wider text-muted">Recent errors</p>{diagnosticsSummary.recentErrors.map((row, index) => <div key={`${row.created_at}-${index}`} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-black/10 px-3 py-2 text-xs"><span className="font-extrabold text-rose-400">{row.error_type || 'Error'}</span><span className="font-semibold text-secondary">{row.page}</span><span className="text-muted">v{row.app_version}</span>{row.source && <span className="break-all text-muted">{row.source}</span>}<span className="ml-auto text-[10px] text-muted">{new Date(row.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>)}</div> : <p className="mt-4 text-xs text-muted">No opt-in app errors recorded yet.</p>}
+        </>}
+      </section>
       <div className="mb-5 grid grid-cols-4 gap-1 rounded-[1.2rem] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-1 sm:grid-cols-7">
         {[['all', 'All'], ['claim', 'Claims'], ['event', 'Events'], ['post', 'Posts'], ['comment', 'Comments'], ['spot', 'Spots'], ['message', 'Messages']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-2xl px-1 py-2.5 text-[10px] font-extrabold transition sm:px-2 sm:text-[11px] ${filter === value ? 'bg-accent-500 text-[#211603]' : 'text-secondary'}`}>{label}<span className="ml-1 opacity-70">{counts[value]}</span></button>)}
       </div>

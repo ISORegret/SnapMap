@@ -51,7 +51,7 @@ Recommended navigation:
 
 ### P0 — reliability and clarity
 
-1. Add error monitoring and a small analytics funnel for map → detail → save/directions.
+- Completed: optional signed-in diagnostics for map → spot detail → save/directions plus categorized app errors. Collection is per-device opt-in, throttled, RLS-protected, admin-readable only, and excludes messages, searches, photos, notes, and coordinates.
 
 ### P1 — simplify the interface
 
