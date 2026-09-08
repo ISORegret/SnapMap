@@ -1,0 +1,53 @@
+name: Apply map control simplification
+
+on:
+  push:
+    branches:
+      - ui/map-controls-simplify-2026-09-08
+    paths:
+      - scripts/apply-map-control-simplification.py
+      - .github/workflows/apply-map-control-simplification.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/map-controls-simplify-2026-09-08
+          fetch-depth: 0
+      - name: Apply map control patch
+        run: python scripts/apply-map-control-simplification.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+      - name: Verify simplified map chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "Filters" src/pages/Map.jsx
+          grep -F "aria-label=\"Choose map layers\"" src/pages/Map.jsx
+          grep -F "aria-label=\"Center map on my location\"" src/pages/Map.jsx
+          if grep -F "Settings in corner" src/pages/Map.jsx; then exit 1; fi
+          if grep -F "Filter + Distance dropdowns" src/pages/Map.jsx; then exit 1; fi
+          if grep -F "No check-ins yet" src/pages/SpotDetail.jsx; then exit 1; fi
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SnapMap repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/pages/Map.jsx docs/PRODUCT_AUDIT_2026-09-08.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Simplify persistent map controls"
+            git push origin HEAD:ui/map-controls-simplify-2026-09-08
+          fi
