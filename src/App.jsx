@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
@@ -23,22 +23,22 @@ import { getProfileById, createProfile } from './api/profiles';
 import { supabase, hasSupabase } from './api/supabase';
 import { getCurrentPosition } from './utils/geo';
 import MapPage from './pages/Map';
-import Explore from './pages/Explore';
-import Add from './pages/Add';
-import Saved from './pages/Saved';
-import SpotDetail from './pages/SpotDetail';
-import Profile from './pages/Profile';
-import Account from './pages/Account';
-import About from './pages/About';
-import Privacy from './pages/Privacy';
-import SignIn from './pages/SignIn';
-import ChangePassword from './pages/ChangePassword';
-import Settings from './pages/Settings';
-import Notifications from './pages/Notifications';
-import Admin from './pages/Admin';
-import EventDetail from './pages/EventDetail';
-import RoutePlanner from './pages/RoutePlanner';
-import Messages from './pages/Messages';
+const Explore = lazy(() => import('./pages/Explore'));
+const Add = lazy(() => import('./pages/Add'));
+const Saved = lazy(() => import('./pages/Saved'));
+const SpotDetail = lazy(() => import('./pages/SpotDetail'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Account = lazy(() => import('./pages/Account'));
+const About = lazy(() => import('./pages/About'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const SignIn = lazy(() => import('./pages/SignIn'));
+const ChangePassword = lazy(() => import('./pages/ChangePassword'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Admin = lazy(() => import('./pages/Admin'));
+const EventDetail = lazy(() => import('./pages/EventDetail'));
+const RoutePlanner = lazy(() => import('./pages/RoutePlanner'));
+const Messages = lazy(() => import('./pages/Messages'));
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -756,6 +756,7 @@ export default function App() {
       )}
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex-1 min-h-0 flex flex-col relative">
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center p-12 text-sm text-slate-400" role="status">Loading page…</div>}>
           <Routes>
           <Route path="/" element={<MapPage allSpots={allSpots} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} userPosition={userPosition} requestPosition={requestPosition} onRefreshSpots={refetchCommunitySpots} spotsLoading={communitySpotsLoading} />} />
           <Route
@@ -846,6 +847,7 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+          </Suspense>
         </div>
       </main>
       {/* Bottom navigation dock */}

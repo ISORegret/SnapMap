@@ -235,6 +235,10 @@ export default function Saved({
             </form>
           </div>
 
+          <details className="border-b border-white/[0.06]">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-400 hover:text-primary">
+              Import, export & sync
+            </summary>
           {/* Sync favorites across devices (or "saved to account" when signed in) */}
           {hasSupabase && (
             <div className="border-b border-white/[0.06] px-4 py-3">
@@ -407,6 +411,7 @@ export default function Saved({
               </div>
             </div>
           )}
+          </details>
         </>
       )}
 
