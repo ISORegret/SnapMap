@@ -68,10 +68,6 @@ export default function Explore({
   };
 
   useEffect(() => {
-    requestPositionProp?.();
-  }, [requestPositionProp]);
-
-  useEffect(() => {
     if (viewMode !== 'creators' || !hasSupabase) return;
     let cancelled = false;
     const timer = setTimeout(() => {
@@ -210,7 +206,7 @@ export default function Explore({
                 {viewMode === 'feed' ? 'See what’s out there.' : viewMode === 'search' ? 'Search everything.' : viewMode === 'spots' ? 'Find the frame.' : viewMode === 'creators' ? 'Meet the creators.' : 'Meet at the frame.'}
               </h1>
               <p className="mt-2 text-sm font-medium text-muted">
-                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'search' ? 'One search across the whole community' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : `${allSpots.length} community locations ready to explore`}
+                {viewMode === 'feed' ? 'Photos, places, and the people who found them' : viewMode === 'search' ? 'One search across the whole community' : viewMode === 'events' ? 'Shoots, photo walks, and creator meetups' : viewMode === 'creators' ? 'Photographers and car enthusiasts in the community' : `${allSpots.length} community locations ready to explore`}
               </p>
             </div>
             <Link to="/about" className="icon-button h-11 w-11 shrink-0 rounded-2xl" aria-label="About SnapMap">

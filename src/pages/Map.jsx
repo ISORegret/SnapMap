@@ -5,10 +5,9 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap,
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Download, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
+import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
-import { fetchDownloadCount } from '../utils/stats';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
@@ -342,7 +341,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     }
     return theme === 'light' ? 'street' : 'midnight';
   });
-  const [downloadCount, setDownloadCount] = useState(null);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [distanceDropdownOpen, setDistanceDropdownOpen] = useState(false);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
@@ -618,10 +616,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     setMapStyleState(styleId);
     if (typeof localStorage !== 'undefined') localStorage.setItem('snapmap_map_style', styleId);
     setStylePickerOpen(false);
-  }, []);
-
-  useEffect(() => {
-    fetchDownloadCount().then(setDownloadCount);
   }, []);
 
   const goBack = useCallback(() => {
@@ -962,12 +956,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
             <>
               <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
               <div className="surface-card absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-2">
-                {downloadCount != null && (
-                  <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400" aria-hidden>
-                    <Download className="h-4 w-4 shrink-0" />
-                    {downloadCount.toLocaleString()}+ downloads
-                  </div>
-                )}
                 {onRefreshSpots && (
                   <button
                     type="button"

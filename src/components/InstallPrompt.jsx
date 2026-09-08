@@ -21,7 +21,7 @@ function wasDismissedRecently() {
   }
 }
 
-export default function InstallPrompt() {
+export default function InstallPrompt({ enabled = true }) {
   const [installEvent, setInstallEvent] = useState(null);
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -34,11 +34,17 @@ export default function InstallPrompt() {
     const onBeforeInstall = (e) => {
       e.preventDefault();
       setInstallEvent(e);
-      setVisible(true);
+      setVisible(enabled);
     };
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-  }, []);
+  }, [enabled]);
+
+  useEffect(() => {
+    if (enabled && installEvent && !installed && !wasDismissedRecently()) {
+      setVisible(true);
+    }
+  }, [enabled, installEvent, installed]);
 
   const handleInstall = async () => {
     if (!installEvent) return;
