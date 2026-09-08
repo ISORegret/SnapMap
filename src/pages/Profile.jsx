@@ -13,6 +13,41 @@ function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
+const SOCIAL_LINK_LABELS = { website: 'Website', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
+
+function normalizeSocialLink(value, platform) {
+  const raw = String(value || '').trim().slice(0, 300);
+  if (!raw) return '';
+  let candidate = raw;
+  if (!/^https?:\/\//i.test(candidate)) {
+    const handle = candidate.replace(/^@/, '');
+    if (platform === 'instagram' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://instagram.com/${handle}`;
+    else if (platform === 'facebook' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://facebook.com/${handle}`;
+    else if (platform === 'tiktok' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://tiktok.com/@${handle}`;
+    else candidate = `https://${candidate.replace(/^\/+/, '')}`;
+  }
+  try {
+    const parsed = new URL(candidate);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function normalizeSocialLinks(links = {}) {
+  return Object.keys(SOCIAL_LINK_LABELS).reduce((result, key) => {
+    const value = normalizeSocialLink(links?.[key], key);
+    if (value) result[key] = value;
+    return result;
+  }, {});
+}
+
+function SocialLinks({ links, className = '' }) {
+  const items = Object.entries(normalizeSocialLinks(links));
+  if (!items.length) return null;
+  return <div className={`flex flex-wrap gap-2 ${className}`}>{items.map(([key, href]) => <a key={key} href={href} target="_blank" rel="noreferrer noopener" className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-extrabold text-accent-400 transition hover:border-accent-500/30 hover:bg-accent-500/[0.07]">{SOCIAL_LINK_LABELS[key]}</a>)}</div>;
+}
+
 export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0, unreadMessages = 0, showToast } = {}) {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -29,6 +64,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [editSocialLinks, setEditSocialLinks] = useState({ website: '', instagram: '', facebook: '', tiktok: '' });
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -205,6 +241,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     setEditDisplayName(profile.display_name || '');
     setEditBio(profile.bio || '');
     setEditAvatarUrl(profile.avatar_url || '');
+    setEditSocialLinks({ website: '', instagram: '', facebook: '', tiktok: '', ...(profile.social_links || {}) });
     setEditError('');
     setEditing(true);
   };
@@ -236,9 +273,11 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
     e.preventDefault();
     setEditError('');
     setEditSaving(true);
+    const normalizedSocialLinks = normalizeSocialLinks(editSocialLinks);
     const payload = {
       displayName: editDisplayName.trim() || 'SnapMap user',
       bio: editBio.trim().slice(0, 500),
+      socialLinks: normalizedSocialLinks,
     };
     if (editAvatarUrl.trim() !== (profile.avatar_url || '')) payload.avatarUrl = editAvatarUrl.trim() || null;
     const ok = await updateProfile(payload);
@@ -249,6 +288,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         display_name: editDisplayName.trim() || 'SnapMap user',
         bio: editBio.trim().slice(0, 500),
         avatar_url: editAvatarUrl.trim() || profile.avatar_url,
+        social_links: normalizedSocialLinks,
       };
       setProfile((p) => ({
         ...p,
@@ -285,6 +325,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         <main className="mx-auto max-w-4xl space-y-8 px-4 py-6 md:px-8">
           <section>
             {profile.bio && <p className="max-w-2xl text-base leading-7 text-secondary">{profile.bio}</p>}
+            <SocialLinks links={profile.social_links} className="mt-4" />
             {specialties.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{specialties.map((item) => <span key={item} className="rounded-full border border-accent-500/20 bg-accent-500/[0.07] px-3 py-2 text-xs font-extrabold text-accent-400">{item}</span>)}</div>}
             <div className="mt-5 flex flex-wrap gap-2">
               <button type="button" onClick={sharePortfolio} className="primary-button px-4 py-3 text-sm"><Share2 className="h-4 w-4" />Share portfolio</button>
@@ -361,6 +402,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             {profile.bio && (
               <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
             )}
+            <SocialLinks links={profile.social_links} className="mt-3" />
             <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
               <span>{connections.friends.length} friend{connections.friends.length === 1 ? '' : 's'}</span>
               {isOwnProfile && connections.incoming.length > 0 && <span className="font-semibold text-accent-400">{connections.incoming.length} request{connections.incoming.length === 1 ? '' : 's'}</span>}
@@ -456,6 +498,13 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                   maxLength={500}
                   className="mt-1 w-full resize-none rounded-lg border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Links</p>
+                <p className="mt-1 text-xs text-slate-600">Optional. Add only the links you want shown publicly.</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {Object.keys(SOCIAL_LINK_LABELS).map((key) => <label key={key} className="block"><span className="text-[11px] font-medium text-slate-500">{SOCIAL_LINK_LABELS[key]}</span><input type="text" value={editSocialLinks[key] || ''} onChange={(e) => setEditSocialLinks((current) => ({ ...current, [key]: e.target.value }))} placeholder={key === 'website' ? 'your-site.com' : `@handle or ${key}.com/...`} maxLength={300} className="mt-1 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" /></label>)}
+                </div>
               </div>
             </div>
             {editError && <p className="mt-2 text-sm text-amber-400">{editError}</p>}

@@ -26,7 +26,7 @@ export async function searchProfiles(search = '', limit = 100) {
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
   let query = supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, bio, created_at, updated_at')
+    .select('id, username, display_name, avatar_url, bio, social_links, created_at, updated_at')
     .order('updated_at', { ascending: false })
     .limit(safeLimit);
   const term = String(search || '').trim().replace(/[,%()]/g, '').slice(0, 50);
@@ -109,6 +109,34 @@ export async function createProfile({ id, username, displayName = '' }) {
   return { ok: false, profile: null, error: 'Could not allocate a unique account identifier' };
 }
 
+function normalizeExternalLink(value, platform = 'website') {
+  const raw = String(value || '').trim().slice(0, 300);
+  if (!raw) return null;
+  let candidate = raw;
+  if (!/^https?:\/\//i.test(candidate)) {
+    const handle = candidate.replace(/^@/, '');
+    if (platform === 'instagram' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://instagram.com/${handle}`;
+    else if (platform === 'facebook' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://facebook.com/${handle}`;
+    else if (platform === 'tiktok' && !candidate.includes('.') && !candidate.includes('/')) candidate = `https://tiktok.com/@${handle}`;
+    else candidate = `https://${candidate.replace(/^\/+/, '')}`;
+  }
+  try {
+    const parsed = new URL(candidate);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    return parsed.toString();
+  } catch (_) {
+    return null;
+  }
+}
+
+function normalizeSocialLinks(links = {}) {
+  return ['website', 'instagram', 'facebook', 'tiktok'].reduce((result, key) => {
+    const normalized = normalizeExternalLink(links?.[key], key);
+    if (normalized) result[key] = normalized;
+    return result;
+  }, {});
+}
+
 export async function updateProfile(updates) {
   if (!hasSupabase || !supabase) return false;
   const { data: { user } } = await supabase.auth.getUser();
@@ -117,6 +145,7 @@ export async function updateProfile(updates) {
   if (updates.displayName != null) payload.display_name = String(updates.displayName).trim().slice(0, 100);
   if (updates.bio != null) payload.bio = String(updates.bio).slice(0, 500);
   if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl === '' ? null : updates.avatarUrl;
+  if (updates.socialLinks !== undefined) payload.social_links = normalizeSocialLinks(updates.socialLinks);
   if (Object.keys(payload).length === 0) return true;
   payload.updated_at = new Date().toISOString();
   const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);

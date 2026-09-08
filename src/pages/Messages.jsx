@@ -5,6 +5,7 @@ import { getFriendConnections, getFriendState } from '../api/follows';
 import { getProfileByUsername } from '../api/profiles';
 import { blockUser } from '../api/safety';
 import { fetchConversation, fetchInbox, markConversationRead, reportPrivateMessage, sendMessage, subscribeToMessages } from '../api/messages';
+import { navigateBackOr } from '../utils/navigation';
 
 function timeLabel(value) {
   const date = new Date(value);
@@ -34,6 +35,8 @@ function ShareCard({ share, onRemove }) {
 }
 
 function Inbox({ currentUser, share }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +49,11 @@ function Inbox({ currentUser, share }) {
   useEffect(() => { refresh(); return subscribeToMessages(refresh); }, [refresh]);
   const conversationIds = useMemo(() => new Set(conversations.map((item) => item.profile.id)), [conversations]);
   const newFriends = friends.filter((friend) => !conversationIds.has(friend.id));
-  const messageState = share ? { share } : undefined;
+  const returnTo = location.state?.from || '/profile';
+  const messageState = share || location.state?.from ? { ...(share ? { share } : {}), ...(location.state?.from ? { from: location.state.from } : {}) } : undefined;
 
   return <div className="page-shell pb-32 animate-fade-in">
-    <header className="page-header sticky top-0 z-20"><div className="mx-auto flex max-w-2xl items-center gap-3"><Link to="/profile" className="icon-button" aria-label="Back to profile"><ArrowLeft className="h-5 w-5" /></Link><div><p className="eyebrow">Friends only</p><h1 className="text-xl font-black text-primary">Messages</h1></div></div></header>
+    <header className="page-header sticky top-0 z-20"><div className="mx-auto flex max-w-2xl items-center gap-3"><button type="button" onClick={() => navigateBackOr(navigate, returnTo)} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button><div><p className="eyebrow">Friends only</p><h1 className="text-xl font-black text-primary">Messages</h1></div></div></header>
     <main className="mx-auto w-full max-w-2xl space-y-5 px-4 py-5">
       {share && <section><p className="mb-2 text-xs font-bold text-muted">Choose a friend to share with</p><ShareCard share={share} /></section>}
       {loading && <div className="surface-card h-40 animate-pulse rounded-[1.6rem]" />}
@@ -62,6 +66,7 @@ function Inbox({ currentUser, share }) {
 
 function Conversation({ currentUser, username, initialShare, onRead, showToast }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [messages, setMessages] = useState([]);
   const [friendState, setFriendState] = useState('loading');
@@ -121,7 +126,7 @@ function Conversation({ currentUser, username, initialShare, onRead, showToast }
   if (!loading && (!profile || friendState !== 'friends')) return <div className="page-shell px-4 py-16 text-center"><MessageCircle className="mx-auto h-9 w-9 text-muted" /><h1 className="mt-4 font-black text-primary">Messages unavailable</h1><p className="mt-1 text-sm text-muted">Private messages are available between accepted friends.</p><Link to="/messages" className="primary-button mt-5 inline-flex px-5 py-2.5 text-sm">Back to messages</Link></div>;
 
   return <div className="page-shell pb-48 animate-fade-in">
-    <header className="page-header sticky top-0 z-30"><div className="mx-auto flex max-w-2xl items-center gap-3"><Link to="/messages" className="icon-button" aria-label="Back to messages"><ArrowLeft className="h-5 w-5" /></Link><Avatar profile={profile} className="h-10 w-10" /><Link to={profile ? `/user/${profile.username}` : '#'} className="min-w-0 flex-1"><p className="truncate text-sm font-black text-primary">{profile?.display_name || 'SnapMap user' || 'Loading…'}</p></Link>{profile && <button type="button" onClick={block} className="icon-button text-rose-400" aria-label="Block creator"><Ban className="h-4 w-4" /></button>}</div></header>
+    <header className="page-header sticky top-0 z-30"><div className="mx-auto flex max-w-2xl items-center gap-3"><button type="button" onClick={() => navigateBackOr(navigate, '/messages')} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button><Avatar profile={profile} className="h-10 w-10" /><Link to={profile ? `/user/${profile.username}` : '#'} state={profile ? { from: `${location.pathname}${location.search || ''}` } : undefined} className="min-w-0 flex-1"><p className="truncate text-sm font-black text-primary">{profile?.display_name || 'SnapMap user' || 'Loading…'}</p></Link>{profile && <button type="button" onClick={block} className="icon-button text-rose-400" aria-label="Block creator"><Ban className="h-4 w-4" /></button>}</div></header>
     <main className="mx-auto w-full max-w-2xl px-4 py-5">
       {loading && <div className="surface-card h-64 animate-pulse rounded-[1.6rem]" />}
       {!loading && messages.length === 0 && <div className="py-16 text-center"><MessageCircle className="mx-auto h-10 w-10 text-accent-400" /><p className="mt-3 font-extrabold text-primary">Start the conversation</p><p className="mt-1 text-sm text-muted">Only you and {profile?.display_name || 'SnapMap user'} can see these messages.</p></div>}
