@@ -233,8 +233,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
 
   const goBack = () => {
     const returnTo = location.state?.from;
-    if (returnTo) navigate(returnTo);
-    else navigateBackOr(navigate, isOwnProfile ? '/' : '/explore?view=community');
+    navigateBackOr(navigate, returnTo || (isOwnProfile ? '/' : '/explore?view=community'));
   };
 
   const startEditing = () => {
