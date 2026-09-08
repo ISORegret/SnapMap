@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { navigateBackOr } from '../utils/navigation';
-import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 if (typeof window !== 'undefined') window.L = L;
 import 'leaflet.markercluster';
-import { MapPin, Settings, Sun, Moon, Heart, Search, ChevronDown, Compass, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
+import { MapPin, Heart, Search, ChevronDown, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
 import { getSpotPrimaryImage } from '../utils/spotImages';
@@ -331,7 +331,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const [pendingPin, setPendingPin] = useState(null);
   const [filter, setFilter] = useState('all');
   const [userPosition, setUserPosition] = useState(sharedUserPosition);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [stylePickerOpen, setStylePickerOpen] = useState(false);
   const [mapStyle, setMapStyleState] = useState(() => {
     if (typeof localStorage !== 'undefined') {
@@ -341,7 +340,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     return theme === 'light' ? 'street' : 'midnight';
   });
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [distanceDropdownOpen, setDistanceDropdownOpen] = useState(false);
   const [distanceFilterMi, setDistanceFilterMi] = useState(null);
   const [positionLoading, setPositionLoading] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -557,7 +555,9 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   }, [requestPosition]);
 
   const filterLabel = FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? 'All';
-  const distanceLabel = distanceFilterMi == null ? 'All' : `Within ${distanceFilterMi} mi`;
+  const distanceOptionLabel = useCallback((mi) => units === 'km' ? `Within ${Math.round(mi * 1.60934)} km` : `Within ${mi} mi`, [units]);
+  const distanceLabel = distanceFilterMi == null ? 'Any distance' : distanceOptionLabel(distanceFilterMi);
+  const activeFilterCount = (filter !== 'all' ? 1 : 0) + (distanceFilterMi != null ? 1 : 0);
   const activeMapStyle = MAP_STYLES.find((style) => style.id === mapStyle) || MAP_STYLES[0];
 
   const setMapStyle = useCallback((styleId) => {
@@ -657,7 +657,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         zoomControl={false}
         attributionControl={false}
       >
-        {!selectedSpot && !selectedPost && !selectedEvent && !pendingPin && <ZoomControl position="bottomleft" />}
         <TileLayer
           key={activeMapStyle.id}
           attribution={activeMapStyle.attribution}
@@ -730,13 +729,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       </MapContainer>
       <div className="map-vignette absolute inset-0 z-[500] pointer-events-none" aria-hidden="true" />
 
-      {!selectedSpot && !selectedPost && !selectedEvent && !pendingPin && positionedEvents.length > 0 && (
-        <div className="surface-card absolute bottom-[11.1rem] left-3 z-[1001] flex items-center gap-3 rounded-full px-3 py-2 text-[10px] font-extrabold text-secondary">
-          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-accent-500" />Spots</span>
-          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-cyan-400" />Events</span>
-        </div>
-      )}
-
       {routeSpots.length > 0 && (
         <div className="surface-card absolute left-1/2 top-[7.55rem] z-[1003] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-xs font-extrabold text-primary shadow-xl">
           <Route className="h-4 w-4 text-accent-400" />{routeSpots.length} stop route
@@ -746,16 +738,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         </div>
       )}
 
-      <div className="surface-card absolute bottom-[7.1rem] left-3 right-3 z-[1000] flex items-center justify-between gap-3 rounded-[1.25rem] px-3.5 py-3 text-xs text-secondary sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
-        <div className="min-w-0">
-          <span className="font-semibold">Tap anywhere to pin a new spot</span>
-          <p className="mt-1 truncate text-[8px] text-muted"><a href="https://leafletjs.com" target="_blank" rel="noreferrer" className="hover:text-primary">Leaflet</a><span aria-hidden="true"> | </span><span dangerouslySetInnerHTML={{ __html: activeMapStyle.attribution }} /></p>
-        </div>
-        <Link to="/explore" className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-[var(--accent-muted)] px-3 py-2 font-extrabold text-accent-400 transition hover:bg-accent-500 hover:text-[#211603]">
-          <Compass className="h-3.5 w-3.5" />
-          Browse spots
-        </Link>
-      </div>
       {candidateBounds && routeSpots.length === 0 && (
         <button
           type="button"
@@ -889,133 +871,9 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       )}
       </div>
 
-      {/* Settings in corner */}
-      {setTheme && (
-        <div className="absolute right-3 top-3 z-[1001]">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((o) => !o)}
-            className="icon-button h-11 w-11 rounded-2xl"
-            aria-label="Settings"
-            aria-expanded={settingsOpen}
-          >
-            <Settings className="h-5 w-5" />
-          </button>
-          {settingsOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden />
-              <div className="surface-card absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-2">
-                {onRefreshSpots && (
-                  <button
-                    type="button"
-                    onClick={() => { onRefreshSpots(); setSettingsOpen(false); }}
-                    disabled={spotsLoading}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${spotsLoading ? 'animate-spin' : ''}`} />
-                    Refresh spots
-                  </button>
-                )}
-                {setUnits && (
-                  <button
-                    type="button"
-                    onClick={() => { setUnits(units === 'mi' ? 'km' : 'mi'); setSettingsOpen(false); }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    Distance: {units === 'mi' ? 'Miles' : 'km'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setSettingsOpen(false); }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
-                >
-                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                </button>
-                <a
-                  href="#/saved"
-                  onClick={() => setSettingsOpen(false)}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
-                >
-                  <Heart className="h-4 w-4" />
-                  Saved
-                </a>
-                <a
-                  href="#/settings"
-                  onClick={() => setSettingsOpen(false)}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-accent-400"
-                >
-                  <Settings className="h-4 w-4" />
-                  All settings
-                </a>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={handleLocateMe}
-        disabled={positionLoading}
-        className="icon-button absolute bottom-[11.35rem] right-3 z-[1002] h-12 w-12 rounded-2xl text-primary transition hover:border-accent-500/40 hover:text-accent-400 disabled:opacity-60"
-        aria-label="Center map on my location"
-        title="My location"
-      >
-        <LocateFixed className={`h-5 w-5 ${positionLoading ? 'animate-pulse text-accent-400' : ''}`} strokeWidth={2.4} />
-      </button>
-
-      {/* App-native map style control */}
-      <div className="absolute right-3 top-[4.25rem] z-[1002]">
-        <button
-          type="button"
-          onClick={() => { setStylePickerOpen((open) => !open); setSettingsOpen(false); }}
-          className={`icon-button h-11 w-11 rounded-2xl ${stylePickerOpen ? 'border-accent-500/40 text-accent-400' : ''}`}
-          aria-label="Choose map style"
-          aria-expanded={stylePickerOpen}
-        >
-          <LayersIcon className="h-5 w-5" />
-        </button>
-        {stylePickerOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setStylePickerOpen(false)} aria-hidden />
-            <div className="surface-card absolute right-0 top-full z-50 mt-2 w-64 rounded-[1.4rem] p-2.5">
-              <div className="px-2 pb-2 pt-1">
-                <p className="eyebrow">Map appearance</p>
-                <p className="mt-1 text-xs font-medium text-muted">Choose the view that fits the shoot.</p>
-              </div>
-              <div className="space-y-1">
-                {MAP_STYLES.map((style) => (
-                  <button
-                    key={style.id}
-                    type="button"
-                    onClick={() => setMapStyle(style.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition ${
-                      mapStyle === style.id ? 'bg-accent-500/12' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <span className="h-10 w-10 shrink-0 rounded-xl border border-white/10 shadow-inner" style={{ background: style.preview }} />
-                    <span className="min-w-0 flex-1">
-                      <span className={`block text-sm font-extrabold ${mapStyle === style.id ? 'text-accent-400' : 'text-primary'}`}>{style.label}</span>
-                      <span className="block text-[11px] font-medium text-muted">{style.description}</span>
-                    </span>
-                    {mapStyle === style.id && <Check className="h-4 w-4 shrink-0 text-accent-400" strokeWidth={3} />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Brand + location search */}
-      <div className="absolute left-3 right-16 top-3 z-[1000] flex flex-wrap items-center gap-2">
-        <div className="surface-card flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl p-2" aria-hidden="true">
-          <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-full w-full object-contain" />
-        </div>
-        <form onSubmit={handleMapSearch} className="flex min-w-0 flex-1 gap-2">
+      {/* Search is the single persistent top row. */}
+      <div className="absolute left-3 right-3 top-3 z-[1002]">
+        <form onSubmit={handleMapSearch} className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
@@ -1039,96 +897,97 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
               </div>
             )}
           </div>
-          <button
-            type="submit"
-            disabled={mapSearchLoading || !mapSearchQuery.trim()}
-            className="primary-button h-11 shrink-0 px-4 text-sm disabled:opacity-50"
-          >
+          <button type="submit" disabled={mapSearchLoading || !mapSearchQuery.trim()} className="primary-button h-11 shrink-0 px-4 text-sm disabled:opacity-50">
             {mapSearchLoading ? '…' : 'Go'}
           </button>
         </form>
-        {mapSearchError && (
-          <p className="w-full text-xs text-amber-400 mt-0.5">{mapSearchError}</p>
-        )}
       </div>
 
-      {/* Filter + Distance dropdowns */}
-      <div className="absolute left-3 top-[4.25rem] right-16 z-[1000] flex gap-2 sm:max-w-md">
-        <div className="relative flex-1">
+      {/* One compact control row: filters, layers, location. */}
+      <div className="absolute left-3 right-3 top-[4.25rem] z-[1002] flex items-start justify-between gap-2">
+        <div className="relative">
           <button
             type="button"
-            onClick={() => { setFilterDropdownOpen((o) => !o); setDistanceDropdownOpen(false); }}
-            className="surface-card flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-secondary"
+            onClick={() => { setFilterDropdownOpen((open) => !open); setStylePickerOpen(false); }}
+            className={`surface-card flex h-11 items-center gap-2 rounded-2xl px-3.5 text-xs font-extrabold transition ${filterDropdownOpen || activeFilterCount ? 'border-accent-500/30 text-accent-400' : 'text-secondary'}`}
+            aria-expanded={filterDropdownOpen}
           >
-            <span className="truncate">Filter: {filterLabel}</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 transition ${filterDropdownOpen ? 'rotate-180' : ''}`} />
+            <Search className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent-500 px-1 text-[10px] font-black text-[#211603]">{activeFilterCount}</span>}
+            <ChevronDown className={`h-3.5 w-3.5 transition ${filterDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
           {filterDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setFilterDropdownOpen(false)} aria-hidden />
-              <div className="surface-card absolute left-0 top-full z-50 mt-2 max-h-56 w-full overflow-auto rounded-2xl py-2">
-                {FILTER_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setFilter(opt.id); setFilterDropdownOpen(false); }}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                      filter === opt.id ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
-                    }`}
-                  >
-                    {opt.label}
-                    {filter === opt.id && <span className="text-accent-400">✓</span>}
-                  </button>
-                ))}
+              <div className="surface-card absolute left-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-[1.4rem] p-3">
+                <div className="flex items-center justify-between gap-3 px-1 pb-2">
+                  <div><p className="eyebrow">Map filters</p><p className="mt-0.5 text-xs text-muted">Narrow spots without covering the map.</p></div>
+                  {activeFilterCount > 0 && <button type="button" onClick={() => { setFilter('all'); setDistanceFilterMi(null); }} className="text-xs font-extrabold text-accent-400">Reset</button>}
+                </div>
+                <div className="border-t border-white/[0.06] pt-3">
+                  <p className="px-1 text-[10px] font-black uppercase tracking-[0.15em] text-muted">Spot type · {filterLabel}</p>
+                  <div className="mt-2 grid max-h-44 grid-cols-2 gap-1 overflow-y-auto">
+                    {FILTER_OPTIONS.map((opt) => (
+                      <button key={opt.id} type="button" onClick={() => setFilter(opt.id)} className={`flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold ${filter === opt.id ? 'bg-accent-500/15 text-accent-400' : 'text-secondary hover:bg-white/5'}`}>
+                        <span className="truncate">{opt.label}</span>{filter === opt.id && <Check className="h-3.5 w-3.5 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 border-t border-white/[0.06] pt-3">
+                  <p className="px-1 text-[10px] font-black uppercase tracking-[0.15em] text-muted">Distance · {distanceLabel}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => setDistanceFilterMi(null)} className={`rounded-xl px-3 py-2 text-xs font-bold ${distanceFilterMi == null ? 'bg-accent-500/15 text-accent-400' : 'bg-white/[0.035] text-secondary'}`}>Any</button>
+                    {DISTANCE_OPTIONS_MI.map((mi) => (
+                      <button key={mi} type="button" onClick={() => setDistanceFilter(mi)} disabled={positionLoading} className={`rounded-xl px-3 py-2 text-xs font-bold disabled:opacity-50 ${distanceFilterMi === mi ? 'bg-accent-500/15 text-accent-400' : 'bg-white/[0.035] text-secondary'}`}>{distanceOptionLabel(mi)}</button>
+                    ))}
+                  </div>
+                  {!userPosition && <p className="mt-2 px-1 text-[10px] text-muted">Distance filters ask for location only when you choose one.</p>}
+                </div>
+                {onRefreshSpots && <button type="button" onClick={() => { onRefreshSpots(); setFilterDropdownOpen(false); }} disabled={spotsLoading} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-xs font-extrabold text-secondary disabled:opacity-50">
+                  <RefreshCw className={`h-3.5 w-3.5 ${spotsLoading ? 'animate-spin' : ''}`} />Refresh map data
+                </button>}
               </div>
             </>
           )}
         </div>
-        <div className="relative flex-1">
-          <button
-            type="button"
-            onClick={() => { setDistanceDropdownOpen((o) => !o); setFilterDropdownOpen(false); }}
-            className="surface-card flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-secondary"
-          >
-            <span className="truncate">Distance: {distanceLabel}</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 transition ${distanceDropdownOpen ? 'rotate-180' : ''}`} />
+
+        <div className="flex gap-2">
+          <div className="relative">
+            <button type="button" onClick={() => { setStylePickerOpen((open) => !open); setFilterDropdownOpen(false); }} className={`icon-button h-11 w-11 rounded-2xl ${stylePickerOpen ? 'border-accent-500/40 text-accent-400' : ''}`} aria-label="Choose map layers" aria-expanded={stylePickerOpen}>
+              <LayersIcon className="h-5 w-5" />
+            </button>
+            {stylePickerOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setStylePickerOpen(false)} aria-hidden />
+                <div className="surface-card absolute right-0 top-full z-50 mt-2 w-64 rounded-[1.4rem] p-2.5">
+                  <div className="px-2 pb-2 pt-1"><p className="eyebrow">Layers</p><p className="mt-1 text-xs font-medium text-muted">Choose the map appearance.</p></div>
+                  <div className="space-y-1">
+                    {MAP_STYLES.map((style) => (
+                      <button key={style.id} type="button" onClick={() => setMapStyle(style.id)} className={`flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition ${mapStyle === style.id ? 'bg-accent-500/12' : 'hover:bg-white/5'}`}>
+                        <span className="h-10 w-10 shrink-0 rounded-xl border border-white/10 shadow-inner" style={{ background: style.preview }} />
+                        <span className="min-w-0 flex-1"><span className={`block text-sm font-extrabold ${mapStyle === style.id ? 'text-accent-400' : 'text-primary'}`}>{style.label}</span><span className="block text-[11px] font-medium text-muted">{style.description}</span></span>
+                        {mapStyle === style.id && <Check className="h-4 w-4 shrink-0 text-accent-400" strokeWidth={3} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <button type="button" onClick={handleLocateMe} disabled={positionLoading} className="icon-button h-11 w-11 rounded-2xl text-primary transition hover:border-accent-500/40 hover:text-accent-400 disabled:opacity-60" aria-label="Center map on my location" title="My location">
+            <LocateFixed className={`h-5 w-5 ${positionLoading ? 'animate-pulse text-accent-400' : ''}`} strokeWidth={2.4} />
           </button>
-          {distanceDropdownOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setDistanceDropdownOpen(false)} aria-hidden />
-              <div className="surface-card absolute left-0 top-full z-50 mt-2 max-h-56 w-full overflow-auto rounded-2xl py-2">
-                <button
-                  type="button"
-                  onClick={() => { setDistanceFilterMi(null); setDistanceDropdownOpen(false); }}
-                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-                    distanceFilterMi === null ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
-                  }`}
-                >
-                  All
-                  {distanceFilterMi === null && <span className="text-accent-400">✓</span>}
-                </button>
-                {DISTANCE_OPTIONS_MI.map((mi) => (
-                  <button
-                    key={mi}
-                    type="button"
-                    onClick={() => { setDistanceFilter(mi); setDistanceDropdownOpen(false); }}
-                    disabled={positionLoading}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition disabled:opacity-50 ${
-                      distanceFilterMi === mi ? 'bg-accent-500/20 text-accent-400' : 'text-slate-300 hover:bg-white/5'
-                    }`}
-                  >
-                    Within {mi} mi
-                    {distanceFilterMi === mi && <span className="text-accent-400">✓</span>}
-                  </button>
-                ))}
-                {!userPosition && (distanceFilterMi != null || positionLoading) && (
-                  <p className="px-4 py-2 text-xs text-slate-500">Allow location for distance</p>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </div>
+
+      {mapSearchError && <div className="surface-card absolute left-3 right-3 top-[7.55rem] z-[1003] rounded-xl px-3 py-2 text-xs font-semibold text-amber-400 sm:max-w-md">{mapSearchError}</div>}
+
+      {/* Tile attribution remains visible without a large instructional card. */}
+      <p className="absolute bottom-[6.6rem] left-3 z-[999] max-w-[60vw] truncate rounded-lg bg-black/35 px-2 py-1 text-[7px] text-white/55 backdrop-blur-sm">
+        <a href="https://leafletjs.com" target="_blank" rel="noreferrer" className="hover:text-white">Leaflet</a><span aria-hidden="true"> · </span><span dangerouslySetInnerHTML={{ __html: activeMapStyle.attribution }} />
+      </p>
     </div>
   );
 }
