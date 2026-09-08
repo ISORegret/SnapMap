@@ -55,6 +55,7 @@ if (existsSync(websiteIndex)) {
   html = html.replace(/\{\{VERSION\}\}/g, version);
   html = html.replace(/(App v)[\d.]+/g, `$1${version}`);
   html = html.replace(/(version-under-btn">v)[\d.]+/g, `$1${version}`);
+  html = html.replace(/(<span data-app-version>)[\d.]+(<\/span>)/g, `$1${version}$2`);
   writeFileSync(websiteIndex, html, 'utf8');
   console.log(`Synced version ${version} to website/index.html (footer = APK version)`);
 }

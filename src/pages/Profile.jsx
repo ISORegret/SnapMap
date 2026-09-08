@@ -198,7 +198,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   const goBack = () => {
     const returnTo = location.state?.from;
     if (returnTo) navigate(returnTo);
-    else navigateBackOr(navigate, isOwnProfile ? '/' : '/explore?view=creators');
+    else navigateBackOr(navigate, isOwnProfile ? '/' : '/explore?view=community');
   };
 
   const startEditing = () => {

@@ -22,7 +22,6 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 const defaultCenter = [30.3322, -81.6557];
 const defaultZoom = 10;
 const VIEWPORT_STORAGE_KEY = 'snapmap_last_viewport';
-const EVENT_GEOCODE_STORAGE_KEY = 'snapmap_event_geocodes_v1';
 
 function isValidCoordinate(latitude, longitude) {
   const lat = Number(latitude);
@@ -363,7 +362,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const [mapPosts, setMapPosts] = useState([]);
   const [mapEvents, setMapEvents] = useState([]);
   const [eventLiveCounts, setEventLiveCounts] = useState({});
-  const [eventCoordinates, setEventCoordinates] = useState({});
   const [selectedEventId, setSelectedEventId] = useState(() => searchParams.get('event'));
 
   useEffect(() => {
@@ -403,57 +401,6 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
       unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    let cache = {};
-    try { cache = JSON.parse(localStorage.getItem(EVENT_GEOCODE_STORAGE_KEY) || '{}'); } catch { cache = {}; }
-
-    const direct = {};
-    const unresolved = new Map();
-    mapEvents.forEach((event) => {
-      if (isValidCoordinate(event.latitude, event.longitude)) {
-        direct[event.id] = { lat: Number(event.latitude), lng: Number(event.longitude) };
-        return;
-      }
-      const latitude = event.spot?.latitude;
-      const longitude = event.spot?.longitude;
-      if (isValidCoordinate(latitude, longitude)) {
-        direct[event.id] = { lat: Number(latitude), lng: Number(longitude) };
-        return;
-      }
-      const key = String(event.address || '').trim().toLowerCase();
-      if (!key) return;
-      if (isValidCoordinate(cache[key]?.lat, cache[key]?.lng)) direct[event.id] = cache[key];
-      else if (!unresolved.has(key)) unresolved.set(key, event.address);
-    });
-    setEventCoordinates(direct);
-
-    const resolveAddresses = async () => {
-      for (const [key, address] of unresolved) {
-        if (cancelled) return;
-        try {
-          const result = await geocodeAddress(address);
-          if (result && !cancelled) {
-            cache[key] = { lat: result.lat, lng: result.lng };
-            localStorage.setItem(EVENT_GEOCODE_STORAGE_KEY, JSON.stringify(cache));
-            setEventCoordinates((current) => {
-              const next = { ...current };
-              mapEvents.forEach((event) => {
-                if (String(event.address || '').trim().toLowerCase() === key) next[event.id] = cache[key];
-              });
-              return next;
-            });
-          }
-        } catch {
-          // Keep the event in the Events list if its address cannot be mapped.
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 1050));
-      }
-    };
-    resolveAddresses();
-    return () => { cancelled = true; };
-  }, [mapEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -543,9 +490,11 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
   const standalonePosts = useMemo(() => mapPosts.filter((post) => !post.spotId && post.imageUrl && isValidCoordinate(post.latitude, post.longitude)), [mapPosts]);
   const selectedPost = useMemo(() => mapPosts.find((post) => String(post.id) === String(selectedPostId)) || null, [mapPosts, selectedPostId]);
   const positionedEvents = useMemo(() => mapEvents.map((event) => {
-    const coordinates = eventCoordinates[event.id];
-    return coordinates ? { ...event, mapLatitude: coordinates.lat, mapLongitude: coordinates.lng, liveCount: eventLiveCounts[event.id] || 0 } : null;
-  }).filter(Boolean), [mapEvents, eventCoordinates, eventLiveCounts]);
+    const latitude = event.latitude ?? event.spot?.latitude;
+    const longitude = event.longitude ?? event.spot?.longitude;
+    if (!isValidCoordinate(latitude, longitude)) return null;
+    return { ...event, mapLatitude: Number(latitude), mapLongitude: Number(longitude), liveCount: eventLiveCounts[event.id] || 0 };
+  }).filter(Boolean), [mapEvents, eventLiveCounts]);
   const selectedEvent = useMemo(() => positionedEvents.find((event) => String(event.id) === String(selectedEventId)) || null, [positionedEvents, selectedEventId]);
 
   const saveViewport = useCallback((viewport) => {

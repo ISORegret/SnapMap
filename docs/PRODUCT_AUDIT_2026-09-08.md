@@ -17,7 +17,7 @@ Recommended navigation:
 | --- | ---: | --- |
 | Map and spot discovery | 15 spots | Keep; primary surface |
 | Spot detail, photos, light, weather, directions | Core planning flow | Keep and polish |
-| Events | 59 upcoming; 56 imported, 3 hosted | Keep; paginate and improve freshness |
+| Events | 56 upcoming at follow-up; all geocoded | Keep; improve freshness |
 | Favorites and lists | 9 favorites | Keep; simplify the empty state |
 | Route planner | Useful extension of saved places | Keep; surface contextually |
 | Profiles and follows | 5 profiles, 4 follows | Keep, but group under Community |
@@ -30,32 +30,33 @@ Recommended navigation:
 | Manual sync codes | Legacy account migration | Move to Settings as a one-time import |
 | Download counter | Stale marketing residue | Remove from product UI |
 
-## What was cleaned up in this pass
+## Completed cleanup
 
 - Stopped requesting browser location automatically on startup. Location is now requested only after the user asks for nearby results or taps the location control.
 - Prevented the install banner from appearing over the first-run tutorial.
 - Corrected the Creators page description so it no longer reports the spot count as creator activity.
 - Updated the landing page to the current product and made its version read from the deployed app metadata.
 - Removed the broken, unused landing-page Supabase configuration script and corrected the deployment documentation.
+- Replaced the five cramped Explore tabs with Spots, Events, and Community.
+- Moved universal search into the Explore header and grouped posts with creators under Community.
+- Limited the initial Events render to 12 cards with incremental “load more” pagination.
+- Backfilled every upcoming event coordinate and removed bulk address geocoding from map startup.
 
 ## Prioritized backlog
 
 ### P0 — reliability and clarity
 
 1. Require sign-in at the publish step and clearly label signed-out additions as local drafts.
-2. Paginate or virtualize the Events list; do not render all upcoming events at once.
-3. Backfill ownership for the 10 legacy spots with no owner where authorship is known.
-4. Move event geocoding out of the browser. Backfill coordinates once and persist them in Supabase.
-5. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
-6. Add error monitoring and a small analytics funnel for map → detail → save/directions.
+2. Backfill ownership for the 10 legacy spots with no owner where authorship is known.
+3. Upgrade React Router through a tested migration to resolve the two moderate security advisories.
+4. Add error monitoring and a small analytics funnel for map → detail → save/directions.
 
 ### P1 — simplify the interface
 
-1. Replace the five Explore tabs with Spots, Events, and Community; move universal search to the header.
-2. Move manual sync-code import, bulk export, and other rare actions into Settings or an overflow menu.
-3. Show ratings, comments, check-ins, and live activity only when they have data or clear user intent.
-4. Reduce map overlays: one search row, one filter action, one layers action, and one location action.
-5. Split large screens into smaller route components and lazy-load non-map routes. The current production JavaScript bundle is about 796 kB (217 kB gzip).
+1. Move manual sync-code import, bulk export, and other rare actions into Settings or an overflow menu.
+2. Show ratings, comments, check-ins, and live activity only when they have data or clear user intent.
+3. Reduce map overlays: one search row, one filter action, one layers action, and one location action.
+4. Split large screens into smaller route components and lazy-load non-map routes. The current production JavaScript bundle is about 796 kB (217 kB gzip).
 
 ### P2 — grow the core loop
 
