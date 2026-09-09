@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ImagePlus, MapPin, User, ChevronDown, FileClock, X, Search, CheckCircle2 } from 'lucide-react';
-import { getSpotImages, resizeImageToDataUrl } from '../utils/spotImages';
+import { MapPin, User, ChevronDown, FileClock, X, Search, CheckCircle2 } from 'lucide-react';
+import { getSpotImages } from '../utils/spotImages';
 import { hasSupabase } from '../api/supabase';
 import { getCurrentPosition } from '../utils/geo';
 
-const MAX_IMAGE_DIM = 1200;
+import SpotPhotoEditor from '../components/SpotPhotoEditor';
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 const DRAFT_KEY = 'snapmap_add_draft';
 
@@ -27,7 +27,6 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const navigate = useNavigate();
   const editSpot = location.state?.editSpot;
   const fromMap = !editSpot && location.state?.lat != null && location.state?.lng != null;
-  const fileInputRef = useRef(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -48,6 +47,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
   const [linkLabel, setLinkLabel] = useState('');
   const [createdBy, setCreatedBy] = useState('');
   const [photoError, setPhotoError] = useState('');
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [addressSearching, setAddressSearching] = useState(false);
@@ -90,28 +90,6 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     if (editSpot || !currentUserProfile?.username) return;
     setCreatedBy((prev) => (prev === '' ? currentUserProfile.username : prev));
   }, [currentUserProfile?.username, editSpot]);
-
-  const handlePhotoChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
-    setPhotoError('');
-    if (!files.length) return;
-    if (files.some((file) => !file.type.startsWith('image/'))) {
-      setPhotoError('Please choose an image file.');
-      return;
-    }
-    const uploaderName = (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim()
-      || 'SnapMap user';
-    Promise.all(files.map((file) => resizeImageToDataUrl(file, MAX_IMAGE_DIM, 0.85)))
-      .then((dataUrls) => {
-        setImages((prev) => [...prev, ...dataUrls.map((uri) => ({
-          uri,
-          photoBy: uploaderName,
-          uploadedBy: uploaderName,
-        }))]);
-      })
-      .catch(() => setPhotoError('Could not load photo. Try another.'));
-  };
 
   const hydrateDraft = useCallback((draft) => {
     if (!draft) return;
@@ -160,18 +138,6 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     return () => clearTimeout(id);
   }, [editSpot, draftReady, fromMap, name, description, address, parking, howToAccess, lat, lng, bestTime, crowdLevel, images, tags, linkUrl, linkLabel, createdBy, showDetails]);
 
-  const setPhotoBy = (index, photoBy) => {
-    setImages((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], photoBy };
-      return next;
-    });
-  };
-
-  const removePhoto = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const searchAddress = useCallback(async () => {
     const query = address.trim();
     if (!query) {
@@ -219,7 +185,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting || addressSearching) return;
+    if (submitting || addressSearching || photoLoading) return;
     if (!currentUser) {
       navigate('/signin', {
         replace: true,
@@ -605,59 +571,17 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               ? 'Add one or more shots; you can return and add more later.'
               : 'Add at least one photo of the spot. You can add more later.'}
           </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="hidden"
-            aria-hidden
-          />
-          <div className="mt-1 flex flex-col gap-3">
-            {images.map((img, index) => (
-              <div key={index} className="rounded-2xl border border-white/10 bg-[var(--bg-input)] p-2">
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
-                  <img src={img.uri} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white hover:bg-black/80"
-                  >
-                    Remove
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={img.photoBy || ''}
-                  onChange={(e) => setPhotoBy(index, e.target.value)}
-                  placeholder="Photo by (photographer name)"
-                  className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500"
-                />
-                <p className="mt-1 px-1 text-[11px] text-slate-500">
-                  Uploaded by {img.uploadedBy || (currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() || editSpot?.createdByDisplayName || 'SnapMap user'}
-                </p>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[var(--bg-input)] py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-            >
-              <ImagePlus className="h-5 w-5" />
-              {images.length === 0 ? 'Choose from phone' : 'Add another photo'}
-            </button>
-            {photoError && (
-              <p className="text-xs text-red-400">{photoError}</p>
-            )}
-          </div>
+          <SpotPhotoEditor images={images} setImages={setImages}
+            uploaderName={(currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() || 'SnapMap user'}
+            onError={setPhotoError} onBusyChange={setPhotoLoading} disabled={submitting} />
+          {photoError && <p role="alert" className="mt-2 text-xs text-red-400">{photoError}</p>}
         </div>
         <button
           type="submit"
-          disabled={submitting || addressSearching}
+          disabled={submitting || addressSearching || photoLoading}
           className="primary-button w-full py-4 text-sm disabled:pointer-events-none disabled:opacity-60"
         >
-          {submitting ? (editSpot ? 'Saving…' : 'Adding…') : addressSearching ? 'Finding address…' : editSpot ? 'Save changes' : 'Add spot'}
+          {submitting ? (editSpot ? 'Saving…' : 'Adding…') : photoLoading ? 'Preparing photos…' : addressSearching ? 'Finding address…' : editSpot ? 'Save changes' : 'Add spot'}
         </button>
         {editSpot && saveFeedback === 'success' && (
           <p className="mt-2 text-center text-sm text-accent-400" role="status">

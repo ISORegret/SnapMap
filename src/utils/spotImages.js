@@ -19,9 +19,10 @@ export function resizeImageToDataUrl(file, maxDim = 1200, quality = 0.85) {
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
       try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Image processing is unavailable');
+        ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       } catch (e) {
         reject(e);
