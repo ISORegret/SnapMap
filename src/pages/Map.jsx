@@ -389,7 +389,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
 
   useEffect(() => {
     let cancelled = false;
-    const refresh = () => fetchUpcomingEvents(100).then((result) => {
+    const refresh = () => fetchUpcomingEvents(150).then((result) => {
       if (!cancelled) setMapEvents(result.events || []);
     });
     refresh();

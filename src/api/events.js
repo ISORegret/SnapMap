@@ -23,6 +23,11 @@ const EVENT_SELECT_WITH_STATUS = EVENT_SELECT_WITH_COVER.replace(
   'rsvps:event_rsvps(user_id, status, created_at,'
 );
 
+const EVENT_SELECT_WITH_FRESHNESS = EVENT_SELECT_WITH_STATUS.replace(
+  'event_type, venue_name, address, latitude, longitude, cover_image_url, cover_image_path, listing_type, source_label,',
+  'event_type, venue_name, address, latitude, longitude, cover_image_url, cover_image_path, listing_type, source_label, source_url, source_updated_at, last_verified_at, source_status, official_url,',
+);
+
 const EVENT_SELECT_WITH_STATUS_LEGACY = EVENT_SELECT.replace(
   'rsvps:event_rsvps(user_id, created_at,',
   'rsvps:event_rsvps(user_id, status, created_at,'
@@ -48,6 +53,11 @@ function normalizeEvent(event, currentUserId = null) {
     coverImagePath: event.cover_image_path || '',
     listingType: event.listing_type || 'hosted',
     sourceLabel: event.source_label || 'SnapMap community',
+    sourceUrl: event.source_url || '',
+    sourceUpdatedAt: event.source_updated_at || null,
+    lastVerifiedAt: event.last_verified_at || null,
+    sourceStatus: event.source_status || 'active',
+    officialUrl: event.official_url || '',
     createdAt: event.created_at,
     attendeeCount: rsvps.filter((rsvp) => rsvp.status === 'going').length,
     interestedCount: rsvps.filter((rsvp) => rsvp.status === 'interested').length,
@@ -65,45 +75,47 @@ async function currentUserId() {
 export async function fetchUpcomingEvents(limit = 50) {
   if (!hasSupabase) return { events: [], error: 'Events need cloud sync.' };
   const userId = await currentUserId();
-  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS)
+  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_FRESHNESS)
     .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
     .order('starts_at', { ascending: true })
-    .limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
+    .limit(Math.min(Math.max(Number(limit) || 50, 1), 200));
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS_LEGACY)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .order('starts_at', { ascending: true })
-      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 200)));
   }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_COVER)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .order('starts_at', { ascending: true })
-      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 200)));
   }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .order('starts_at', { ascending: true })
-      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 200)));
   }
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_BASE)
       .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .order('starts_at', { ascending: true })
-      .limit(Math.min(Math.max(Number(limit) || 50, 1), 100)));
+      .limit(Math.min(Math.max(Number(limit) || 50, 1), 200)));
   }
   if (error) {
     console.warn('SnapMap: events fetch failed', error);
     return { events: [], error: error.code === '42P01' || error.code === 'PGRST205' ? 'Events are waiting for migration 032.' : 'Could not load events.' };
   }
-  return { events: (data || []).map((event) => normalizeEvent(event, userId)), error: null };
+  const events = (data || []).map((event) => normalizeEvent(event, userId))
+    .filter((event) => event.listingType !== 'listed' || event.sourceStatus === 'active');
+  return { events, error: null };
 }
 
 export async function fetchEvent(eventId) {
   if (!hasSupabase || !eventId) return { event: null, error: 'Event not found.' };
   const userId = await currentUserId();
-  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS).eq('id', eventId).maybeSingle();
+  let { data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_FRESHNESS).eq('id', eventId).maybeSingle();
   if (error && ['42703', 'PGRST204'].includes(error.code)) {
     ({ data, error } = await supabase.from('events').select(EVENT_SELECT_WITH_STATUS_LEGACY).eq('id', eventId).maybeSingle());
   }

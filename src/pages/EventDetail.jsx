@@ -19,6 +19,13 @@ function fullDate(value) {
   return new Date(value).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+function verifiedLabel(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `Verified ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+}
+
 export default function EventDetail({ allSpots = [], currentUser, userPosition = null, requestPosition, showToast } = {}) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -235,6 +242,11 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
       </header>
 
       <main className="mx-auto w-full max-w-3xl px-4 py-5 md:px-6">
+        {event.listingType === 'listed' && event.sourceStatus !== 'active' && (
+          <div className="mb-4 rounded-2xl border border-amber-400/20 bg-amber-400/[0.07] px-4 py-3 text-sm text-amber-200">
+            This listing is no longer active on the source calendar. Check the organizer before making plans.
+          </div>
+        )}
         <section className="surface-card overflow-hidden rounded-[1.75rem]">
           <div className="relative aspect-[16/10] overflow-hidden bg-black/20">
             <img src={event.coverImageUrl || getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
@@ -250,10 +262,11 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
             {event.description && <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-secondary">{event.description}</p>}
 
             <div className="mt-5 flex flex-wrap gap-2">
-              {event.listingType === 'listed' ? <span className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />Listed from {event.sourceLabel}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=community'} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{event.host?.avatar_url ? <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</span>{event.host?.display_name || 'Creator'}</Link>}
+              {event.listingType === 'listed' ? <span className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />Listed from {event.sourceLabel}{event.lastVerifiedAt ? ` · ${verifiedLabel(event.lastVerifiedAt)}` : ''}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=community'} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{event.host?.avatar_url ? <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</span>{event.host?.display_name || 'Creator'}</Link>}
               {hasCoordinates && <Link to={`/?event=${event.id}&lat=${latitude}&lng=${longitude}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><MapPin className="h-4 w-4 text-accent-400" />View on map</Link>}
               {hasCoordinates && <DirectionsLauncher googleUrl={googleDirectionsUrl(latitude, longitude)} appleUrl={appleDirectionsUrl(latitude, longitude)} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
+              {event.listingType === 'listed' && (event.officialUrl || event.sourceUrl) && <a href={event.officialUrl || event.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />{event.officialUrl ? 'Official listing' : 'Source calendar'}</a>}
               {currentUser && <Link to={`/explore?view=events&duplicate=${event.id}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Copy className="h-4 w-4 text-accent-400" />Duplicate event</Link>}
               <button type="button" onClick={share} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Share2 className="h-4 w-4 text-accent-400" />Share event</button>
               {currentUser && <Link to="/messages" state={{ from: `/event/${event.id}`, share: { type: 'event', id: event.id, title: event.title, subtitle: `${event.venueName || spot?.name || 'Event'} · ${fullDate(event.startsAt)}`, imageUrl: event.coverImageUrl || getSpotPrimaryImage(spot) || '' } }} className="flex items-center gap-2 rounded-2xl border border-accent-500/20 bg-accent-500/[0.06] px-3 py-2.5 text-xs font-bold text-accent-400"><MessageCircle className="h-4 w-4" />Send to a friend</Link>}
