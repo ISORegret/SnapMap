@@ -1,0 +1,115 @@
+name: Split SpotFeed components
+
+on:
+  push:
+    branches:
+      - refactor/split-spot-feed-2026-09-08
+    paths:
+      - .github/workflows/split-spot-feed.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/split-spot-feed-2026-09-08
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Split SpotFeed subcomponents
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path('src/components/SpotFeed.jsx')
+          text = source_path.read_text()
+
+          card_start = text.index('function timeAgo')
+          editor_start = text.index('function PostEditor')
+          composer_start = text.index('function Composer')
+          main_start = text.index('export default function SpotFeed')
+
+          card = text[card_start:editor_start].rstrip() + '\n'
+          editor = text[editor_start:composer_start].rstrip() + '\n'
+          composer = text[composer_start:main_start].rstrip() + '\n'
+          main = text[main_start:]
+
+          card = card.replace('function PostCard(', 'export default function PostCard(', 1)
+          editor = editor.replace('function PostEditor(', 'export default function PostEditor(', 1)
+          composer = composer.replace('function Composer(', 'export default function PostComposer(', 1)
+          main = main.replace('<Composer ', '<PostComposer ', 1)
+
+          out = Path('src/components/community')
+          out.mkdir(parents=True, exist_ok=True)
+
+          (out / 'PostCard.jsx').write_text("""import React, { useState } from 'react';
+          import { Link } from 'react-router-dom';
+          import { CalendarDays, ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, MoreHorizontal, Navigation, Pencil, Send, Share2, Sparkles, Trash2, User } from 'lucide-react';
+          import { addPostComment, deletePost, deletePostComment, reportPost, togglePostLike } from '../../api/posts';
+          import { kmToMi } from '../../utils/geo';
+
+          """ + card)
+
+          (out / 'PostEditor.jsx').write_text("""import React, { useEffect, useMemo, useState } from 'react';
+          import { createPortal } from 'react-dom';
+          import { LocateFixed, X } from 'lucide-react';
+          import { updatePost } from '../../api/posts';
+
+          """ + editor)
+
+          (out / 'PostComposer.jsx').write_text("""import React, { useEffect, useMemo, useRef, useState } from 'react';
+          import { createPortal } from 'react-dom';
+          import { ImagePlus, LocateFixed, X } from 'lucide-react';
+          import { compressPostImage, createPost } from '../../api/posts';
+
+          """ + composer)
+
+          source_path.write_text("""import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+          import { Link, useSearchParams } from 'react-router-dom';
+          import { CalendarDays, Camera, Clock3, LocateFixed, MapPin, Sparkles } from 'lucide-react';
+          import { fetchPosts, subscribeToFeed } from '../api/posts';
+          import { fetchEvent, fetchUpcomingEvents } from '../api/events';
+          import { getFriendConnections } from '../api/follows';
+          import { haversineKm, kmToMi } from '../utils/geo';
+          import { getSpotPrimaryImage } from '../utils/spotImages';
+          import PostCard from './community/PostCard';
+          import PostComposer from './community/PostComposer';
+          import PostEditor from './community/PostEditor';
+
+          """ + main)
+          PY
+      - name: Verify structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/components/community/PostCard.jsx
+          test -f src/components/community/PostComposer.jsx
+          test -f src/components/community/PostEditor.jsx
+          grep -F "import PostCard from './community/PostCard';" src/components/SpotFeed.jsx
+          grep -F 'export default function PostComposer' src/components/community/PostComposer.jsx
+          grep -F 'export default function PostEditor' src/components/community/PostEditor.jsx
+          grep -F 'export default function PostCard' src/components/community/PostCard.jsx
+          bytes=$(wc -c < src/components/SpotFeed.jsx)
+          test "$bytes" -lt 20000
+          echo "SpotFeed size after split: $bytes bytes"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git config user.name "SnapMap refactor"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/SpotFeed.jsx src/components/community/PostCard.jsx src/components/community/PostComposer.jsx src/components/community/PostEditor.jsx
+          git commit -m "Split SpotFeed into focused community components"
+          git push origin HEAD:refactor/split-spot-feed-2026-09-08
