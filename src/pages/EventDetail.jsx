@@ -232,7 +232,7 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
   const eventPhotos = eventPosts.flatMap((post) => (post.images || []).map((image) => ({ ...image, post })));
 
   return (
-    <div className="page-shell pb-36 animate-fade-in">
+    <div className={`page-shell animate-fade-in ${isHost ? 'pb-16' : 'pb-28'}`}>
       <header className="page-header sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <button type="button" onClick={() => navigateBackOr(navigate, '/explore?view=events')} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button>
@@ -268,7 +268,6 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
               {!hasCoordinates && hasAddress && <DirectionsLauncher googleUrl={googleAddressUrl} appleUrl={appleAddressUrl} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Navigation className="h-4 w-4 text-accent-400" />Directions</DirectionsLauncher>}
               {event.listingType === 'listed' && (event.officialUrl || event.sourceUrl) && <a href={event.officialUrl || event.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><CalendarDays className="h-4 w-4 text-accent-400" />{event.officialUrl ? 'Official listing' : 'Source calendar'}</a>}
               {currentUser && <Link to={`/explore?view=events&duplicate=${event.id}`} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Copy className="h-4 w-4 text-accent-400" />Duplicate event</Link>}
-              <button type="button" onClick={share} className="flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2.5 text-xs font-bold text-secondary"><Share2 className="h-4 w-4 text-accent-400" />Share event</button>
               {currentUser && <Link to="/messages" state={{ from: `/event/${event.id}`, share: { type: 'event', id: event.id, title: event.title, subtitle: `${event.venueName || spot?.name || 'Event'} · ${fullDate(event.startsAt)}`, imageUrl: event.coverImageUrl || getSpotPrimaryImage(spot) || '' } }} className="flex items-center gap-2 rounded-2xl border border-accent-500/20 bg-accent-500/[0.06] px-3 py-2.5 text-xs font-bold text-accent-400"><MessageCircle className="h-4 w-4" />Send to a friend</Link>}
             </div>
           </div>
@@ -333,9 +332,9 @@ export default function EventDetail({ allSpots = [], currentUser, userPosition =
         {canManage && <button type="button" onClick={remove} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-extrabold text-rose-400 hover:bg-rose-400/10 disabled:opacity-50"><Trash2 className="h-4 w-4" />{event.listingType === 'listed' ? 'Delete listing' : 'Cancel event'}</button>}
       </main>
 
-      {!isHost && <div className="fixed bottom-[6.7rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-2 shadow-2xl backdrop-blur-2xl">
+      {!isHost && <div className="context-action-wrap"><div className="context-action-dock p-2">
         {currentUser ? <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => chooseRsvp('interested')} disabled={busy} className={`flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] text-sm font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/20 text-cyan-300 ring-1 ring-cyan-400/25' : 'bg-white/[0.055] text-secondary'}`}>{busy ? 'Saving…' : event.rsvpStatus === 'interested' ? 'Interested ✓' : 'Interested'}</button><button type="button" onClick={() => chooseRsvp('going')} disabled={busy || (full && event.rsvpStatus !== 'going')} className={`flex min-h-12 items-center justify-center gap-2 rounded-[1.05rem] text-sm font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'going' ? 'bg-emerald-400/15 text-emerald-400 ring-1 ring-emerald-400/20' : 'bg-accent-500 text-[#211603]'}`}><Users className="h-4 w-4" />{busy ? 'Saving…' : full && event.rsvpStatus !== 'going' ? 'Event full' : event.rsvpStatus === 'going' ? 'Going ✓' : 'Going'}</button></div> : <Link to="/signin" className="primary-button min-h-12 w-full text-sm">Sign in to RSVP</Link>}
-      </div>}
+      </div></div>}
     </div>
   );
 }

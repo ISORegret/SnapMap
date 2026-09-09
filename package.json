@@ -1,7 +1,7 @@
 {
   "name": "snapmap",
   "private": true,
-  "version": "2.29.5",
+  "version": "2.29.6",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

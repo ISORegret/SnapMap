@@ -211,6 +211,27 @@ a:hover { text-decoration: none; }
     background: var(--accent);
     box-shadow: 0 0 12px var(--accent);
   }
+
+  .context-action-wrap {
+    pointer-events: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 1050;
+    padding: 0 0.75rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .context-action-dock {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 32rem;
+    margin-inline: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: 1.45rem;
+    background: var(--bg-nav);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(28px) saturate(1.3);
+  }
 }
 
 @layer utilities {

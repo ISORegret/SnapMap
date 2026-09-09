@@ -521,7 +521,7 @@ export default function SpotDetail({
         : null;
 
     return (
-    <div className="page-shell pb-48 animate-fade-in">
+    <div className="page-shell pb-32 animate-fade-in">
       {(spot.syncError || spot.uploadError) && (
         <div className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg bg-amber-950/95 px-3 py-2 text-sm text-amber-200 backdrop-blur-sm">
           <span>{spot.syncError ? "Edit didn't sync to cloud." : `Couldn't sync: ${spot.uploadError}`}</span>
@@ -536,7 +536,8 @@ export default function SpotDetail({
           )}
         </div>
       )}
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-nav)] px-4 py-3 backdrop-blur-2xl">
+      <header className="page-header sticky top-0 z-20">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => navigateBackOr(navigate, '/')}
@@ -545,23 +546,9 @@ export default function SpotDetail({
           <ArrowLeft className="h-5 w-5" />
           Back
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            const saving = !isFavorite(spot.id);
-            toggleFavorite(spot.id);
-            if (saving) recordDiagnostic('save_spot', { page: 'spot' });
-          }}
-          className="icon-button h-10 w-10 rounded-2xl"
-          aria-label={isFavorite(spot.id) ? 'Unsave' : 'Save'}
-        >
-          <Heart
-            className="h-5 w-5"
-            fill={isFavorite(spot.id) ? '#f43f5e' : 'transparent'}
-            stroke={isFavorite(spot.id) ? '#f43f5e' : 'currentColor'}
-            strokeWidth={2}
-          />
-        </button>
+        <p className="eyebrow">Spot details</p>
+        <span className="h-10 w-[5.45rem]" aria-hidden />
+        </div>
       </header>
       <SpotImageGallery images={spotImages} spotName={spot.name} />
       {canAddPhoto && (
@@ -790,12 +777,12 @@ export default function SpotDetail({
         <WeatherAtSpot latitude={latitude} longitude={longitude} units={units} />
         </section>
 
-        {/* Directions */}
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Directions
-          </p>
-          <div className="flex flex-wrap gap-2">
+        {/* Additional navigation apps */}
+        <details className="surface-card group mt-4 rounded-2xl px-4 py-3">
+          <summary className="cursor-pointer list-none text-sm font-bold text-secondary marker:hidden">
+            <span className="flex items-center justify-between gap-3"><span>More navigation options</span><span className="text-xs font-extrabold text-accent-400 group-open:hidden">Show</span><span className="hidden text-xs font-extrabold text-accent-400 group-open:inline">Hide</span></span>
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--border-subtle)] pt-3">
             <a
               href={googleMapsUrl}
               onClick={() => recordDiagnostic('directions', { page: 'spot' })}
@@ -827,7 +814,7 @@ export default function SpotDetail({
               Waze
             </a>
           </div>
-        </div>
+        </details>
 
         {/* Creator discussion (cloud spots only) */}
         {canAddNotes && (visibleNotes.length > 0 || discussionOpen) && (
@@ -1068,9 +1055,9 @@ export default function SpotDetail({
           <p className="mt-3 text-xs text-slate-500">Photo: {spot.photoBy}</p>
         )}
       </div>
-      <div className="fixed bottom-[6.7rem] left-3 right-3 z-[1040] mx-auto max-w-lg rounded-[1.45rem] border border-white/10 bg-[var(--bg-nav)] p-1.5 shadow-2xl backdrop-blur-2xl">
-        <div className="grid grid-cols-4 gap-1">
-          <button type="button" onClick={() => toggleFavorite(spot.id)} className={`flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold ${isFavorite(spot.id) ? 'bg-accent-500 text-[#211603]' : 'text-secondary hover:bg-white/5'}`}>
+      <div className="context-action-wrap">
+        <div className="context-action-dock grid grid-cols-4 gap-1 p-1.5">
+          <button type="button" onClick={() => { const saving = !isFavorite(spot.id); toggleFavorite(spot.id); if (saving) recordDiagnostic('save_spot', { page: 'spot' }); }} className={`flex flex-col items-center gap-1 rounded-[1.05rem] py-2 text-[10px] font-extrabold ${isFavorite(spot.id) ? 'bg-accent-500 text-[#211603]' : 'text-secondary hover:bg-white/5'}`}>
             <Heart className="h-4 w-4" fill={isFavorite(spot.id) ? 'currentColor' : 'none'} />
             {isFavorite(spot.id) ? 'Saved' : 'Save'}
           </button>
