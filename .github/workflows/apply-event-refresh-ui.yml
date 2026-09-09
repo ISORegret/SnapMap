@@ -1,0 +1,56 @@
+name: Apply event refresh UI
+
+on:
+  push:
+    branches:
+      - feature/event-source-refresh-2026-09-08
+    paths:
+      - scripts/patch-event-refresh-ui.py
+      - .github/workflows/apply-event-refresh-ui.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/event-source-refresh-2026-09-08
+          fetch-depth: 0
+      - name: Apply event freshness UI patch
+        run: python scripts/patch-event-refresh-ui.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+      - name: Verify event freshness wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'EVENT_SELECT_WITH_FRESHNESS' src/api/events.js
+          grep -F "sourceStatus: event.source_status || 'active'" src/api/events.js
+          grep -F "event.sourceStatus !== 'active'" src/pages/EventDetail.jsx
+          grep -F 'Verified' src/components/EventHub.jsx
+          grep -F 'fetchUpcomingEvents(150)' src/pages/Map.jsx
+      - name: Commit app changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SnapMap repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/api/events.js src/components/EventHub.jsx src/pages/EventDetail.jsx src/pages/Map.jsx
+          if git diff --cached --quiet; then
+            echo "No UI changes to commit"
+          else
+            git commit -m "Show event source freshness and hide inactive listings"
+            git push origin HEAD:feature/event-source-refresh-2026-09-08
+          fi
