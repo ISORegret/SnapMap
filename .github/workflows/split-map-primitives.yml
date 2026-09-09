@@ -1,0 +1,132 @@
+name: Split Map primitives
+
+on:
+  push:
+    branches:
+      - refactor/split-map-primitives-2026-09-08
+    paths:
+      - .github/workflows/split-map-primitives.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/split-map-primitives-2026-09-08
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Extract Leaflet primitives
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/pages/Map.jsx')
+          text = path.read_text()
+          helper_start = text.index('const defaultCenter')
+          main_start = text.index('export default function MapPage')
+          helpers = text[helper_start:main_start].rstrip() + '\n'
+
+          exports = [
+              ('const defaultCenter', 'export const defaultCenter'),
+              ('const defaultZoom', 'export const defaultZoom'),
+              ('function isValidCoordinate', 'export function isValidCoordinate'),
+              ('function readSavedViewport', 'export function readSavedViewport'),
+              ('const icon', 'export const icon'),
+              ('function liveSpotIcon', 'export function liveSpotIcon'),
+              ('function routeStopIcon', 'export function routeStopIcon'),
+              ('function applyFilter', 'export function applyFilter'),
+              ('function applyDistanceFilter', 'export function applyDistanceFilter'),
+              ('const FILTER_OPTIONS', 'export const FILTER_OPTIONS'),
+              ('const MAP_STYLES', 'export const MAP_STYLES'),
+              ('function FlyToCenter', 'export function FlyToCenter'),
+              ('function FitRoute', 'export function FitRoute'),
+              ('function MapClickHandler', 'export function MapClickHandler'),
+              ('function SpotMarkersCluster', 'export function SpotMarkersCluster'),
+              ('function EventMarkersCluster', 'export function EventMarkersCluster'),
+              ('function ViewportTracker', 'export function ViewportTracker'),
+              ('async function geocodeAddress', 'export async function geocodeAddress'),
+          ]
+          for old, new in exports:
+              if old not in helpers:
+                  raise SystemExit(f'Missing map helper anchor: {old}')
+              helpers = helpers.replace(old, new, 1)
+
+          out = Path('src/components/map')
+          out.mkdir(parents=True, exist_ok=True)
+          (out / 'MapPrimitives.jsx').write_text("""import React, { useEffect, useRef } from 'react';
+          import { useMap, useMapEvents } from 'react-leaflet';
+          import L from 'leaflet';
+          if (typeof window !== 'undefined') window.L = L;
+          import 'leaflet.markercluster';
+          import { CATEGORIES, matchesCategory } from '../../utils/categories';
+          import { haversineKm, milesToKm } from '../../utils/geo';
+
+          """ + helpers)
+
+          text = text[:helper_start] + text[main_start:]
+          text = text.replace("import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';", "import { MapContainer, TileLayer, Marker, CircleMarker, Polyline, Popup } from 'react-leaflet';")
+          text = text.replace("import L from 'leaflet';\nif (typeof window !== 'undefined') window.L = L;\nimport 'leaflet.markercluster';\n", '')
+          text = text.replace("import { CATEGORIES, matchesCategory } from '../utils/categories';\n", '')
+          text = text.replace("import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';", "import { getCurrentPosition, DISTANCE_OPTIONS_MI } from '../utils/geo';")
+
+          anchor = "import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';\n"
+          primitives_import = """import {
+            defaultCenter,
+            defaultZoom,
+            isValidCoordinate,
+            readSavedViewport,
+            icon,
+            liveSpotIcon,
+            routeStopIcon,
+            applyFilter,
+            applyDistanceFilter,
+            FILTER_OPTIONS,
+            MAP_STYLES,
+            FlyToCenter,
+            FitRoute,
+            MapClickHandler,
+            SpotMarkersCluster,
+            EventMarkersCluster,
+            ViewportTracker,
+            geocodeAddress,
+          } from '../components/map/MapPrimitives';
+          """
+          if anchor not in text:
+              raise SystemExit('Map import anchor missing')
+          text = text.replace(anchor, anchor + primitives_import, 1)
+          path.write_text(text)
+          PY
+      - name: Verify structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/components/map/MapPrimitives.jsx
+          grep -F "from '../components/map/MapPrimitives';" src/pages/Map.jsx
+          grep -F 'export function SpotMarkersCluster' src/components/map/MapPrimitives.jsx
+          grep -F 'export function EventMarkersCluster' src/components/map/MapPrimitives.jsx
+          grep -F 'export async function geocodeAddress' src/components/map/MapPrimitives.jsx
+          bytes=$(wc -c < src/pages/Map.jsx)
+          test "$bytes" -lt 40000
+          echo "Map page size after primitive split: $bytes bytes"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git config user.name "SnapMap refactor"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/pages/Map.jsx src/components/map/MapPrimitives.jsx
+          git commit -m "Extract Map Leaflet primitives from page state"
+          git push origin HEAD:refactor/split-map-primitives-2026-09-08
