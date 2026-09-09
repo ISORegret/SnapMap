@@ -174,6 +174,18 @@ function occurrenceFromEvent(event: any, start: Date, end: Date | null, recurrin
   };
 }
 
+function sourceOccurrenceIdentity(item: SourceOccurrence) {
+  return `${titleKey(item.title)}|${item.startsAt}|${locationKey(item.location)}`;
+}
+
+function preferredSourceOccurrence(left: SourceOccurrence, right: SourceOccurrence) {
+  const leftUpdated = Date.parse(left.sourceUpdatedAt || '') || 0;
+  const rightUpdated = Date.parse(right.sourceUpdatedAt || '') || 0;
+  if (leftUpdated !== rightUpdated) return leftUpdated > rightUpdated ? left : right;
+  if (left.status !== right.status) return left.status === 'cancelled' ? left : right;
+  return left.sourceKey.localeCompare(right.sourceKey) <= 0 ? left : right;
+}
+
 function parseCalendar(ics: string, now: Date) {
   const root = new ICAL.Component(ICAL.parse(ics));
   const masters = new Map<string, any>();
@@ -214,7 +226,14 @@ function parseCalendar(ics: string, now: Date) {
     }
   }
 
-  return [...occurrences.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const deduped = new Map<string, SourceOccurrence>();
+  for (const item of occurrences.values()) {
+    const identity = sourceOccurrenceIdentity(item);
+    const current = deduped.get(identity);
+    deduped.set(identity, current ? preferredSourceOccurrence(current, item) : item);
+  }
+
+  return [...deduped.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 }
 
 function changed(existing: Record<string, unknown> | undefined, row: Record<string, unknown>) {
