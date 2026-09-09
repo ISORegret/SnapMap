@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff } from 'lucide-react';
+import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff, Lock } from 'lucide-react';
 import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
@@ -744,13 +744,17 @@ export default function App() {
 
   const navLinkClass = ({ isActive }) =>
     `nav-item ${isActive ? 'nav-item-active' : ''}`;
-  const hasContextNavigation = /^\/(?:spot|event)\/[^/]+$/.test(pathname) || /^\/messages\/[^/]+$/.test(pathname);
+  const hasFocusedLayout = /^\/(?:spot|event)\/[^/]+$/.test(pathname)
+    || /^\/messages\/[^/]+$/.test(pathname)
+    || pathname === '/signin'
+    || pathname === '/change-password'
+    || (pathname === '/profile' && !currentUser);
 
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
       <RouteScrollReset />
       <DiagnosticsTracker currentUser={currentUser} />
-      <InstallPrompt enabled={tutorialDone} />
+      <InstallPrompt enabled={tutorialDone && !hasFocusedLayout} />
       <Tutorial onDone={() => setTutorialDone(true)} />
       <ToastHost toast={toast} onDismiss={dismissToast} />
       {!isOnline && (
@@ -759,7 +763,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: hasContextNavigation ? 0 : 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: hasFocusedLayout ? 0 : 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex-1 min-h-0 flex flex-col relative">
           <Suspense fallback={<div className="flex flex-1 items-center justify-center p-12 text-sm text-slate-400" role="status">Loading page…</div>}>
           <Routes>
@@ -857,7 +861,7 @@ export default function App() {
         </div>
       </main>
       {/* Bottom navigation dock */}
-      {!hasContextNavigation && <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex flex-col items-center px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
+      {!hasFocusedLayout && <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex flex-col items-center px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
         <nav
           className="nav-dock pointer-events-auto grid w-full max-w-lg grid-cols-5 items-center rounded-[1.65rem] px-1.5 py-1.5"
           aria-label="Main"
@@ -873,10 +877,11 @@ export default function App() {
           <NavLink
             to="/add"
             className={({ isActive }) => `group -mt-6 flex flex-col items-center gap-1 text-[var(--text-muted)] ${isActive ? 'text-accent-400' : ''}`}
-            aria-label="Add a new spot"
+            aria-label={currentUser ? 'Add a new spot' : 'Sign in to add a spot'}
           >
-            <span className="primary-button flex h-14 w-14 rounded-[1.2rem] border border-white/20">
+            <span className="primary-button relative flex h-14 w-14 rounded-[1.2rem] border border-white/20">
               <Plus className="h-6 w-6" strokeWidth={2.7} />
+              {!currentUser && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-[var(--bg-nav)] bg-[var(--bg-card-solid)] text-muted"><Lock className="h-2.5 w-2.5" strokeWidth={2.5} /></span>}
             </span>
             <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Add</span>
           </NavLink>
@@ -887,13 +892,13 @@ export default function App() {
           <NavLink to="/profile" className={navLinkClass}>
             <span className="relative">
               <User className="h-[1.15rem] w-[1.15rem]" strokeWidth={2.1} />
-              {unreadNotifications + unreadMessages > 0 ? (
+              {currentUser && (unreadNotifications + unreadMessages > 0 ? (
                 <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-[var(--bg-nav)] bg-accent-500 px-1 text-[8px] font-black text-[#211603]">{Math.min(unreadNotifications + unreadMessages, 9)}{unreadNotifications + unreadMessages > 9 ? '+' : ''}</span>
               ) : (
                 <span className={`absolute -right-1 -top-1 h-2 w-2 rounded-full border border-[var(--bg-nav)] ${syncStatus === 'offline' ? 'bg-amber-400' : syncStatus === 'failed' ? 'bg-rose-400' : syncStatus === 'syncing' ? 'animate-pulse bg-sky-400' : 'bg-emerald-400'}`} title={`Sync: ${syncStatus}`} />
-              )}
+              ))}
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">Profile</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em]">{currentUser ? 'Profile' : 'Sign in'}</span>
           </NavLink>
         </nav>
         {updateAvailable && (

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone } from 'lucide-react';
+import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone, X, Compass } from 'lucide-react';
 import { getSpotPrimaryImage } from '../utils/spotImages';
 
 function generateSyncCode() {
@@ -136,6 +136,7 @@ export default function Saved({
     [idsParam]
   );
   const [newListName, setNewListName] = useState('');
+  const [listFormOpen, setListFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [exportCopied, setExportCopied] = useState(false);
   const [importCodeValue, setImportCodeValue] = useState('');
@@ -158,6 +159,7 @@ export default function Saved({
     const name = newListName.trim() || 'New list';
     createCollection(name);
     setNewListName('');
+    setListFormOpen(false);
   };
 
   const totalInCollections = otherCollections.reduce((acc, c) => acc + c.spotIds.length, 0);
@@ -202,7 +204,7 @@ export default function Saved({
       {!sharedIds?.length && (
         <>
           {/* Search */}
-          <div className="px-4 pb-3 pt-5 md:px-6">
+          {hasAny && <div className="px-4 pb-3 pt-5 md:px-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -213,11 +215,11 @@ export default function Saved({
                 className="surface-input w-full rounded-2xl py-3.5 pl-10 pr-3 text-sm font-semibold placeholder:text-[var(--text-muted)]"
               />
             </div>
-          </div>
+          </div>}
 
           {/* New list */}
           <div className="border-b border-white/[0.06] px-4 py-3">
-            <form onSubmit={handleCreateList} className="flex gap-2">
+            {listFormOpen ? <form onSubmit={handleCreateList} className="flex gap-2">
               <input
                 type="text"
                 value={newListName}
@@ -227,12 +229,13 @@ export default function Saved({
               />
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded-2xl bg-accent-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-600"
+                className="primary-button px-4 py-2 text-sm"
               >
                 <FolderPlus className="h-4 w-4" />
-                Add list
+                Create
               </button>
-            </form>
+              <button type="button" onClick={() => { setListFormOpen(false); setNewListName(''); }} className="icon-button h-10 w-10 shrink-0 rounded-xl" aria-label="Cancel new list"><X className="h-4 w-4" /></button>
+            </form> : <button type="button" onClick={() => setListFormOpen(true)} className="flex items-center gap-2 text-sm font-extrabold text-accent-400"><FolderPlus className="h-4 w-4" />Create a list</button>}
           </div>
 
           <details className="border-b border-white/[0.06]">
@@ -430,11 +433,13 @@ export default function Saved({
           )}
         </div>
       ) : !hasAny ? (
-        <div className="px-4 py-16 text-center">
-          <p className="text-slate-500">No saved spots yet.</p>
-          <p className="mt-1 text-sm text-slate-500">
-            Tap the heart on any spot to save it here, or create a list above and add spots from the spot page.
-          </p>
+        <div className="px-4 py-10 md:px-6">
+          <div className="surface-card rounded-[1.75rem] px-6 py-12 text-center">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent-500/10 text-accent-400"><Heart className="h-6 w-6" /></span>
+            <h2 className="mt-4 text-lg font-extrabold text-primary">Build your shortlist</h2>
+            <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">Save spots you want to shoot, then group them into lists when you need more organization.</p>
+            <Link to="/explore?view=spots" className="primary-button mt-5 px-5 py-3 text-sm"><Compass className="h-4 w-4" />Browse spots</Link>
+          </div>
         </div>
       ) : (
         <div className="px-4 pt-4 space-y-6">
