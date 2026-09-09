@@ -48,6 +48,24 @@ function eventSignature(title: unknown, startsAt: unknown) {
   return `${titleKey(title)}|${localDateKey(date)}`;
 }
 
+function locationKey(value: unknown) {
+  return String(value || "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .replace(/usa$/, "");
+}
+
+function locationMatchScore(sourceLocation: string, existing: Record<string, any>) {
+  const source = locationKey(sourceLocation);
+  const address = locationKey(existing.address);
+  const venue = locationKey(existing.venue_name);
+  let score = 0;
+  if (address.length >= 8 && (source.includes(address) || address.includes(source))) score += 100;
+  if (venue.length >= 5 && source.includes(venue)) score += 40;
+  return score;
+}
+
 function eventType(title: string, description: string) {
   const text = `${title} ${description}`.toLowerCase();
   if (/cars?\s*(?:&|and)\s*coffee|caffeine|coffee\s*(?:&|and)\s*cars?|caffeine\s*(?:&|and)\s*octane|caffeine\s*(?:&|and)\s*gasoline/.test(text)) return "cars_and_coffee";
@@ -236,17 +254,27 @@ async function loadExisting() {
 function planMatches(occurrences: SourceOccurrence[], existingRows: Record<string, any>[]) {
   const existingByKey = new Map(existingRows.map((row) => [row.source_key, row]));
   const bySignature = new Map<string, Record<string, any>[]>();
+  const byDate = new Map<string, Record<string, any>[]>();
   for (const row of existingRows) {
     const signature = eventSignature(row.title, row.starts_at);
-    if (!signature) continue;
-    const group = bySignature.get(signature) || [];
-    group.push(row);
-    bySignature.set(signature, group);
+    if (signature) {
+      const group = bySignature.get(signature) || [];
+      group.push(row);
+      bySignature.set(signature, group);
+    }
+    const date = new Date(row.starts_at);
+    if (!Number.isNaN(date.getTime())) {
+      const dateKey = localDateKey(date);
+      const dateGroup = byDate.get(dateKey) || [];
+      dateGroup.push(row);
+      byDate.set(dateKey, dateGroup);
+    }
   }
 
   const usedIds = new Set<string>();
   let sourceKeyMatches = 0;
   let bootstrapMatches = 0;
+  let locationBootstrapMatches = 0;
   const plans = occurrences.map((item) => {
     let existing = existingByKey.get(item.sourceKey);
     let match = existing ? "source_key" : "new";
@@ -262,12 +290,26 @@ function planMatches(occurrences: SourceOccurrence[], existingRows: Record<strin
         match = "bootstrap";
         bootstrapMatches += 1;
         usedIds.add(existing.id);
+      } else {
+        const dateKey = localDateKey(new Date(item.startsAt));
+        const locationCandidates = (byDate.get(dateKey) || [])
+          .filter((row) => !usedIds.has(row.id))
+          .map((row) => ({ row, score: locationMatchScore(item.location, row) }))
+          .filter((candidate) => candidate.score >= 100)
+          .sort((left, right) => right.score - left.score);
+        if (locationCandidates.length && (locationCandidates.length === 1 || locationCandidates[0].score > locationCandidates[1].score)) {
+          existing = locationCandidates[0].row;
+          match = "bootstrap_location";
+          bootstrapMatches += 1;
+          locationBootstrapMatches += 1;
+          usedIds.add(existing.id);
+        }
       }
     }
     return { item, existing, match };
   });
 
-  return { plans, sourceKeyMatches, bootstrapMatches, usedIds };
+  return { plans, sourceKeyMatches, bootstrapMatches, locationBootstrapMatches, usedIds };
 }
 
 Deno.serve(async (request) => {
@@ -293,6 +335,7 @@ Deno.serve(async (request) => {
         existing: existingRows.length,
         sourceKeyMatches: plan.sourceKeyMatches,
         bootstrapMatches: plan.bootstrapMatches,
+        locationBootstrapMatches: plan.locationBootstrapMatches,
         newEvents: unmatchedSource.length,
         existingNotSeen: unmatchedExisting.length,
         newSamples: unmatchedSource.slice(0, 15).map(({ item }) => ({ title: item.title, startsAt: item.startsAt, location: item.location })),
@@ -409,6 +452,7 @@ Deno.serve(async (request) => {
         seen: occurrences.length,
         sourceKeyMatches: plan.sourceKeyMatches,
         bootstrapMatches: plan.bootstrapMatches,
+        locationBootstrapMatches: plan.locationBootstrapMatches,
         inserted: insertedCount,
         updated: updatedCount,
         missing: missingIds.length,
