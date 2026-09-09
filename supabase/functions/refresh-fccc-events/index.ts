@@ -32,6 +32,22 @@ function localDateKey(date: Date) {
   return `${value.year}${value.month}${value.day}`;
 }
 
+function titleKey(value: unknown) {
+  return String(value || "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function eventSignature(title: unknown, startsAt: unknown) {
+  const date = new Date(String(startsAt || ""));
+  if (!titleKey(title) || Number.isNaN(date.getTime())) return "";
+  return `${titleKey(title)}|${localDateKey(date)}`;
+}
+
 function eventType(title: string, description: string) {
   const text = `${title} ${description}`.toLowerCase();
   if (/cars?\s*(?:&|and)\s*coffee|caffeine|coffee\s*(?:&|and)\s*cars?|caffeine\s*(?:&|and)\s*octane|caffeine\s*(?:&|and)\s*gasoline/.test(text)) return "cars_and_coffee";
@@ -60,7 +76,7 @@ function firstDescriptionUrl(description: string) {
   return normalizeUrl(match?.[0]?.replace(/[),.;]+$/, ""));
 }
 
-function sourceTimestamp(component: InstanceType<typeof ICAL.Component>) {
+function sourceTimestamp(component: any) {
   for (const key of ["last-modified", "dtstamp"]) {
     const value = component.getFirstPropertyValue(key) as { toJSDate?: () => Date } | null;
     if (value?.toJSDate) return value.toJSDate().toISOString();
@@ -117,7 +133,7 @@ type SourceOccurrence = {
   officialUrl: string;
 };
 
-function occurrenceFromEvent(event: InstanceType<typeof ICAL.Event>, start: Date, end: Date | null, recurring: boolean): SourceOccurrence | null {
+function occurrenceFromEvent(event: any, start: Date, end: Date | null, recurring: boolean): SourceOccurrence | null {
   const title = clamp(event.summary, 100);
   if (!title || shouldSkip(title)) return null;
   const description = clamp(event.description, 1200);
@@ -142,8 +158,8 @@ function occurrenceFromEvent(event: InstanceType<typeof ICAL.Event>, start: Date
 
 function parseCalendar(ics: string, now: Date) {
   const root = new ICAL.Component(ICAL.parse(ics));
-  const masters = new Map<string, InstanceType<typeof ICAL.Event>>();
-  const exceptions: InstanceType<typeof ICAL.Event>[] = [];
+  const masters = new Map<string, any>();
+  const exceptions: any[] = [];
 
   for (const component of root.getAllSubcomponents("vevent")) {
     const event = new ICAL.Event(component);
@@ -193,134 +209,219 @@ async function finishRun(runId: string, values: Record<string, unknown>) {
   await db.from("event_import_runs").update({ completed_at: new Date().toISOString(), ...values }).eq("id", runId);
 }
 
-Deno.serve(async (request) => {
-  if (request.method !== "POST") return new Response("POST required", { status: 405 });
-  const now = new Date();
+async function loadSource(now: Date) {
+  const response = await fetch(CALENDAR_ICS, {
+    headers: { Accept: "text/calendar,text/plain;q=0.9,*/*;q=0.1" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Calendar returned HTTP ${response.status}`);
+  const ics = await response.text();
+  if (!ics.includes("BEGIN:VCALENDAR")) throw new Error("Calendar response was not ICS data.");
+  const occurrences = parseCalendar(ics, now);
+  if (occurrences.length < MIN_SAFE_EVENT_COUNT) throw new Error(`Safety stop: only ${occurrences.length} usable future events were parsed.`);
+  return occurrences;
+}
 
-  const { data: lastRun } = await db.from("event_import_runs")
-    .select("completed_at,status")
+async function loadExisting() {
+  const { data, error } = await db.from("events")
+    .select("id,source_key,title,description,starts_at,ends_at,event_type,venue_name,address,latitude,longitude,source_status,source_updated_at,official_url")
+    .eq("listing_type", "listed")
     .eq("source_label", SOURCE_LABEL)
-    .eq("status", "succeeded")
-    .order("completed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (lastRun?.completed_at && now.getTime() - new Date(lastRun.completed_at).getTime() < MIN_RUN_GAP_MS) {
-    return Response.json({ ok: true, skipped: true, reason: "recent_success" });
+    .like("source_key", `${SOURCE_PREFIX}%`)
+    .limit(1000);
+  if (error) throw error;
+  return data || [];
+}
+
+function planMatches(occurrences: SourceOccurrence[], existingRows: Record<string, any>[]) {
+  const existingByKey = new Map(existingRows.map((row) => [row.source_key, row]));
+  const bySignature = new Map<string, Record<string, any>[]>();
+  for (const row of existingRows) {
+    const signature = eventSignature(row.title, row.starts_at);
+    if (!signature) continue;
+    const group = bySignature.get(signature) || [];
+    group.push(row);
+    bySignature.set(signature, group);
   }
 
-  const { data: run, error: runError } = await db.from("event_import_runs")
-    .insert({ source_label: SOURCE_LABEL, started_at: now.toISOString(), status: "running" })
-    .select("id").single();
-  if (runError || !run?.id) return Response.json({ ok: false, error: "Could not start import audit." }, { status: 500 });
+  const usedIds = new Set<string>();
+  let sourceKeyMatches = 0;
+  let bootstrapMatches = 0;
+  const plans = occurrences.map((item) => {
+    let existing = existingByKey.get(item.sourceKey);
+    let match = existing ? "source_key" : "new";
+    if (existing) {
+      sourceKeyMatches += 1;
+      usedIds.add(existing.id);
+    } else {
+      const candidates = (bySignature.get(eventSignature(item.title, item.startsAt)) || [])
+        .filter((row) => !usedIds.has(row.id))
+        .sort((left, right) => Math.abs(new Date(left.starts_at).getTime() - new Date(item.startsAt).getTime()) - Math.abs(new Date(right.starts_at).getTime() - new Date(item.startsAt).getTime()));
+      if (candidates.length) {
+        existing = candidates[0];
+        match = "bootstrap";
+        bootstrapMatches += 1;
+        usedIds.add(existing.id);
+      }
+    }
+    return { item, existing, match };
+  });
+
+  return { plans, sourceKeyMatches, bootstrapMatches, usedIds };
+}
+
+Deno.serve(async (request) => {
+  if (request.method !== "POST") return new Response("POST required", { status: 405 });
+  let body: Record<string, unknown> = {};
+  try { body = await request.json(); } catch { body = {}; }
+  const dryRun = body.dryRun === true;
+  const now = new Date();
 
   try {
-    const response = await fetch(CALENDAR_ICS, {
-      headers: { Accept: "text/calendar,text/plain;q=0.9,*/*;q=0.1" },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error(`Calendar returned HTTP ${response.status}`);
-    const ics = await response.text();
-    if (!ics.includes("BEGIN:VCALENDAR")) throw new Error("Calendar response was not ICS data.");
+    const occurrences = await loadSource(now);
+    const existingRows = await loadExisting();
+    const plan = planMatches(occurrences, existingRows);
+    const unmatchedSource = plan.plans.filter((entry) => !entry.existing);
+    const unmatchedExisting = existingRows.filter((row) => !plan.usedIds.has(row.id) && new Date(row.starts_at).getTime() >= now.getTime() - 60 * 60 * 1000);
 
-    const occurrences = parseCalendar(ics, now);
-    if (occurrences.length < MIN_SAFE_EVENT_COUNT) throw new Error(`Safety stop: only ${occurrences.length} usable future events were parsed.`);
+    if (dryRun) {
+      return Response.json({
+        ok: true,
+        dryRun: true,
+        source: SOURCE_LABEL,
+        seen: occurrences.length,
+        existing: existingRows.length,
+        sourceKeyMatches: plan.sourceKeyMatches,
+        bootstrapMatches: plan.bootstrapMatches,
+        newEvents: unmatchedSource.length,
+        existingNotSeen: unmatchedExisting.length,
+        newSamples: unmatchedSource.slice(0, 15).map(({ item }) => ({ title: item.title, startsAt: item.startsAt, location: item.location })),
+        missingSamples: unmatchedExisting.slice(0, 15).map((row) => ({ title: row.title, startsAt: row.starts_at, venue: row.venue_name })),
+      });
+    }
 
-    const { data: existingRows, error: existingError } = await db.from("events")
-      .select("id,source_key,title,description,starts_at,ends_at,event_type,venue_name,address,latitude,longitude,source_status,source_updated_at,official_url")
-      .eq("listing_type", "listed")
+    const { data: lastRun } = await db.from("event_import_runs")
+      .select("completed_at,status")
       .eq("source_label", SOURCE_LABEL)
-      .like("source_key", `${SOURCE_PREFIX}%`)
-      .limit(1000);
-    if (existingError) throw existingError;
+      .eq("status", "succeeded")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastRun?.completed_at && now.getTime() - new Date(lastRun.completed_at).getTime() < MIN_RUN_GAP_MS) {
+      return Response.json({ ok: true, skipped: true, reason: "recent_success" });
+    }
 
-    const existingByKey = new Map((existingRows || []).map((row) => [row.source_key, row]));
-    const seenKeys = new Set(occurrences.map((item) => item.sourceKey));
-    const verifiedAt = new Date().toISOString();
-    const rows: Record<string, unknown>[] = [];
-    let insertedCount = 0;
-    let updatedCount = 0;
-    let geocodeCount = 0;
+    const existingFuture = existingRows.filter((row) => new Date(row.starts_at).getTime() >= now.getTime() - 60 * 60 * 1000).length;
+    const matchedExisting = plan.sourceKeyMatches + plan.bootstrapMatches;
+    if (existingFuture >= 10 && matchedExisting < Math.min(10, Math.ceil(existingFuture * 0.5))) {
+      throw new Error(`Safety stop: only ${matchedExisting} of ${existingFuture} existing future listings matched the current source.`);
+    }
 
-    for (const item of occurrences) {
-      const existing = existingByKey.get(item.sourceKey) as Record<string, unknown> | undefined;
-      const location = splitLocation(item.location, existing);
-      const row: Record<string, unknown> = {
-        title: item.title,
-        description: item.description,
-        starts_at: item.startsAt,
-        ends_at: item.endsAt,
-        event_type: eventType(item.title, item.description),
-        venue_name: location.venueName,
-        address: location.address,
-        listing_type: "listed",
-        source_label: SOURCE_LABEL,
-        source_key: item.sourceKey,
-        source_url: SOURCE_PAGE,
-        source_updated_at: item.sourceUpdatedAt,
-        last_verified_at: verifiedAt,
-        source_status: item.status,
-        official_url: item.officialUrl || null,
-      };
+    const { data: run, error: runError } = await db.from("event_import_runs")
+      .insert({ source_label: SOURCE_LABEL, started_at: now.toISOString(), status: "running" })
+      .select("id").single();
+    if (runError || !run?.id) throw new Error("Could not start import audit.");
 
-      const addressChanged = existing && String(existing.address || "") !== location.address;
-      const needsGeocode = location.address && geocodeCount < MAX_GEOCODES_PER_RUN
-        && (!existing || existing.latitude == null || existing.longitude == null || addressChanged);
-      if (needsGeocode) {
-        if (geocodeCount > 0) await sleep(1100);
-        const coords = await geocode(location.address);
-        geocodeCount += 1;
-        if (coords) Object.assign(row, coords);
-        else if (existing && !addressChanged) {
+    try {
+      const seenExistingIds = new Set<string>();
+      const verifiedAt = new Date().toISOString();
+      let insertedCount = 0;
+      let updatedCount = 0;
+      let geocodeCount = 0;
+
+      for (const { item, existing, match } of plan.plans) {
+        const location = splitLocation(item.location, existing);
+        const inferredType = eventType(item.title, item.description);
+        const row: Record<string, unknown> = {
+          title: item.title,
+          description: item.description,
+          starts_at: item.startsAt,
+          ends_at: item.endsAt,
+          event_type: inferredType === "meetup" && existing?.event_type ? existing.event_type : inferredType,
+          venue_name: location.venueName,
+          address: location.address,
+          listing_type: "listed",
+          source_label: SOURCE_LABEL,
+          source_key: item.sourceKey,
+          source_url: SOURCE_PAGE,
+          source_updated_at: item.sourceUpdatedAt,
+          last_verified_at: verifiedAt,
+          source_status: item.status,
+          official_url: item.officialUrl || existing?.official_url || null,
+        };
+
+        const addressChanged = existing && String(existing.address || "") !== location.address;
+        const needsGeocode = location.address && geocodeCount < MAX_GEOCODES_PER_RUN
+          && (!existing || existing.latitude == null || existing.longitude == null || addressChanged);
+        if (needsGeocode) {
+          if (geocodeCount > 0) await sleep(1100);
+          const coords = await geocode(location.address);
+          geocodeCount += 1;
+          if (coords) Object.assign(row, coords);
+          else if (existing && !addressChanged) {
+            row.latitude = existing.latitude;
+            row.longitude = existing.longitude;
+          } else {
+            row.latitude = null;
+            row.longitude = null;
+          }
+        } else if (existing) {
           row.latitude = existing.latitude;
           row.longitude = existing.longitude;
-        } else {
-          row.latitude = null;
-          row.longitude = null;
         }
-      } else if (existing) {
-        row.latitude = existing.latitude;
-        row.longitude = existing.longitude;
+
+        if (!existing) {
+          const { error } = await db.from("events").insert(row);
+          if (error) throw error;
+          insertedCount += 1;
+        } else {
+          seenExistingIds.add(existing.id);
+          if (match === "bootstrap" || changed(existing, row)) {
+            const { error } = await db.from("events").update(row).eq("id", existing.id);
+            if (error) throw error;
+            updatedCount += 1;
+          } else {
+            const { error } = await db.from("events").update({ last_verified_at: verifiedAt, source_status: item.status, source_url: SOURCE_PAGE }).eq("id", existing.id);
+            if (error) throw error;
+          }
+        }
       }
 
-      if (!existing) insertedCount += 1;
-      else if (changed(existing, row)) updatedCount += 1;
-      rows.push(row);
+      const missingIds = existingRows
+        .filter((row) => !seenExistingIds.has(row.id) && new Date(row.starts_at).getTime() >= now.getTime() - 60 * 60 * 1000)
+        .map((row) => row.id);
+      if (missingIds.length) {
+        const { error } = await db.from("events").update({ source_status: "missing", last_verified_at: verifiedAt }).in("id", missingIds);
+        if (error) throw error;
+      }
+
+      await finishRun(run.id, {
+        status: "succeeded",
+        events_seen: occurrences.length,
+        inserted_count: insertedCount,
+        updated_count: updatedCount,
+        missing_count: missingIds.length,
+      });
+
+      return Response.json({
+        ok: true,
+        source: SOURCE_LABEL,
+        seen: occurrences.length,
+        sourceKeyMatches: plan.sourceKeyMatches,
+        bootstrapMatches: plan.bootstrapMatches,
+        inserted: insertedCount,
+        updated: updatedCount,
+        missing: missingIds.length,
+        geocoded: geocodeCount,
+        verifiedAt,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await finishRun(run.id, { status: "failed", error_message: clamp(message, 1000) });
+      throw error;
     }
-
-    for (let index = 0; index < rows.length; index += 100) {
-      const { error } = await db.from("events").upsert(rows.slice(index, index + 100), { onConflict: "source_key" });
-      if (error) throw error;
-    }
-
-    const missingIds = (existingRows || [])
-      .filter((row) => row.source_key && !seenKeys.has(row.source_key) && new Date(row.starts_at).getTime() >= now.getTime() - 60 * 60 * 1000)
-      .map((row) => row.id);
-    if (missingIds.length) {
-      const { error } = await db.from("events").update({ source_status: "missing", last_verified_at: verifiedAt }).in("id", missingIds);
-      if (error) throw error;
-    }
-
-    await finishRun(run.id, {
-      status: "succeeded",
-      events_seen: occurrences.length,
-      inserted_count: insertedCount,
-      updated_count: updatedCount,
-      missing_count: missingIds.length,
-    });
-
-    return Response.json({
-      ok: true,
-      source: SOURCE_LABEL,
-      seen: occurrences.length,
-      inserted: insertedCount,
-      updated: updatedCount,
-      missing: missingIds.length,
-      geocoded: geocodeCount,
-      verifiedAt,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await finishRun(run.id, { status: "failed", error_message: clamp(message, 1000) });
     console.error("FCCC refresh failed", error);
     return Response.json({ ok: false, error: message }, { status: 500 });
   }
