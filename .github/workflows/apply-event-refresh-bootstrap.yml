@@ -1,0 +1,44 @@
+name: Apply event refresh bootstrap
+
+on:
+  push:
+    branches:
+      - feature/event-source-refresh-2026-09-08
+    paths:
+      - scripts/patch-event-refresh-bootstrap.py
+      - .github/workflows/apply-event-refresh-bootstrap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/event-source-refresh-2026-09-08
+          fetch-depth: 0
+      - name: Apply bootstrap matcher patch
+        run: python scripts/patch-event-refresh-bootstrap.py
+      - name: Verify source structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'locationBootstrapMatches' supabase/functions/refresh-fccc-events/index.ts
+          grep -F 'locationMatchScore' supabase/functions/refresh-fccc-events/index.ts
+          grep -F 'dryRun' supabase/functions/refresh-fccc-events/index.ts
+      - name: Commit patched worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SnapMap repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add supabase/functions/refresh-fccc-events/index.ts
+          if git diff --cached --quiet; then
+            echo "No worker changes to commit"
+          else
+            git commit -m "Match legacy listed events by date and location"
+            git push origin HEAD:feature/event-source-refresh-2026-09-08
+          fi
