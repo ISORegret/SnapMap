@@ -8,34 +8,12 @@ import { navigateBackOr } from '../utils/navigation';
 import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
 import { fetchPosts } from '../api/posts';
 import { fetchProfileEvents } from '../api/events';
+import CreatorPortfolio from '../components/profile/CreatorPortfolio';
+import ProfileConnections from '../components/profile/ProfileConnections';
+import ProfileSocialLinks, { SOCIAL_LINK_ICONS, SOCIAL_LINK_LABELS } from '../components/profile/ProfileSocialLinks';
 
 function normalizeHandle(s) {
   return String(s || '').trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '_');
-}
-
-const SOCIAL_LINK_LABELS = { website: 'Website', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
-
-function InstagramLogo({ className = 'h-5 w-5' }) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>;
-}
-
-function FacebookLogo({ className = 'h-5 w-5' }) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor"><path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3V10H7.5v3h2.8v8h3.4Z" /></svg>;
-}
-
-function TikTokLogo({ className = 'h-5 w-5' }) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor"><path d="M15.7 3c.4 2.2 1.7 3.6 3.8 4v3.1a8.1 8.1 0 0 1-3.8-1.2v6.2a5.9 5.9 0 1 1-5.1-5.8v3.2a2.8 2.8 0 1 0 1.9 2.6V3h3.2Z" /></svg>;
-}
-
-const SOCIAL_LINK_ICONS = { website: Globe2, instagram: InstagramLogo, facebook: FacebookLogo, tiktok: TikTokLogo };
-
-function SocialLinks({ links, className = '' }) {
-  const items = Object.entries(normalizeSocialLinks(links));
-  if (!items.length) return null;
-  return <div className={`flex flex-wrap gap-2 ${className}`}>{items.map(([key, href]) => {
-    const Icon = SOCIAL_LINK_ICONS[key] || Globe2;
-    return <a key={key} href={href} target="_blank" rel="noreferrer noopener" aria-label={SOCIAL_LINK_LABELS[key]} title={SOCIAL_LINK_LABELS[key]} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-secondary transition hover:-translate-y-0.5 hover:border-accent-500/35 hover:bg-accent-500/[0.08] hover:text-accent-400"><Icon className="h-5 w-5" /></a>;
-  })}</div>;
 }
 
 export default function Profile({ allSpots = [], currentUser, onProfileUpdated, unreadNotifications = 0, unreadMessages = 0, showToast } = {}) {
@@ -291,67 +269,26 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
   };
 
   if (portfolioMode) {
-    const heroImage = featuredPosts[0]?.images?.[0]?.public_url || (userSpots[0] ? getSpotPrimaryImage(userSpots[0]) : '');
-    return (
-      <div className="page-shell pb-28 animate-fade-in">
-        <header className="relative overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-page-elevated)]">
-          <div className="relative h-[19rem] sm:h-[24rem]">
-            {heroImage ? <img src={heroImage} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-gradient-to-br from-accent-500/25 via-[var(--bg-page-elevated)] to-cyan-400/10" />}
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)] via-black/25 to-black/55" />
-            <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
-              <button type="button" onClick={goBack} className="flex h-11 items-center gap-1.5 rounded-2xl border border-white/15 bg-black/35 px-3 text-sm font-bold text-white backdrop-blur-xl"><ArrowLeft className="h-5 w-5" />Back</button>
-              <Link to={`/user/${profile.username}`} replace className="rounded-2xl border border-white/15 bg-black/35 px-3.5 py-3 text-xs font-extrabold text-white backdrop-blur-xl">Community profile</Link>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl px-5 pb-6 md:px-8">
-              <div className="flex items-end gap-4">
-                <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] border-2 border-accent-400/50 bg-[var(--bg-card-solid)] text-accent-400 shadow-2xl">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-9 w-9" />}</div>
-                <div className="min-w-0 pb-1"><p className="eyebrow text-accent-300">Creator portfolio</p><h1 className="mt-1 truncate text-3xl font-black tracking-tight text-white sm:text-4xl">{profileDisplayName}</h1><p className="mt-1 text-sm font-semibold text-white/60">Creator on SnapMap</p></div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-4xl space-y-8 px-4 py-6 md:px-8">
-          <section>
-            {profile.bio && <p className="max-w-2xl text-base leading-7 text-secondary">{profile.bio}</p>}
-            <SocialLinks links={profile.social_links} className="mt-4" />
-            {specialties.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{specialties.map((item) => <span key={item} className="rounded-full border border-accent-500/20 bg-accent-500/[0.07] px-3 py-2 text-xs font-extrabold text-accent-400">{item}</span>)}</div>}
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="button" onClick={sharePortfolio} className="primary-button px-4 py-3 text-sm"><Share2 className="h-4 w-4" />Share portfolio</button>
-              {isOwnProfile ? <Link to={`/user/${profile.username}`} className="flex items-center gap-2 rounded-2xl border border-[var(--border-strong)] px-4 py-3 text-sm font-extrabold text-secondary"><Pencil className="h-4 w-4" />Edit profile</Link> : currentUser && !blocked && <button type="button" onClick={handleFriend} disabled={followLoading} className="flex items-center gap-2 rounded-2xl border border-[var(--border-strong)] px-4 py-3 text-sm font-extrabold text-secondary disabled:opacity-50"><FriendButtonIcon className="h-4 w-4" />{followLoading ? 'Working…' : friendButton.label}</button>}
-              {!isOwnProfile && currentUser && friendState === 'friends' && <Link to={`/messages/${profile.username}`} className="flex items-center gap-2 rounded-2xl border border-accent-500/20 px-4 py-3 text-sm font-extrabold text-accent-400"><MessageCircle className="h-4 w-4" />Message</Link>}
-            </div>
-          </section>
-
-          <section className="grid grid-cols-3 gap-2">
-            <div className="surface-card rounded-[1.35rem] p-4 text-center"><p className="text-2xl font-black text-primary">{profilePosts.length}</p><p className="mt-1 text-xs font-bold text-muted">Posts</p></div>
-            <div className="surface-card rounded-[1.35rem] p-4 text-center"><p className="text-2xl font-black text-primary">{userSpots.length}</p><p className="mt-1 text-xs font-bold text-muted">Spots</p></div>
-            <div className="surface-card rounded-[1.35rem] p-4 text-center"><p className="text-2xl font-black text-primary">{profileEvents.length}</p><p className="mt-1 text-xs font-bold text-muted">Events</p></div>
-          </section>
-
-          <section>
-            <div className="mb-4 flex items-end justify-between gap-3"><div><p className="eyebrow">Selected work</p><h2 className="mt-1 text-xl font-extrabold text-primary">Featured frames</h2></div><Camera className="h-5 w-5 text-accent-400" /></div>
-            {featuredPosts.length ? <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{featuredPosts.map((post, index) => <Link key={post.id} to={`/explore?post=${post.id}`} state={{ from: `/user/${profile.username}?portfolio=1` }} className={`group relative overflow-hidden rounded-[1.25rem] bg-black ${index === 0 ? 'col-span-2 aspect-[16/10] sm:col-span-2 sm:row-span-2 sm:aspect-auto' : 'aspect-square'}`}>
-              <img src={post.images?.[0]?.public_url} alt={post.locationName || 'Creator portfolio photo'} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" /><div className="absolute inset-x-0 bottom-0 p-3"><p className="truncate text-xs font-extrabold text-white">{post.locationName || 'Location story'}</p>{index === 0 && post.caption && <p className="mt-1 line-clamp-1 text-xs text-white/60">{post.caption}</p>}</div>
-            </Link>)}</div> : <div className="surface-card rounded-[1.5rem] px-6 py-12 text-center"><Camera className="mx-auto h-8 w-8 text-muted" /><p className="mt-3 text-sm font-extrabold text-primary">No featured frames yet</p><p className="mt-1 text-xs text-muted">Photo posts will automatically build this portfolio.</p></div>}
-          </section>
-
-          {userSpots.length > 0 && <section>
-            <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">Places worth finding</p><h2 className="mt-1 text-xl font-extrabold text-primary">Locations by this creator</h2></div><MapPin className="h-5 w-5 text-accent-400" /></div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{userSpots.slice(0, 6).map((spot) => <Link key={spot.id} to={`/spot/${spot.id}`} className="surface-card group overflow-hidden rounded-[1.35rem]"><img src={getSpotPrimaryImage(spot)} alt="" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105" /><div className="p-3"><p className="truncate text-sm font-extrabold text-primary">{spot.name}</p><p className="mt-1 truncate text-xs text-muted">{spot.address || 'Pinned location'}</p></div></Link>)}</div>
-          </section>}
-
-          {profileEvents.length > 0 && <section>
-            <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-cyan-300" /><h2 className="text-xl font-extrabold text-primary">Upcoming events</h2></div>
-            <div className="grid gap-3 sm:grid-cols-2">{profileEvents.map((event) => <Link key={event.id} to={`/event/${event.id}`} state={{ from: `/user/${profile.username}?portfolio=1` }} className="surface-card flex items-center gap-3 rounded-[1.35rem] p-4"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400/10 text-center"><span className="text-[10px] font-black uppercase text-cyan-300">{new Date(event.startsAt).toLocaleDateString([], { month: 'short' })}</span><span className="-mt-2 text-lg font-black text-primary">{new Date(event.startsAt).getDate()}</span></div><div className="min-w-0"><p className="truncate text-sm font-extrabold text-primary">{event.title}</p><p className="mt-1 truncate text-xs text-muted">{event.venueName || event.address || 'Location coming soon'}</p></div></Link>)}</div>
-          </section>}
-
-          <Link to={`/user/${profile.username}`} replace className="surface-card flex items-center justify-between rounded-[1.5rem] p-4 text-sm font-extrabold text-secondary"><span className="flex items-center gap-2"><Users className="h-4 w-4 text-accent-400" />Friends and community activity</span><ArrowLeft className="h-4 w-4 rotate-180 text-muted" /></Link>
-        </main>
-      </div>
-    );
-  }
+  return <CreatorPortfolio
+    profile={profile}
+    profileDisplayName={profileDisplayName}
+    profilePosts={profilePosts}
+    featuredPosts={featuredPosts}
+    userSpots={userSpots}
+    profileEvents={profileEvents}
+    specialties={specialties}
+    isOwnProfile={isOwnProfile}
+    currentUser={currentUser}
+    blocked={blocked}
+    friendState={friendState}
+    followLoading={followLoading}
+    friendButton={friendButton}
+    FriendButtonIcon={FriendButtonIcon}
+    onBack={goBack}
+    onShare={sharePortfolio}
+    onFriend={handleFriend}
+  />;
+}
 
   return (
     <div className="page-shell pb-24 animate-fade-in">
@@ -391,7 +328,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
             {profile.bio && (
               <p className="mt-2 text-sm text-slate-400">{profile.bio}</p>
             )}
-            <SocialLinks links={profile.social_links} className="mt-3" />
+            <ProfileSocialLinks links={profile.social_links} className="mt-3" />
             <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
               <span>{connections.friends.length} friend{connections.friends.length === 1 ? '' : 's'}</span>
               {isOwnProfile && connections.incoming.length > 0 && <span className="font-semibold text-accent-400">{connections.incoming.length} request{connections.incoming.length === 1 ? '' : 's'}</span>}
@@ -489,7 +426,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                 />
               </div>
               <div>
-                <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold text-slate-400">Links</p><p className="mt-0.5 text-[11px] text-slate-600">Only filled links appear publicly.</p></div><SocialLinks links={editSocialLinks} /></div>
+                <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold text-slate-400">Links</p><p className="mt-0.5 text-[11px] text-slate-600">Only filled links appear publicly.</p></div><ProfileSocialLinks links={editSocialLinks} /></div>
                 <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
                   {Object.keys(SOCIAL_LINK_LABELS).map((key, index) => {
                     const Icon = SOCIAL_LINK_ICONS[key] || Globe2;
@@ -519,54 +456,12 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         )}
       </header>
 
-      {(connections.friends.length > 0 || (isOwnProfile && (connections.incoming.length > 0 || connections.outgoing.length > 0))) && (
-        <section className="px-4 pt-5">
-          {isOwnProfile && connections.incoming.length > 0 && (
-            <div className="surface-card mb-5 rounded-[1.5rem] p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-accent-400" />
-                <h2 className="text-sm font-extrabold text-primary">Friend requests</h2>
-                <span className="ml-auto rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-extrabold text-[#211603]">{connections.incoming.length}</span>
-              </div>
-              <div className="space-y-2">
-                {connections.incoming.map((creator) => (
-                  <div key={creator.id} className="flex items-center gap-3 rounded-2xl bg-black/10 p-2.5">
-                    <Link to={`/user/${creator.username}`} state={{ from: location.pathname }} className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                        {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0"><p className="truncate text-sm font-bold text-primary">{creator.display_name || 'SnapMap user'}</p><p className="truncate text-xs text-slate-500">SnapMap creator</p></div>
-                    </Link>
-                    <button type="button" onClick={async () => { await acceptFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl bg-accent-500 px-3 py-2 text-xs font-extrabold text-[#211603]">Accept</button>
-                    <button type="button" onClick={async () => { await declineFriendRequest(creator.id); refreshConnections(); }} className="rounded-xl border border-white/10 px-2.5 py-2 text-xs font-bold text-slate-500">Decline</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {connections.friends.length > 0 && (
-            <div>
-              <div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-accent-400" /><h2 className="text-sm font-extrabold text-primary">Friends</h2></div>
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
-                {connections.friends.map((creator) => (
-                  <Link key={creator.id} to={`/user/${creator.username}`} state={{ from: location.pathname }} className="surface-card w-28 shrink-0 rounded-[1.35rem] p-3 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                      {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
-                    </div>
-                    <p className="mt-2 truncate text-xs font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</p>
-                    <p className="truncate text-[10px] text-slate-500">SnapMap creator</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {isOwnProfile && connections.outgoing.length > 0 && (
-            <p className="mt-3 text-xs text-slate-500">Pending requests: {connections.outgoing.map((creator) => creator.display_name || 'SnapMap user').join(', ')}</p>
-          )}
-        </section>
-      )}
+      <ProfileConnections
+      connections={connections}
+      isOwnProfile={isOwnProfile}
+      locationPath={location.pathname}
+      onRefresh={refreshConnections}
+    />
 
       {profileEvents.length > 0 && (
         <section className="px-4 pt-6">
