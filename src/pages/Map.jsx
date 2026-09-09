@@ -12,6 +12,7 @@ import { getSpotPrimaryImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 import DirectionsLauncher from '../components/DirectionsLauncher';
+import PhotoChallengeMapShortcut from '../components/PhotoChallengeMapShortcut';
 import { appleDirectionsUrl, appleMultiStopDirectionsUrl, googleDirectionsUrl, googleMultiStopDirectionsUrl } from '../utils/mapNavigation';
 import { fetchUpcomingEvents, subscribeToEvents } from '../api/events';
 import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';
@@ -597,6 +598,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
 
   return (
     <div className="fixed inset-0 z-10 flex min-h-0 flex-col bg-page">
+      <PhotoChallengeMapShortcut />
       {/* Location permission prompt */}
       {showLocationPrompt && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/60 p-4" aria-modal="true" role="dialog" aria-labelledby="map-location-prompt-title">

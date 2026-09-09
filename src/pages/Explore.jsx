@@ -12,6 +12,7 @@ import { getBlockedUserIds } from '../api/safety';
 import SpotFeed from '../components/SpotFeed';
 import EventHub from '../components/EventHub';
 import DiscoverSearch from '../components/DiscoverSearch';
+import PhotoChallengeHighlight from '../components/PhotoChallengeHighlight';
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -269,6 +270,7 @@ export default function Explore({
           <EventHub allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} units={units} showToast={showToast} />
         ) : viewMode === 'community' ? (
           <>
+          <PhotoChallengeHighlight />
           <SpotFeed allSpots={allSpots} favoriteIds={favoriteIds} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPositionProp} units={units} showToast={showToast} />
           <section className="border-t border-[var(--border-subtle)] pt-8">
             <div className="mb-4 flex items-end justify-between gap-4">

@@ -4,6 +4,7 @@ import { navigateBackOr } from '../utils/navigation';
 import { Activity, ArrowLeft, BadgeCheck, Ban, CheckCircle2, ExternalLink, Flag, ShieldCheck, Trash2, XCircle } from 'lucide-react';
 import { dismissReport, fetchEventClaims, fetchModerationQueue, isCurrentUserAdmin, removeReportedContent, reviewEventClaim, suspendUser } from '../api/moderation';
 import { fetchDiagnostics } from '../api/diagnostics';
+import PhotoChallengeAdminPanel from '../components/PhotoChallengeAdminPanel';
 
 const KIND_LABELS = { post: 'Photo post', comment: 'Location comment', spot: 'Location', message: 'Private message', event: 'Event' };
 
@@ -158,6 +159,7 @@ export default function Admin({ currentUser, showToast }) {
       </div>
     </header>
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-6">
+      <PhotoChallengeAdminPanel showToast={showToast} />
       <section className="surface-card mb-5 rounded-[1.6rem] p-4">
         <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">App health</p><h2 className="mt-1 text-lg font-extrabold text-primary">Opt-in diagnostics</h2><p className="mt-1 text-xs leading-5 text-muted">Last 24 hours. Fixed categories only; no messages, searches, photos, or coordinates are collected.</p></div><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-400/10 text-cyan-300"><Activity className="h-5 w-5" /></span></div>
         {diagnosticsError ? <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-300">Diagnostics unavailable: {diagnosticsError}</p> : <>

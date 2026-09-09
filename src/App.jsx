@@ -40,6 +40,7 @@ const EventDetail = lazy(() => import('./pages/EventDetail'));
 const RoutePlanner = lazy(() => import('./pages/RoutePlanner'));
 const Messages = lazy(() => import('./pages/Messages'));
 const MySubmissions = lazy(() => import('./pages/MySubmissions'));
+const PhotoChallenge = lazy(() => import('./pages/PhotoChallenge'));
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -802,6 +803,7 @@ export default function App() {
           <Route path="/messages" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
           <Route path="/messages/:username" element={<Messages currentUser={currentUser} onRead={refreshUnreadMessages} showToast={showToast} />} />
           <Route path="/admin" element={<Admin currentUser={currentUser} showToast={showToast} />} />
+          <Route path="/challenge/:id" element={<PhotoChallenge allSpots={allSpots} currentUser={currentUser} showToast={showToast} />} />
           <Route path="/event/:id" element={<EventDetail allSpots={allSpots} currentUser={currentUser} userPosition={userPosition} requestPosition={requestPosition} showToast={showToast} />} />
           <Route path="/route" element={<RoutePlanner allSpots={allSpots} favoriteIds={favoriteIds} collections={collections} userPosition={userPosition} requestPosition={requestPosition} units={units} />} />
           <Route
