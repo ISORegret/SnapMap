@@ -329,7 +329,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             }}
             placeholder="Spot name"
             required
-            className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+            className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:outline-none focus:ring-1 ${
               fieldErrors.name ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
             }`}
           />
@@ -344,7 +344,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Iconic overlook with city views"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -368,7 +368,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               }}
               placeholder="e.g. 1000 Riverside Ave, Jacksonville, FL"
               autoComplete="street-address"
-              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             />
             <button
               type="button"
@@ -384,36 +384,6 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             <p className="mt-2 flex items-start gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2">Found: {addressMatch}</span></p>
           )}
         </div>
-        <button type="button" onClick={() => setShowDetails((open) => !open)} className="surface-card flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-left">
-          <span>
-            <span className="block text-sm font-extrabold text-primary">Shoot details</span>
-            <span className="mt-0.5 block text-xs text-slate-500">Parking, access, best time, crowds, tags, and links</span>
-          </span>
-          <ChevronDown className={`h-5 w-5 text-accent-400 transition ${showDetails ? 'rotate-180' : ''}`} />
-        </button>
-        {showDetails && <>
-        <div>
-          <label className="block text-xs font-medium text-slate-500">Parking (optional)</label>
-          <input
-            type="text"
-            value={parking}
-            onChange={(e) => setParking(e.target.value)}
-            placeholder="e.g. Street, free · Lot nearby"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500">How to access (optional)</label>
-          <p className="mt-0.5 text-[11px] text-slate-500">Dirt road, 4WD, gate code, etc.</p>
-          <input
-            type="text"
-            value={howToAccess}
-            onChange={(e) => setHowToAccess(e.target.value)}
-            placeholder="e.g. Dirt road 2 mi from Hwy 1; 4WD recommended"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
-          />
-        </div>
-        </>}
         {fromMap && (
           <p className="rounded-lg bg-accent-500/10 px-3 py-2 text-xs text-accent-400">
             Location set from map pin — add a name and save.
@@ -437,6 +407,8 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           {lat && lng && !locationError && (
             <p className="mb-3 flex items-center gap-1.5 rounded-xl bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-400"><CheckCircle2 className="h-4 w-4" />Location set · {Number(lat).toFixed(5)}, {Number(lng).toFixed(5)}</p>
           )}
+          <details open={fieldErrors.latitude || fieldErrors.longitude ? true : undefined}>
+            <summary className="cursor-pointer py-2 text-xs font-bold text-secondary">Edit coordinates manually</summary>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-500">Latitude <span className="font-normal">(advanced)</span></label>
@@ -450,7 +422,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   if (fieldErrors.latitude) setFieldErrors((prev) => ({ ...prev, latitude: '' }));
                 }}
                 placeholder="Auto-filled"
-                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.latitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
               />
@@ -470,7 +442,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
                   if (fieldErrors.longitude) setFieldErrors((prev) => ({ ...prev, longitude: '' }));
                 }}
                 placeholder="Auto-filled"
-                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                className={`mt-1 w-full rounded-2xl border bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:outline-none focus:ring-1 ${
                   fieldErrors.longitude ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500' : 'border-white/10 focus:border-accent-500 focus:ring-accent-500'
                 }`}
               />
@@ -479,8 +451,49 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               )}
             </div>
           </div>
+          </details>
         </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500">Photos {editSpot ? '(optional)' : '*'}</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            {editSpot
+              ? 'Add one or more shots; you can return and add more later.'
+              : 'Add at least one photo of the spot. You can add more later.'}
+          </p>
+          <SpotPhotoEditor images={images} setImages={setImages}
+            uploaderName={(currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() || 'SnapMap user'}
+            onError={setPhotoError} onBusyChange={setPhotoLoading} disabled={submitting} />
+          {photoError && <p role="alert" className="mt-2 text-xs text-red-400">{photoError}</p>}
+        </div>
+        <button type="button" onClick={() => setShowDetails((open) => !open)} aria-expanded={showDetails} className="surface-card flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-left">
+          <span>
+            <span className="block text-sm font-extrabold text-primary">Shoot details</span>
+            <span className="mt-0.5 block text-xs text-slate-500">Parking, access, best time, crowds, tags, and links</span>
+          </span>
+          <ChevronDown className={`h-5 w-5 text-accent-400 transition ${showDetails ? 'rotate-180' : ''}`} />
+        </button>
         {showDetails && <>
+        <div>
+          <label className="block text-xs font-medium text-slate-500">Parking (optional)</label>
+          <input
+            type="text"
+            value={parking}
+            onChange={(e) => setParking(e.target.value)}
+            placeholder="e.g. Street, free · Lot nearby"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500">How to access (optional)</label>
+          <p className="mt-0.5 text-[11px] text-slate-500">Dirt road, 4WD, gate code, etc.</p>
+          <input
+            type="text"
+            value={howToAccess}
+            onChange={(e) => setHowToAccess(e.target.value)}
+            placeholder="e.g. Dirt road 2 mi from Hwy 1; 4WD recommended"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          />
+        </div>
         <div>
           <label className="block text-xs font-medium text-slate-500">Added by</label>
           {currentUserProfile?.username ? (
@@ -513,7 +526,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={bestTime}
             onChange={(e) => setBestTime(e.target.value)}
             placeholder="e.g. Morning & evening, Sunset"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -542,7 +555,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="automotive, urban, sunset"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         <div>
@@ -553,29 +566,17 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://…"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
           <input
             type="text"
             value={linkLabel}
             onChange={(e) => setLinkLabel(e.target.value)}
             placeholder="Link label (e.g. Webcam, More info)"
-            className="mt-1.5 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+            className="mt-1.5 w-full rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
           />
         </div>
         </>}
-        <div>
-          <label className="block text-xs font-medium text-slate-500">Photos {editSpot ? '(optional)' : '*'}</label>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            {editSpot
-              ? 'Add one or more shots; you can return and add more later.'
-              : 'Add at least one photo of the spot. You can add more later.'}
-          </p>
-          <SpotPhotoEditor images={images} setImages={setImages}
-            uploaderName={(currentUserProfile?.display_name || currentUserProfile?.displayName || '').trim() || 'SnapMap user'}
-            onError={setPhotoError} onBusyChange={setPhotoLoading} disabled={submitting} />
-          {photoError && <p role="alert" className="mt-2 text-xs text-red-400">{photoError}</p>}
-        </div>
         <button
           type="submit"
           disabled={submitting || addressSearching || photoLoading}
