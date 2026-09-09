@@ -1,0 +1,160 @@
+name: Split Profile components
+
+on:
+  push:
+    branches:
+      - refactor/split-profile-2026-09-08
+    paths:
+      - .github/workflows/split-profile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/split-profile-2026-09-08
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Split Profile presentation components
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          path = Path('src/pages/Profile.jsx')
+          text = path.read_text()
+          out = Path('src/components/profile')
+          out.mkdir(parents=True, exist_ok=True)
+
+          # Move social-link rendering helpers out of the page.
+          social_start = text.index('const SOCIAL_LINK_LABELS')
+          profile_start = text.index('export default function Profile')
+          social = text[social_start:profile_start].rstrip() + '\n'
+          social = social.replace('const SOCIAL_LINK_LABELS', 'export const SOCIAL_LINK_LABELS', 1)
+          social = social.replace('const SOCIAL_LINK_ICONS', 'export const SOCIAL_LINK_ICONS', 1)
+          social = social.replace('function SocialLinks(', 'export default function ProfileSocialLinks(', 1)
+          (out / 'ProfileSocialLinks.jsx').write_text("""import React from 'react';
+          import { Globe2 } from 'lucide-react';
+          import { normalizeSocialLinks } from '../../api/profiles';
+
+          """ + social)
+          text = text[:social_start] + text[profile_start:]
+
+          import_anchor = "import { fetchProfileEvents } from '../api/events';\n"
+          component_imports = """import CreatorPortfolio from '../components/profile/CreatorPortfolio';
+          import ProfileConnections from '../components/profile/ProfileConnections';
+          import ProfileSocialLinks, { SOCIAL_LINK_ICONS, SOCIAL_LINK_LABELS } from '../components/profile/ProfileSocialLinks';
+          """
+          if import_anchor not in text:
+              raise SystemExit('Profile import anchor missing')
+          text = text.replace(import_anchor, import_anchor + component_imports, 1)
+          text = text.replace('<SocialLinks ', '<ProfileSocialLinks ')
+
+          # Move the portfolio-only view as a pure presentation component.
+          portfolio_start = text.index('  if (portfolioMode) {')
+          portfolio_end = text.index('\n\n  return (', portfolio_start)
+          portfolio = dedent(text[portfolio_start:portfolio_end]).rstrip() + '\n'
+          portfolio = portfolio.replace(
+              'if (portfolioMode) {',
+              'export default function CreatorPortfolio({ profile, profileDisplayName, profilePosts, featuredPosts, userSpots, profileEvents, specialties, isOwnProfile, currentUser, blocked, friendState, followLoading, friendButton, FriendButtonIcon, onBack, onShare, onFriend }) {',
+              1,
+          )
+          portfolio = portfolio.replace('goBack', 'onBack')
+          portfolio = portfolio.replace('sharePortfolio', 'onShare')
+          portfolio = portfolio.replace('handleFriend', 'onFriend')
+          portfolio = portfolio.replace('<ProfileSocialLinks ', '<ProfileSocialLinks ')
+          (out / 'CreatorPortfolio.jsx').write_text("""import React from 'react';
+          import { Link } from 'react-router-dom';
+          import { ArrowLeft, CalendarDays, Camera, MapPin, MessageCircle, Pencil, Share2, User, Users } from 'lucide-react';
+          import { getSpotPrimaryImage } from '../../utils/spotImages';
+          import ProfileSocialLinks from './ProfileSocialLinks';
+
+          """ + portfolio)
+          portfolio_call = """  if (portfolioMode) {
+            return <CreatorPortfolio
+              profile={profile}
+              profileDisplayName={profileDisplayName}
+              profilePosts={profilePosts}
+              featuredPosts={featuredPosts}
+              userSpots={userSpots}
+              profileEvents={profileEvents}
+              specialties={specialties}
+              isOwnProfile={isOwnProfile}
+              currentUser={currentUser}
+              blocked={blocked}
+              friendState={friendState}
+              followLoading={followLoading}
+              friendButton={friendButton}
+              FriendButtonIcon={FriendButtonIcon}
+              onBack={goBack}
+              onShare={sharePortfolio}
+              onFriend={handleFriend}
+            />;
+          }"""
+          text = text[:portfolio_start] + portfolio_call + text[portfolio_end:]
+
+          # Move friend/request rendering out, retaining API actions in a focused component.
+          connections_start = text.index('      {(connections.friends.length > 0 ||')
+          connections_end = text.index('\n\n      {profileEvents.length > 0 && (', connections_start)
+          connections = dedent(text[connections_start:connections_end]).rstrip() + '\n'
+          connections = connections.replace('location.pathname', 'locationPath')
+          connections = connections.replace('refreshConnections();', 'onRefresh?.();')
+          (out / 'ProfileConnections.jsx').write_text("""import React from 'react';
+          import { Link } from 'react-router-dom';
+          import { User, UserPlus, Users } from 'lucide-react';
+          import { acceptFriendRequest, declineFriendRequest } from '../../api/follows';
+
+          export default function ProfileConnections({ connections, isOwnProfile, locationPath, onRefresh }) {
+            return (
+              <>
+          """ + connections + """
+              </>
+            );
+          }
+          """)
+          connection_call = """      <ProfileConnections
+                connections={connections}
+                isOwnProfile={isOwnProfile}
+                locationPath={location.pathname}
+                onRefresh={refreshConnections}
+              />"""
+          text = text[:connections_start] + connection_call + text[connections_end:]
+
+          path.write_text(text)
+          PY
+      - name: Verify structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/components/profile/CreatorPortfolio.jsx
+          test -f src/components/profile/ProfileConnections.jsx
+          test -f src/components/profile/ProfileSocialLinks.jsx
+          grep -F "import CreatorPortfolio from '../components/profile/CreatorPortfolio';" src/pages/Profile.jsx
+          grep -F 'export default function CreatorPortfolio' src/components/profile/CreatorPortfolio.jsx
+          grep -F 'export default function ProfileConnections' src/components/profile/ProfileConnections.jsx
+          grep -F 'export default function ProfileSocialLinks' src/components/profile/ProfileSocialLinks.jsx
+          bytes=$(wc -c < src/pages/Profile.jsx)
+          test "$bytes" -lt 30000
+          echo "Profile size after split: $bytes bytes"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: npm run build
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git config user.name "SnapMap refactor"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/pages/Profile.jsx src/components/profile/CreatorPortfolio.jsx src/components/profile/ProfileConnections.jsx src/components/profile/ProfileSocialLinks.jsx
+          git commit -m "Split Profile into focused presentation components"
+          git push origin HEAD:refactor/split-profile-2026-09-08
