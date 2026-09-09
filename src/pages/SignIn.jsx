@@ -340,9 +340,9 @@ export default function SignIn({ onSuccess, currentUser }) {
       <div className="surface-card rounded-[1.75rem] p-6 sm:p-8">
       {location.state?.authMessage && <p className="mb-4 rounded-2xl border border-accent-500/20 bg-accent-500/[0.07] px-4 py-3 text-sm font-bold text-accent-400">{location.state.authMessage}</p>}
       <p className="eyebrow">SnapMap account</p>
-      <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">{creatingAccount ? 'Create your account' : 'Welcome back'}</h1>
+      <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary">{creatingAccount ? 'Create your account' : location.state?.authMessage ? 'Sign in to contribute' : 'Sign in to SnapMap'}</h1>
       <p className="mt-2 text-sm font-medium leading-relaxed text-muted">
-        {isPassword ? creatingAccount ? 'Join SnapMap to share spots, events, and photos with other creators.' : 'Sign in with your email and password.' : 'We&apos;ll send you a link to sign in. No password needed.'}
+        {isPassword ? creatingAccount ? 'Join SnapMap to share spots, events, and photos with other creators.' : location.state?.authMessage ? 'Browsing stays open to everyone. Sign in when you’re ready to publish or connect.' : 'Use your email and password to access your profile.' : 'We&apos;ll send you a link to sign in. No password needed.'}
       </p>
 
       <div className="mt-4 flex gap-2 rounded-2xl border border-white/10 p-1">
