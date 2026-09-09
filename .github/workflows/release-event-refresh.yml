@@ -1,0 +1,44 @@
+name: Prepare event refresh release
+
+on:
+  push:
+    branches:
+      - feature/event-source-refresh-2026-09-08
+    paths:
+      - .github/workflows/release-event-refresh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/event-source-refresh-2026-09-08
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Set release version
+        run: npm version 2.29.5 --no-git-tag-version
+      - name: Sync deployed version metadata
+        run: npm run sync-version
+      - name: Build production PWA
+        env:
+          BASE_PATH: /app/
+        run: |
+          npm ci
+          npm run build
+      - name: Commit release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SnapMap release"
+          git config user.email "actions@users.noreply.github.com"
+          git add package.json package-lock.json android/app/version.properties public/version.json website/index.html
+          git commit -m "Release v2.29.5 event source refresh"
+          git push origin HEAD:feature/event-source-refresh-2026-09-08
