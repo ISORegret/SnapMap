@@ -52,7 +52,7 @@ export async function fetchModerationQueue() {
     ...(spotsResult.data || []).map((item) => ({ ...item, kind: 'spot', reason: item.report_type, target: item.spot, targetUserId: item.spot?.owner_id })),
     ...(messagesResult.data || []).map((item) => ({ ...item, kind: 'message', target: item.message, targetUserId: item.message?.sender_id })),
     ...(eventsResult.data || []).map((item) => ({ ...item, kind: 'event', reason: item.report_type, target: item.event, targetUserId: item.event?.host_id })),
-  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  ].filter((item) => item.target?.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 export async function fetchEventClaims() {
@@ -66,7 +66,7 @@ export async function fetchEventClaims() {
     console.warn('SnapMap: event claims queue failed', error);
     return [];
   }
-  return data || [];
+  return (data || []).filter((claim) => claim.event?.id);
 }
 
 export async function reviewEventClaim(claimId, approve) {

@@ -230,6 +230,7 @@ export default function Settings({
         <section>
           <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Data & status</p>
           <div className="surface-card rounded-[1.5rem] px-4">
+            {currentUser && <Link to="/submissions" className="block"><SettingRow icon={Shield} title="My reports & claims" subtitle="Check review status and ownership decisions."><ChevronRight className="h-4 w-4 text-slate-600" /></SettingRow></Link>}
             <SettingRow icon={isOnline ? Wifi : WifiOff} title={isOnline ? 'Online' : 'Offline'} subtitle={isOnline ? 'Cloud changes can sync normally.' : 'Changes will remain on this device until you reconnect.'}>
               <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </SettingRow>

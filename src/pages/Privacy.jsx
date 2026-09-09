@@ -51,6 +51,7 @@ export default function Privacy() {
               beyond what your device provides for the &quot;near me&quot; features.</li>
             <li><strong className="text-slate-300">Community activity</strong> — Posts, comments, friendships, public
               check-ins, event details, and RSVPs are stored in Supabase and shown to other SnapMap users.</li>
+            <li><strong className="text-slate-300">Reports & claims</strong> — Your submissions are visible to you and moderators. Their history is retained when the reported content or event is removed, so you can still check the outcome.</li>
           </ul>
         </section>
 
