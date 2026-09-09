@@ -58,5 +58,5 @@ jobs:
       - name: Dependency security gate
         run: npm audit --audit-level=moderate
 
-      - name: Photo editor regression checks
-        run: node --test tests/spot-photo-editor.test.js
+      - name: Feature regression checks
+        run: node --test tests/*.test.js

@@ -47,6 +47,7 @@ Recommended navigation:
 - Lazy-loaded non-map pages, reducing the main JavaScript bundle from 811 kB to 497 kB (223 kB to 150 kB gzip) after the dependency update. Offline precaching remains enabled.
 - Collapsed legacy import, export, and sync utilities under a single expandable control on Saved.
 - Added an owner photo editor with cover selection, reorder, replace, remove, and photographer credits. Quick-add now waits for cloud save and shows failures; photo preparation blocks form submission.
+- Added Settings → My reports & claims, with private status history, loading/retry/empty states, and links to surviving spots and events. New submissions still require a target; deleting the target retains history and removes it from pending moderation queues.
 
 ## Prioritized backlog
 
@@ -64,7 +65,7 @@ Recommended navigation:
 
 1. Add a reliable event import/refresh pipeline with source, last-verified date, and deduplication.
 2. Completed: spot owners can edit credits, choose a cover, reorder, replace, and remove photos before saving.
-3. Add report/claim status tracking so contributors know what happened.
+3. Completed: private report and claim status tracking, including retained history for content removed after this update. Older records already deleted cannot be recovered by this migration.
 4. Add true push notifications, or label reminders accurately as in-app/browser reminders.
 5. Seed Community with event-linked posts and featured local creators before promoting messaging.
 

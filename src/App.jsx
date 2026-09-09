@@ -39,6 +39,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));
 const RoutePlanner = lazy(() => import('./pages/RoutePlanner'));
 const Messages = lazy(() => import('./pages/Messages'));
+const MySubmissions = lazy(() => import('./pages/MySubmissions'));
 import InstallPrompt from './components/InstallPrompt';
 import Tutorial from './components/Tutorial';
 import ToastHost from './components/ToastHost';
@@ -786,6 +787,7 @@ export default function App() {
           <Route path="/profile" element={<Account allSpots={allSpots} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/about" element={<About allSpots={allSpots} />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/submissions" element={<MySubmissions currentUser={currentUser} />} />
           <Route path="/signin" element={<SignIn currentUser={currentUser} />} />
           <Route path="/change-password" element={<ChangePassword currentUser={currentUser} />} />
           <Route path="/settings" element={<Settings currentUser={currentUser} currentUserProfile={currentUserProfile} theme={theme} setTheme={setTheme} units={units} setUnits={setUnits} appVersion={appVersion} isOnline={isOnline} showToast={showToast} />} />
