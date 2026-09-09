@@ -90,6 +90,7 @@ export default function App() {
   });
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
   const showToast = useCallback((message, options = {}) => {
     setToast({ id: Date.now(), message, ...options });
@@ -743,6 +744,7 @@ export default function App() {
 
   const navLinkClass = ({ isActive }) =>
     `nav-item ${isActive ? 'nav-item-active' : ''}`;
+  const hasContextNavigation = /^\/(?:spot|event)\/[^/]+$/.test(pathname) || /^\/messages\/[^/]+$/.test(pathname);
 
   return (
     <div className="flex min-h-screen flex-col app-shell animate-fade-in" style={{ backgroundColor: 'var(--bg-page)' }}>
@@ -757,7 +759,7 @@ export default function App() {
           You&apos;re offline. Sync may fail until you&apos;re back online.
         </div>
       )}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={{ paddingBottom: hasContextNavigation ? 0 : 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex-1 min-h-0 flex flex-col relative">
           <Suspense fallback={<div className="flex flex-1 items-center justify-center p-12 text-sm text-slate-400" role="status">Loading page…</div>}>
           <Routes>
@@ -855,7 +857,7 @@ export default function App() {
         </div>
       </main>
       {/* Bottom navigation dock */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex flex-col items-center px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
+      {!hasContextNavigation && <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex flex-col items-center px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))]">
         <nav
           className="nav-dock pointer-events-auto grid w-full max-w-lg grid-cols-5 items-center rounded-[1.65rem] px-1.5 py-1.5"
           aria-label="Main"
@@ -899,7 +901,7 @@ export default function App() {
             v{appVersion} · Update available
           </p>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

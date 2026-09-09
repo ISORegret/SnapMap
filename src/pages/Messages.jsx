@@ -125,7 +125,7 @@ function Conversation({ currentUser, username, initialShare, onRead, showToast }
 
   if (!loading && (!profile || friendState !== 'friends')) return <div className="page-shell px-4 py-16 text-center"><MessageCircle className="mx-auto h-9 w-9 text-muted" /><h1 className="mt-4 font-black text-primary">Messages unavailable</h1><p className="mt-1 text-sm text-muted">Private messages are available between accepted friends.</p><Link to="/messages" className="primary-button mt-5 inline-flex px-5 py-2.5 text-sm">Back to messages</Link></div>;
 
-  return <div className="page-shell pb-48 animate-fade-in">
+  return <div className="page-shell pb-32 animate-fade-in">
     <header className="page-header sticky top-0 z-30"><div className="mx-auto flex max-w-2xl items-center gap-3"><button type="button" onClick={() => navigateBackOr(navigate, '/messages')} className="icon-button" aria-label="Go back"><ArrowLeft className="h-5 w-5" /></button><Avatar profile={profile} className="h-10 w-10" /><Link to={profile ? `/user/${profile.username}` : '#'} state={profile ? { from: `${location.pathname}${location.search || ''}` } : undefined} className="min-w-0 flex-1"><p className="truncate text-sm font-black text-primary">{profile?.display_name || 'SnapMap user' || 'Loading…'}</p></Link>{profile && <button type="button" onClick={block} className="icon-button text-rose-400" aria-label="Block creator"><Ban className="h-4 w-4" /></button>}</div></header>
     <main className="mx-auto w-full max-w-2xl px-4 py-5">
       {loading && <div className="surface-card h-64 animate-pulse rounded-[1.6rem]" />}
@@ -140,7 +140,7 @@ function Conversation({ currentUser, username, initialShare, onRead, showToast }
         </div></div>;
       })}<div ref={bottomRef} /></div>
     </main>
-    <form onSubmit={submit} className="fixed inset-x-0 bottom-[calc(6.1rem+env(safe-area-inset-bottom))] z-[1040] mx-auto w-full max-w-2xl px-3">
+    <form onSubmit={submit} className="fixed inset-x-0 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-[1050] mx-auto w-full max-w-2xl px-3">
       <div className="rounded-[1.5rem] border border-[var(--border-strong)] bg-[var(--bg-card-solid)] p-2.5 shadow-2xl backdrop-blur-xl">
         {share && <div className="mb-2"><ShareCard share={share} onRemove={() => setShare(null)} /></div>}
         <div className="flex items-end gap-2"><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={1} maxLength={1500} placeholder="Message…" className="surface-input max-h-32 min-h-11 flex-1 resize-none rounded-2xl px-3.5 py-3 text-sm" /><button type="submit" disabled={sending || (!body.trim() && !share)} className="primary-button h-11 w-11 shrink-0 rounded-2xl disabled:opacity-40" aria-label="Send message"><Send className="h-4 w-4" /></button></div>

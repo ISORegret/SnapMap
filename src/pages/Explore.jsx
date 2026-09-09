@@ -216,7 +216,7 @@ export default function Explore({
 
   return (
     <div className="page-shell pb-24 animate-fade-in">
-      <header className="page-header sticky top-0 z-20">
+      <header className="page-header">
         <div className="mx-auto max-w-5xl">
           <div className="flex items-end justify-between gap-4">
             <div>
