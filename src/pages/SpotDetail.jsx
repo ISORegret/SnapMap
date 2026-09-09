@@ -22,6 +22,7 @@ function formatTime(d) {
 
 function SpotImageGallery({ images, spotName }) {
   const [index, setIndex] = React.useState(0);
+  React.useEffect(() => { setIndex((current) => Math.min(current, Math.max(0, (images?.length || 0) - 1))); }, [images?.length]);
   const touchStartX = React.useRef(0);
   const SWIPE_THRESHOLD = 50;
   if (!images?.length) return null;
@@ -238,6 +239,7 @@ export default function SpotDetail({
   });
   const [copyFeedback, setCopyFeedback] = useState(null);
   const [addPhotoLoading, setAddPhotoLoading] = useState(false);
+  const [addPhotoError, setAddPhotoError] = useState('');
   const [shareImageLoading, setShareImageLoading] = useState(false);
   const [shareImageError, setShareImageError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -487,18 +489,27 @@ export default function SpotDetail({
   const spotImages = getSpotImages(spot);
 
   const canAddPhoto = isUserSpot(spot.id);
-  const handleAddPhoto = (e) => {
+  const handleAddPhoto = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || !file.type.startsWith('image/') || !canAddPhoto) return;
+    if (!file || !canAddPhoto || addPhotoLoading) return;
+    setAddPhotoError('');
+    if (!file.type.startsWith('image/')) {
+      setAddPhotoError('Please choose an image file.');
+      return;
+    }
     setAddPhotoLoading(true);
     const attributedTo = photoByLabel(currentUserProfile);
-    resizeImageToDataUrl(file, 1200)
-      .then((dataUrl) => {
-        const current = getSpotImages(spot);
-        updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo, uploadedBy: attributedTo }] });
-      })
-      .finally(() => setAddPhotoLoading(false));
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 1200);
+      const current = getSpotImages(spot);
+      const saved = await updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo, uploadedBy: attributedTo }] });
+      if (!saved) setAddPhotoError('Your photo could not sync. Check your connection and try again.');
+    } catch {
+      setAddPhotoError('Could not add that photo. Try another image.');
+    } finally {
+      setAddPhotoLoading(false);
+    }
   };
 
     const locationText = (spot.address && spot.address !== 'Not specified')
@@ -571,6 +582,8 @@ export default function SpotDetail({
           >
             {addPhotoLoading ? 'Adding…' : 'Add your photo to this spot'}
           </button>
+          <button type="button" disabled={addPhotoLoading} onClick={() => navigate('/add', { state: { editSpot: spot } })} className="mt-2 w-full rounded-2xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-secondary disabled:opacity-50">Manage photos & cover</button>
+          {addPhotoError && <p role="alert" className="mt-2 text-sm text-rose-400">{addPhotoError}</p>}
         </div>
       )}
       {currentUser && canReport && (

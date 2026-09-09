@@ -46,6 +46,7 @@ Recommended navigation:
 - Updated React Router to 7.18.3, Vite to 7.3.6, and Sharp to 0.35.4; the full dependency audit reports zero vulnerabilities. CI now checks development dependencies and moderate advisories too.
 - Lazy-loaded non-map pages, reducing the main JavaScript bundle from 811 kB to 497 kB (223 kB to 150 kB gzip) after the dependency update. Offline precaching remains enabled.
 - Collapsed legacy import, export, and sync utilities under a single expandable control on Saved.
+- Added an owner photo editor with cover selection, reorder, replace, remove, and photographer credits. Quick-add now waits for cloud save and shows failures; photo preparation blocks form submission.
 
 ## Prioritized backlog
 
@@ -62,7 +63,7 @@ Recommended navigation:
 ### P2 — grow the core loop
 
 1. Add a reliable event import/refresh pipeline with source, last-verified date, and deduplication.
-2. Add photo edit, reorder, replace, and delete controls for spot owners.
+2. Completed: spot owners can edit credits, choose a cover, reorder, replace, and remove photos before saving.
 3. Add report/claim status tracking so contributors know what happened.
 4. Add true push notifications, or label reminders accurately as in-app/browser reminders.
 5. Seed Community with event-linked posts and featured local creators before promoting messaging.
