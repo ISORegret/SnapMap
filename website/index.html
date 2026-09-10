@@ -1,286 +1,31 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SnapMap — Built for car people and photographers</title>
-  <meta name="description" content="SnapMap is a web app for car people, photographers, and explorers. Find shoot locations, discover events, share spots, connect with the community, and join weekly photo challenges." />
-  <meta name="theme-color" content="#0b0b0d" />
-  <meta property="og:title" content="SnapMap — Find spots. Shoot cars. Meet the community." />
-  <meta property="og:description" content="Discover photo spots, automotive events, community posts, and weekly photo challenges." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://snapmap.lol/" />
-  <meta property="og:image" content="https://snapmap.lol/screenshots/map.png" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <style>
-    :root {
-      --bg: #09090b;
-      --bg-2: #0f0f12;
-      --card: rgba(24,24,29,.86);
-      --card-strong: #17171c;
-      --line: rgba(255,255,255,.09);
-      --line-strong: rgba(255,255,255,.15);
-      --text: #f8f8f8;
-      --muted: #a5a5ad;
-      --muted-2: #75757e;
-      --accent: #f0b83f;
-      --accent-2: #ffd36a;
-      --accent-ink: #241902;
-      --radius: 24px;
-      --shadow: 0 26px 80px rgba(0,0,0,.42);
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; background: var(--bg); }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 80% 4%, rgba(240,184,63,.13), transparent 26rem),
-        radial-gradient(circle at 8% 25%, rgba(255,255,255,.035), transparent 22rem),
-        var(--bg);
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    a { color: inherit; }
-    img { display: block; max-width: 100%; }
-    .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      padding: max(14px, env(safe-area-inset-top)) 0 12px;
-      background: linear-gradient(to bottom, rgba(9,9,11,.95), rgba(9,9,11,.74), transparent);
-      backdrop-filter: blur(16px);
-    }
-    .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 900; letter-spacing: -.03em; }
-    .brand-mark {
-      width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center;
-      background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 28px rgba(240,184,63,.2);
-      font-size: 18px;
-    }
-    .top-open { text-decoration: none; font-size: 13px; font-weight: 850; color: var(--accent-2); }
-
-    .hero { padding: 56px 0 72px; overflow: hidden; }
-    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, .75fr); gap: 60px; align-items: center; }
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 999px;
-      border: 1px solid rgba(240,184,63,.25); background: rgba(240,184,63,.07); color: var(--accent-2);
-      font-size: 11px; font-weight: 900; letter-spacing: .11em; text-transform: uppercase;
-    }
-    .eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px rgba(240,184,63,.8); }
-    h1 { margin: 20px 0 18px; font-size: clamp(3rem, 8vw, 6.4rem); line-height: .94; letter-spacing: -.07em; max-width: 850px; }
-    .hero-accent { color: var(--accent); }
-    .hero-copy { max-width: 660px; margin: 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.16rem); line-height: 1.72; }
-    .hero-copy strong { color: var(--text); }
-    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
-    .button {
-      display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 10px;
-      padding: 0 21px; border-radius: 15px; text-decoration: none; font-size: 14px; font-weight: 900;
-      transition: transform .18s ease, border-color .18s ease, background .18s ease;
-    }
-    .button:hover { transform: translateY(-2px); }
-    .button-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 16px 40px rgba(240,184,63,.18); }
-    .button-secondary { border: 1px solid var(--line-strong); background: rgba(255,255,255,.035); color: var(--text); }
-    .hero-note { margin-top: 13px; color: var(--muted-2); font-size: 12px; }
-
-    .device-wrap { position: relative; display: flex; justify-content: center; }
-    .device-glow { position: absolute; width: 320px; height: 320px; border-radius: 50%; background: rgba(240,184,63,.16); filter: blur(70px); top: 18%; }
-    .device {
-      position: relative; width: min(330px, 82vw); border-radius: 42px; padding: 9px; background: #050506;
-      border: 1px solid rgba(255,255,255,.16); box-shadow: var(--shadow); transform: rotate(2.2deg);
-    }
-    .device::before { content: ''; position: absolute; top: 17px; left: 50%; width: 90px; height: 22px; transform: translateX(-50%); border-radius: 30px; background: #060608; z-index: 3; }
-    .device img { width: 100%; border-radius: 34px; aspect-ratio: 9 / 19.5; object-fit: cover; object-position: top; }
-
-    .section { padding: 76px 0; }
-    .section-heading { max-width: 720px; margin-bottom: 34px; }
-    .kicker { color: var(--accent); font-size: 11px; font-weight: 950; letter-spacing: .13em; text-transform: uppercase; }
-    h2 { margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 3.7rem); line-height: 1.02; letter-spacing: -.055em; }
-    .section-heading p { margin: 0; color: var(--muted); line-height: 1.7; }
-
-    .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .feature {
-      min-height: 190px; padding: 22px; border-radius: var(--radius); border: 1px solid var(--line);
-      background: linear-gradient(155deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
-    }
-    .icon { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: rgba(240,184,63,.11); color: var(--accent-2); font-size: 20px; }
-    .feature h3 { margin: 22px 0 7px; font-size: 16px; letter-spacing: -.02em; }
-    .feature p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.62; }
-
-    .audience {
-      display: grid; grid-template-columns: .82fr 1.18fr; gap: 18px; align-items: stretch;
-      border-radius: 32px; overflow: hidden; border: 1px solid var(--line); background: var(--card-strong);
-    }
-    .audience-copy { padding: clamp(28px, 6vw, 54px); display: flex; flex-direction: column; justify-content: center; }
-    .audience-copy p { color: var(--muted); line-height: 1.72; margin: 0; }
-    .audience-copy strong { color: var(--text); }
-    .audience-images { display: grid; grid-template-columns: 1fr 1fr; min-height: 470px; background: #070708; }
-    .audience-images img { width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: .92; }
-    .audience-images img + img { border-left: 1px solid var(--line); }
-
-    .alpha {
-      border: 1px solid rgba(240,184,63,.26); border-radius: 30px; padding: clamp(26px, 5vw, 44px);
-      background: linear-gradient(135deg, rgba(240,184,63,.095), rgba(255,255,255,.025));
-      display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;
-    }
-    .alpha-badge { width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; color: var(--accent-ink); background: var(--accent); font-weight: 950; }
-    .alpha h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin-top: 0; }
-    .alpha p { margin: 0; color: var(--muted); line-height: 1.7; max-width: 780px; }
-    .alpha strong { color: var(--text); }
-
-    .install-card {
-      margin-top: 16px; padding: 18px 20px; border: 1px solid var(--line); background: rgba(0,0,0,.2); border-radius: 18px;
-      color: var(--muted); font-size: 13px; line-height: 1.55;
-    }
-    .install-card strong { color: var(--text); }
-
-    .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .screen-card { border: 1px solid var(--line); border-radius: 24px; overflow: hidden; background: var(--card); }
-    .screen-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; object-position: top; }
-    .screen-label { padding: 13px 14px 15px; font-size: 12px; font-weight: 850; color: var(--muted); }
-
-    .final { text-align: center; padding: 82px 0 max(74px, calc(env(safe-area-inset-bottom) + 50px)); }
-    .final h2 { max-width: 760px; margin-left: auto; margin-right: auto; }
-    .final p { max-width: 620px; margin: 0 auto 25px; color: var(--muted); line-height: 1.7; }
-    .version { margin-top: 15px; color: var(--muted-2); font-size: 11px; }
-
-    @media (max-width: 900px) {
-      .hero { padding-top: 32px; }
-      .hero-grid { grid-template-columns: 1fr; gap: 46px; }
-      .hero-copy { max-width: 760px; }
-      .device { width: min(360px, 78vw); transform: rotate(0deg); }
-      .feature-grid { grid-template-columns: repeat(2, 1fr); }
-      .audience { grid-template-columns: 1fr; }
-      .audience-images { min-height: 430px; }
-      .screens { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 560px) {
-      .shell { width: min(100% - 24px, 1120px); }
-      .topbar-inner { padding-inline: 2px; }
-      .hero { padding-bottom: 54px; }
-      h1 { font-size: clamp(3.15rem, 16vw, 5rem); }
-      .actions { align-items: stretch; }
-      .button { width: 100%; }
-      .feature-grid { grid-template-columns: 1fr; }
-      .feature { min-height: 0; }
-      .audience-images { min-height: 340px; }
-      .alpha { grid-template-columns: 1fr; }
-      .screens { gap: 10px; }
-      .screen-card { border-radius: 18px; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SnapMap — Built for car people and photographers</title>
+<meta name="description" content="Find automotive photo spots, discover events, share locations, connect with creators, and join weekly photo challenges on SnapMap." />
+<meta name="theme-color" content="#09090b" />
+<meta property="og:title" content="SnapMap — Find spots. Shoot cars. Meet the community." />
+<meta property="og:description" content="A web app for car people, photographers, creators, and explorers." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://snapmap.lol/" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<style>
+:root{--bg:#09090b;--panel:#151519;--line:rgba(255,255,255,.1);--text:#f7f7f7;--muted:#a0a0a8;--accent:#f0b83f;--accent2:#ffd36a;--ink:#241902}
+*{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;background:radial-gradient(circle at 80% 4%,rgba(240,184,63,.14),transparent 28rem),var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit}.shell{width:min(1120px,calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:20;padding:max(14px,env(safe-area-inset-top)) 0 12px;background:linear-gradient(rgba(9,9,11,.96),rgba(9,9,11,.78),transparent);backdrop-filter:blur(16px)}.topin{display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:-.03em}.mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:var(--accent);color:var(--ink);font-size:18px}.open{text-decoration:none;color:var(--accent2);font-size:13px;font-weight:900}.hero{padding:52px 0 70px}.hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(290px,.72fr);gap:58px;align-items:center}.pill{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(240,184,63,.26);background:rgba(240,184,63,.08);color:var(--accent2);border-radius:999px;padding:7px 11px;font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}h1{margin:20px 0 18px;font-size:clamp(3rem,8vw,6.3rem);line-height:.94;letter-spacing:-.07em}.gold{color:var(--accent)}.lead{max-width:680px;color:var(--muted);font-size:clamp(1rem,2vw,1.15rem);line-height:1.72;margin:0}.lead strong{color:var(--text)}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.btn{min-height:50px;display:inline-flex;align-items:center;justify-content:center;padding:0 22px;border-radius:15px;text-decoration:none;font-size:14px;font-weight:900}.primary{background:var(--accent);color:var(--ink)}.secondary{border:1px solid var(--line);background:rgba(255,255,255,.035)}.note{margin-top:13px;color:#777780;font-size:12px}.phone-wrap{position:relative;display:flex;justify-content:center}.glow{position:absolute;width:310px;height:310px;border-radius:50%;background:rgba(240,184,63,.16);filter:blur(70px);top:20%}.phone{position:relative;width:min(330px,82vw);padding:9px;border-radius:42px;background:#050506;border:1px solid rgba(255,255,255,.16);box-shadow:0 26px 80px rgba(0,0,0,.45)}.phone:before{content:"";position:absolute;top:17px;left:50%;transform:translateX(-50%);width:88px;height:22px;border-radius:30px;background:#060608;z-index:2}.phone img{display:block;width:100%;border-radius:34px;aspect-ratio:9/19.5;object-fit:cover;object-position:top}.caption{text-align:center;color:#777780;font-size:11px;margin-top:10px}.section{padding:74px 0}.head{max-width:720px;margin-bottom:32px}.kicker{color:var(--accent);font-size:11px;font-weight:950;letter-spacing:.13em;text-transform:uppercase}h2{margin:8px 0 12px;font-size:clamp(2rem,5vw,3.6rem);line-height:1.03;letter-spacing:-.055em}.head p{margin:0;color:var(--muted);line-height:1.7}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{padding:22px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(155deg,rgba(255,255,255,.055),rgba(255,255,255,.02))}.icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(240,184,63,.11);color:var(--accent2);font-size:19px}.card h3{margin:21px 0 7px;font-size:16px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.62}.audience{display:grid;grid-template-columns:1fr 1fr;gap:18px}.aud-card{border:1px solid var(--line);border-radius:28px;padding:34px;background:var(--panel)}.aud-card h3{font-size:24px;margin:0 0 9px;letter-spacing:-.035em}.aud-card p{margin:0;color:var(--muted);line-height:1.7}.alpha{border:1px solid rgba(240,184,63,.28);border-radius:30px;padding:clamp(28px,5vw,44px);background:linear-gradient(135deg,rgba(240,184,63,.1),rgba(255,255,255,.02));display:grid;grid-template-columns:auto 1fr;gap:20px}.alpha-badge{width:52px;height:52px;border-radius:18px;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:950}.alpha h2{font-size:clamp(1.8rem,4vw,2.8rem);margin-top:0}.alpha p{margin:0;color:var(--muted);line-height:1.7}.alpha strong{color:var(--text)}.install{margin-top:16px;padding:18px 20px;border-radius:18px;border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--muted);font-size:13px;line-height:1.55}.install strong{color:var(--text)}.final{text-align:center;padding:82px 0 max(72px,calc(env(safe-area-inset-bottom) + 48px))}.final h2{max-width:760px;margin-left:auto;margin-right:auto}.final p{max-width:620px;margin:0 auto 24px;color:var(--muted);line-height:1.7}.version{margin-top:14px;color:#72727b;font-size:11px}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:44px}.grid{grid-template-columns:repeat(2,1fr)}.audience{grid-template-columns:1fr}}
+@media(max-width:560px){.hero{padding-top:30px}h1{font-size:clamp(3.1rem,16vw,5rem)}.actions{align-items:stretch}.btn{width:100%}.grid{grid-template-columns:1fr}.alpha{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="shell topbar-inner">
-      <a class="brand" href="#top"><span class="brand-mark">⌖</span><span>SnapMap</span></a>
-      <a class="top-open" href="/app/">Open SnapMap →</a>
-    </div>
-  </header>
-
-  <main id="top">
-    <section class="hero">
-      <div class="shell hero-grid">
-        <div>
-          <span class="eyebrow"><span class="eyebrow-dot"></span> Web app · Alpha</span>
-          <h1>Find the spot.<br><span class="hero-accent">Shoot the car.</span><br>Meet the community.</h1>
-          <p class="hero-copy"><strong>SnapMap is built for car people and photographers.</strong> Find shoot locations, discover automotive events, share spots, connect with other creators, and jump into weekly photo challenges. Scenic spots and hidden gems are welcome too.</p>
-          <div class="actions">
-            <a class="button button-primary" href="/app/">Open SnapMap <span aria-hidden="true">→</span></a>
-            <a class="button button-secondary" href="#features">See what it does</a>
-          </div>
-          <p class="hero-note">No download required. Works on iPhone, Android, tablet, and desktop.</p>
-        </div>
-        <div class="device-wrap" aria-label="SnapMap app preview">
-          <div class="device-glow"></div>
-          <div class="device"><img src="./screenshots/map.png" alt="SnapMap map view showing photo spots and events" /></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="features">
-      <div class="shell">
-        <div class="section-heading">
-          <span class="kicker">Made for the scene</span>
-          <h2>Less hunting. More shooting.</h2>
-          <p>SnapMap brings the useful pieces of automotive photography and local car culture into one place without turning it into another noisy social app.</p>
-        </div>
-        <div class="feature-grid">
-          <article class="feature"><div class="icon">⌖</div><h3>Find photo spots</h3><p>Discover garages, downtown angles, overlooks, murals, backroads, industrial locations, and other community-shared places worth shooting.</p></article>
-          <article class="feature"><div class="icon">◉</div><h3>Discover events</h3><p>Find nearby car meets, shows, cruises, and gatherings with dates, locations, directions, and community updates.</p></article>
-          <article class="feature"><div class="icon">▣</div><h3>Share your work</h3><p>Post photos from spots and events, credit photographers, build a creator profile, and connect with people who actually care about the same scene.</p></article>
-          <article class="feature"><div class="icon">★</div><h3>Weekly challenges</h3><p>Get a fresh photo theme each week, submit your shot, browse community entries, and earn a featured winner spot.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shell audience">
-        <div class="audience-copy">
-          <span class="kicker">Who it's for</span>
-          <h2>Cars and photography first.</h2>
-          <p><strong>Automotive photographers, enthusiasts, creators, and meet-goers are the core of SnapMap.</strong> But if you're chasing a great city view, scenic overlook, architecture spot, or hidden location, you're not left out. A good spot is a good spot.</p>
-        </div>
-        <div class="audience-images">
-          <img src="./screenshots/feed.png" alt="SnapMap community feed" />
-          <img src="./screenshots/spot.png" alt="SnapMap photo spot details" />
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shell">
-        <div class="alpha">
-          <div class="alpha-badge">α</div>
-          <div>
-            <h2>SnapMap is currently in Alpha.</h2>
-            <p>That's why SnapMap is a <strong>web app right now.</strong> Keeping it on the web lets us ship fixes, polish features, and respond to real feedback much faster while the app is still evolving. You may run into the occasional bug, unfinished edge, or feature that changes as we improve it.</p>
-            <div class="install-card"><strong>Want it to feel like an app on iPhone?</strong> Open SnapMap in Safari, tap Share, then choose <strong>Add to Home Screen</strong>. You'll get a full-screen icon and app-like launch without downloading anything.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shell">
-        <div class="section-heading">
-          <span class="kicker">Inside SnapMap</span>
-          <h2>Built around the drive and the shot.</h2>
-          <p>Explore the map, save locations, browse the community, and keep useful spots ready for the next shoot.</p>
-        </div>
-        <div class="screens">
-          <div class="screen-card"><img src="./screenshots/map.png" alt="Map view" /><div class="screen-label">Explore the map</div></div>
-          <div class="screen-card"><img src="./screenshots/spot.png" alt="Spot detail view" /><div class="screen-label">Scout a location</div></div>
-          <div class="screen-card"><img src="./screenshots/feed.png" alt="Community feed" /><div class="screen-label">Share with the community</div></div>
-          <div class="screen-card"><img src="./screenshots/saved.png" alt="Saved spots" /><div class="screen-label">Save it for later</div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="final">
-      <div class="shell">
-        <span class="kicker">Discover · Share · Explore</span>
-        <h2>Your next shoot starts with a spot.</h2>
-        <p>Open SnapMap, see what's around you, and help build a better map for the automotive and photography community.</p>
-        <a class="button button-primary" href="/app/">Open SnapMap <span aria-hidden="true">→</span></a>
-        <div class="version" id="versionText">Web Alpha</div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    fetch('/app/version.json', { cache: 'no-store' })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (data?.version) document.getElementById('versionText').textContent = `Web Alpha · v${data.version}`;
-      })
-      .catch(() => {});
-  </script>
+<header class="top"><div class="shell topin"><a class="brand" href="#top"><span class="mark">⌖</span><span>SnapMap</span></a><a class="open" href="/app/">Open SnapMap →</a></div></header>
+<main id="top">
+<section class="hero"><div class="shell hero-grid"><div><span class="pill"><span class="dot"></span>Web app · Alpha</span><h1>Find the spot.<br><span class="gold">Shoot the car.</span><br>Meet the community.</h1><p class="lead"><strong>SnapMap is built for car people and photographers.</strong> Find shoot locations, discover automotive events, share spots, connect with creators, and join weekly photo challenges. Scenic spots and hidden gems are welcome too.</p><div class="actions"><a class="btn primary" href="/app/">Open SnapMap →</a><a class="btn secondary" href="#features">See what it does</a></div><p class="note">No download required. Works on iPhone, Android, tablet, and desktop.</p></div><div class="phone-wrap"><div class="glow"></div><div><div class="phone"><img src="data:image/webp;base64,UklGRvZcAABXRUJQVlA4IOpcAABQswGdASpoAQ4DPsFYpE2npSOjJ3PMGPAYCWdtVgjLu4z9uYMH29c8XN+f3bkJ5qPPb7FAme8iIKK8t3ecXzhf4nxEOxHSk4UHuXqB/rzyh7QXSA/2vHj+2/9Xfg+T0p/xMPdqF6qsJB08um5ZkHlfY7+c7PMKnbr/zPC3gI4u9qjvPmQe0+EVr05APmX/1PKt/Ef+r2Df6D/nf/Z63WnTUONRTYIp6M+uL0Z9cXoz64sXEte/1xABfu8b0dCTUDfcK9WCmXKVgS+tR/7ZHxs3uJtW31fOO6ccy4d7oB+xhSqB1FGsAl4dAf2dfc6SKejPr5ERCSAh1ATunUxHNJBu4HZUbGyk4K0I6muUex3Bud7DzltAEGwRWsJzilryTZVPtHMctLLpNKOP+d/YtYOiOJkBMgf7twCqIbpxcnzieh7OcqyYz/fut1PTLlbiPk05+GlsPbMCFgQro27mNeFAnz8eG79PeCSkX5giLqZ890chmw5/jJ3LO6d8nhd01cLXILj9yt/j+SeykRw6PxysuOsi6NaF9WvwKF2iE9rRw9qwQshO0gyhopJEdyXimSgyZEX4+SpaD+H4DX6kTCzDlRutGIRuUOrrq9qRy2xdRroOyfHqMn0iJvAFPOGB3GKG51lW8xUsOk0+j7/Fg3Wf3/LY1bKWOsX/UCa4YpxiEHY6v6k0n+ZSZBkXJCKXZ7yY8WQ001Y6UEesXO1WW671WwprRf0F0FXekVjsyox8zdpZ0WSWXetEtYea5Bat3WNz1KbojmTjU3/56x4v20zR251dcoLG0onwZYHU7n/7oP+D+LJ+Pv0GPOx0wfy/8TfoMEOGi7dyrWgy8SiqnGJaDcr9uCJFBbeNd8JQp3fSco5UP9dLVSOoNaqviIxxd8AsOs/t+VtZM3eOn2JzUV9rzaVI86rScHICJz86X38QjImHw83EkJb5cKfEuD3eM+nY73Gt+dyDjTK8En1ijIMf+SqY4iWzXaGeGZAnoAsTaFeV8kwjYkAzzT64VM2wbbNxW+SmXfUXKV2FS2jN030MK8DfDj3jOSSEeHO055IbAt2SPvigz8Ra3qo4gQIMdvqHUhpxmGpq+w6p5Z4fWOwMZ7YaKcsV9bOiSDz4elEc3WG0mXGDhLvojZw4V1r2L3ZWcv6igYLLJYNUNP4K1I4eMSLoDp2jDBlgiRi3S4qPiXw0aC3915KUKnjCZAJu4O6Hd/irDd/b1cPik9yRKuMe7PGanwsGPjHC8wfUFXevWwTfIKywkijzEAUEMsitnfi3KWLxXRUsJsDqe2kF2y0vExZSZNqUgAqPwiRx2XbcX91NVpLEMntuHnVI6k8j9Druy1xFuC2wz2jA/uxWmwF0LFL4G4vNNpillK9/yfUTBFOM+gvIoia2WYVfwPxyoJQ9nqnfhqoIC2Lr95gZrp/o7q2fO87HS78854rlhmR0qH5nKpYdOf8XvvnbwkAYnPONSCCUmmnyjpC6++0JUdbp9wfyBpEoTDG8JQWS58WM6OL9emZh5p8H6xS9jFgarQQIAdPbzXph/rj47MJN/AVE6u2gh2+A5MAZi0BNnKufxDnx3P83I89AorAaRfE3s2xqvTr9Z5OHL/OfV5irFfsZJZiU6MrLLkvMVHt0GAK0P1nxEUq6FMK+wtySvq7rbh83TfeoYhpABP8A4bmosJm9jD/c2ULK2WASq8lfofotnopvMjNrpWmn2rxZpHZs4RRXRoacL8VIfE+78S+nRdDGxW+UwICveu0UfmnQAXnmgzOy+TL09qFYc/EfXUt4fOjkmoGAZDgB0xkCVyMvkXFzNNIK/CHJyJCQGxB48Y55FnW9pkDolU29o2OqJPfYlc2uTuiiM6D5xBseFd0r2tGLpAU5FXrktLWDxIMjvRCAVVhhqagM14Du187/3LRD9EXN9+3C1TAUmq9u41O37Np663uT4X3u29qKEkUaszXGPKCmh+wwtvi6T0NLvaaQUMPL/9qNCqI4JM8NPkV50ML2ZEyamMx7WXc7m6bRxAiuCITvI1/+mYNn0jZvWbCTyaql8zWCtTuRsSzyB4PdhlDtb3H41BNrL8UcuDMeTPEKOgp+soHF5enpkZwG7eawPSAFT1LGG3S3+E4e1DfVQ9xiaJwPhlV65msaOtqG8nNAG2psCwnuBv3TUSOTVPJeLHuYVEFsxlccPueMWhdpi3oQNEWTzOaf5M6inS/x/NrxKBQzDVBW+jOPSlCnzK6r4DeDf1REWxUt8jS28wx6v+tzvWED0XZM9383DldiIgtbLE0CRIsN4pDpdMKL9MJWgtVDow4IRu6Ajon+lQPs+h+aWyIJfFPVgnkLfvPxgNzSSCX9AcUtO7xiCUqRhs4tLy+F3Qa8qcXLdN4SFrJeEe04Uc/CzMncuXIRDp5UU+62KZFJNDcCv6KE2WY73NjSS0PJOx1WWSX56neyA9Xbq5tNTYvdDwSUGbcddbVldj+74O3D/XXtD2ZMPwae/2xE17j1fbwYHwQLnHSCSOhwMfXfsNgUEKM79IW5EdU+WCj8NA97rd2i6xxAhjVlYBvrYZyHmS/glL7fExOUa1H9qnlokKeBnDSJtC2bbQu+499vNQKAPL69dbKsU+dKqdCZWwmGMuWrejt93vYqbXD3t9oOBUfNbDkhqTilX58On3ue/wvzileHJLuU1fm5gRIzR09R5F4lTs92C+tka7ms9Iv+Xdn+5/wbGi8NuPtLX/yw8fQc8ACYnOdKj/ytnK4ibPmbIwUnjdj0J/+h3tvtAk8Tj8c5ID9mA8tU6BfAC+D5/zNpqi0aFVE/VUTcDEcOLpJvFffC1LO2Ej2SPcDdB0hkjqr3fzk1xoaqHBJ2qsWXjwLdXA8wcCoawWIl9agAFKIY5VnS7+wgHp7iEx+tJV1qmO9Ry/nq5PfTmihsrQPNEIFr+C1WZoUn3NTuyg3mzHnzm9n6kl08MaQiEUJlmwaNOCAUAoe6XQNTHttmfdcCW0N8+ko0mzmCfagRfTmLdLuKlCqsQuOc6VYjp/EUOkOUlLlD+SNMST9TGXGLY7HEuvyh/qAjRfDtjp0OJvQJGaRLaEYu1mWBJcEBUEbfVTDOANx7au0Fv2RjGTwaA7dluXij1yCpvd/ZNqpVw9fI6pKaGF9ZZsUlNFf02rXK0nQNUYae7e5nwPHL+XXQ9YEqPGNMohpD2aCL9uCKkUMRZ+Nl7pNBNKpbdE/W4BML8Yqz07/lOuFOYT50Gb4jNdMGifSzEEkrFb5ru4hoCtLyC7enBIbPJfdaBPYMgC/7VW/xSNmtVfaFeDNFkSA/2DyMwdNCJOi6EiRE6Azpj5xRlm9rEt9KqfsJr57cCR8ngYjqDMGMdcS8Ozcy7a3JsWOP6WUEGwJlCa1P9WsGtUsqyCsbP+5Ji7yZUwZR3cagwZrqsbGr4y+rG3GcaiRLrwVPIFGSWViuWOc4PuZVWrfxSEWPfuWi/ErqsJdN9wVFQYRAQyGWVju/rGeRyZeWO3iLmYXPIYNgLYDpDYPBwFb/eDzmm9ApHUsOuRSrt8CxrBVnrEeBmlofpSzMn4soqpkUm4A3XxEydl/CS1gmPlHwH1NwrLsrKFisLcqiBd0Fh+coMbvuSdTyXqwGKtOE2iwuKO5zpIjB5asdnMG9yMff+LzYW0bIkUbhyshOtPB8mp5obcXNFNX5EWM1tchmPwfOjoMwtXuOlJjLvu+zZ9TTXnsH4vheGehr7BR6pY5aWoc3//w5Xr4rMzFFQp/A/a9RnZUvkHyuGVW1IIh5dxBxJeGyvaio6xTm8FSv9z77PK8Td1Yr57RFSne63AU04KTskVp1UJVr2VUXNN1u6INrRJPLOztTltvXB+roXBH2/OOTDsVBHXESoDF6uAvQ1Lruup8iVGHLdsIgikfYP5CCqNuECw0DvFSJTsYS/HgTMhf5BHBMnAkGbi1wQU0mnSydujFKgWaDmFyhlO1Du0hxDcN3/RYfCIPBO53cOL8NykqswNBjrNkM8Ylu91jc5PkUhjZKz7YcXuGuZjIWu9VmDZa2RoCpki9YuiPvlOYRkUz8wKhLuSrQea/IllyNEfYP2p6wAf1ReJLZsd5ACxNMKRkyVoFwAEJSQPwgWyrylfNlXTWd2eHkYqKUTR4Y2JiO1DiJcwXNTkLSBGv5Y4BfkiC3vUYDxQCteLOJ0AJeF8i1ZC31VlnPJleNUz6Sf6FvcOSIrEPKBLYGJHVuIlX/UCujVN9SWsa/SawYQVy0irvXCnUR+tJoZAtmpAfar1nwAkkGd70YaYkIN4Vk1Uu3j+UtwU/BhZWgcoMAKOFTQJFk3Csqc89pJlSTUfWtffq6Bn2LKtHSevnYr4riq8/TVCwRP7jwlyHfehzJeViKaNPGE+sK+WyOkWFZzSuErsMsbKCbhMAiw1QKYonbcRsjcGc5AX+hVbbwmdbNWTeJS/lneBhPbKP/UFmiEu9FHhxRcQCfnrEWfvaVYMZXDInyroKhtHNdOMzKEf5KrmgOzCYreFlmWfT3V9ooU6MiZz4mhViyK9RJOzVtxyGoT3hpfzv8qkQ/4NgBtkBRILIxT4obnSGPso+sBV2rLeB0BnBwBxXZLFa0EzsizIEVdhojY4kWixxoFW9fxevFWVuFv8Eu2gZpvjSYVMrp0WLrBcQDAvrEcBIuOzMMa/OLp7UpXXGGFNXEInVl/JzoP6WpArVrZUCeOvG/uO3eDj7uP46v67x+LQHEKsyi7koc1VXI1u6+XJBnrDgx6IrRPbfUQFwLmTMvNLPQECNkAEIEOJrZ5ZhEtx3e3fIjgEKqpaVa1MVAUHNtqWLcaFA8M8LIgVjNxCtNTWB5AI4z4WoTwBJGc41uiPsBIalLW3RaSKpuFK+JBw6xoBZPYBnSJ1AZqAuj6j/9WEWTCvBOAxJtpzvHu+mzkPiuvqHACDVF+vM5XpcqNKvXPo+H8aCe4iRo+tgybu+jiJM0GviNDvEq8LnaGiqIej1qAE4DR4itAa2hFknT9GzI6zPmsEZy/pg/o0J9F46fVNRJp5tcXwpLGoehvReZR1lzCSIApzMe+EO/NVuOyTA1KYLDGtLfDZ7KCVEAcGaODQBfzAAOiQn2IVkZ5eHXgsfRaZJUvyTwpVrkks0XbcHb4kLa85Gji2+tJiMfsqJn3b8ra5pUdGnLaWAUaVwkiXrpA2OLYkRThzR13/ViiXZ5NTlEaL7y2JSVfkks1ZNjvKPwBweBsE7g8YoDiUgMhZDaFrvowxB2FH59VlRy/ZOAuoAfXtQ2jU5r+Cf1MOluYR+rW2xCmvsAMvQHg01fboh6xwjFQRJLWVLiJEzhLvVk2+KQtstCUq4Ey3WG6jYn2h20csdtEDDuKP9RjjYKiBKS3zImAPtaBYvwrgXmMDQNz8AETCeZLNcHynDAwrOJkcj6XIIiuoxjRncMNXtprpP7DcTPguqbUaKMkPJ6NmaFxUjh4Tf2nceLb4uHgEMMBujWItpNjuv+DVuPHVNiZB+eK4/whpZW+lWeUWqei2PxsqV7Z+vyOKWLtPYkMFxXSN3sj0PtMIgwMa3GyoClXdP7J5xG59Ohx5uZoxey0m16GBLkHqzB7Nc81Jikq+kGVbhSJLepYLeNQIxPvPWsi2eKQt1UJx+4w0aDDzSX/LT3qFEiKBNdBkmz/haEK+9Z0jRky5kgh8+vnHB6r2m7FtYSREZWYGZI7FY3kmgssT6DmbN9zCtEbWZNCyvbAEcaTqN9dArDkYqkvQ7hB4ocDyYeHiSEEHyz1si2zNEZIJBMi0XPo+du+RIgZnBg0aPKSsGxnEvUhGbAO2N3O/urrzVsuO+28EjzeAaJGtaVyFlHj4g1j8T/O0H4ZKsUh9xBfm1SWXySWn/XJHq1zj2/dvhnwcIGc1DUyWHSIaJy0gsfHSbvEtl3ZhjASLdJgdBCGTolWNqoJmw87os0YM5iMKxzNbMhMrToDGyakWta8rxBF+4CmWp2FaIIduIqyHuQE7t+3Lp3hjlpKjuU1cXZD5GsrMxFuQFc1tAdnBUxMqYWPjrXi4lkVezzzdzla8Fm1TpIoPyVFjfBpDfO9SUjyjBtQkAW6hZ9NsBGO+g2FSrs+FU4L4AEh5iHWckep5rpjgm7eQUF2JZ1RqcgXCiDuJA3CYmrO3m/jSiCIOCrvSDeOZyaJO6awNyH5oUjQM8Ow3WKXq11vj0qmTbmeuPxdjeFRqZK95MKFdKMHSHPGOedFUqnDhPglr99uC9EZx/bmcC6q3bZt9kBfgvcuPwIi5ObO0rGQw8uL7wOGIoMEH1/u85QsQgzSImNmXLj8S7T7FScdEYIS4Ni3RlkPIwpUWai5E7JrY2WZCPlmFO6VlUvWIByOmLc7JOH+MaA4EQfTqnfc8Fq4BqePb8qEj24qxBZ6nXuB2Lr7PfbQ2gvBxmrKBHDoFkjZQO3fT2/xRsH+dMsnS7IaoMqDZMuRTMv1k1a/dzggDmVCDvyech/ZNdvkNcXOKIhqDuUzlFPPCE6rjfVT+PwcOwPqHB6qNro98+nI2olXDUWz+cuPnSsSB+KmvhdoPOWsQ3ZV/vscdZA3lFKLKYxPRDCWEFmFa3xsLrHiLHGVjm/CW/e+UrWPX5uWE3WHqykk6M3dXxjwn6jYSp/RTV4ma73nwORXvhZzpSkwyc8tYLXzRCiKhmkT12YacM/LQMGw4EsFbRA3F772B/rcS3hnUf7l8SujLqHnLSdsTbXVzxiBsReO0NB6cyXFusFEdzZOoVr+nNO3otFbLAUF2HTMltlP8kuCa0WBPntJn1WS2uwbuRmHmBhMpTAqF2jo8DwBkVFgpjL+4Ee3xcPFpWGKlrJDVlLI6WOVnCvlrYXCi+M+R1+3wNShZfj0Zke86VS3RpRmX3HlRe/XyFUwgZ7HRv/3VYa3GnILIlEeFGCHDDYQpprvB66Dta+kYRkNMmNJUtui3KsoEUJBJYHSNuLHtuqeCa3jKTnQ1VuvWfQpOFbCbcKxa4/pAwCsRwHjmzsTyQiZbe0mVVmJ0Wz6plGOpGhMoHN+bTjVVPAXHptLPju1Ds0FaSvI5xeFdBeAR5TiWRWemlRvky6MIjLHNmMAfBDnpnmF3TjHD3LOwFXcy/rYAfqnGTvaAzwYxc3bfIzH3DlImkZuSevS3VS0Q3HlbHZY7vfsJ/xfXfUKT+BN82p7xrWaTeEE5agD3DcujTWag7va6zo4Xj3q9jR03GOjgOdcpkPeMYKnTLy0hiKf+0d7dZg5GGDNcGaBtJB4lh4pYdAUxsBiDUuW5LR9V6+XruyCNGYLCiP0Gcrf+AfO/sDHxuPeJYT/oJNNUAoZgSmyfQQlPFMiws/m+h9aLfbb0f5Dl76dj9GWtCoGwpoF4o5arhtTcxe9c2GfQb8Rau+q4eOZMz/cEeHDEFLznKoFkFmWB/Dpj0gEUYrP989kqhPbUTWtGFmwFiJoJjOvqCFDN9B4Qxig4h4pmwNCVi6xVd8j9x5U3QGFXlR8Iipfo2M+jeSTL5tQzi+yJ7CLjoGwMFNbCSe4CiVNu5+VQDswUkVW7feQ2PgdfxKfCzrl6zSoQAzVkfOxVeFJCgNmkFw9Xft2uRXB88ZjZlkMqhdNzFEwAhVmTJeJBFi3AEhmSB6E/uQWTi5IMRkz1JHoxqOeFaofIwhXSBUH8iO0D6bi/ODAWT5YHAfIwh+KvOtQcHJ9PbCv1g7dJA8HNkh1Vta/CZVOHxdgp6cpMKIoXni/LUfFoUI5BRzPk+1K5yP+hM7Hu1ZKaN19DeFpIviyLtKAASSSSbuBmaFMXSeTSGfyOxMAZPIlohegfJNcnknMAUfcpDdNKZaYQYhgd9XsaTJ+1YQaHvuCf+kNMtkSfu7F1v3Ch4kmL3yPXwVGcu5tiIKxdgKEoRh1zj6Igor3BLAzEyLAwuoFivCNAxCni+zJEiiWLWOpeHy2CmVLF4no2QjmtUDVLbPa7KC9v1VSzRhKzcJeTmcRTKN5QiWKlPI8n+V/9Yx/q/oM+WYGyiRBZVaX0RPPQk3ATSPVFV/CGwSHc5GcVNb6B6HoEGXa3gd7DpZoW6uXzSg+GoLKQP1yZBAfZuFu8+3OJ82gv+ZOIIEaLc9+akVAmYhCN9zZqSIcr5PV2z8mxWY9YF7VoKBfeGBnOl2fd8gO2nX53kc/mVhzBHvcOIWQzSAJ5AQX/+1EHbnjbOcTBUSI3MnRUmQ8xmJlxaH54ThRvk1Xn5WVzKFstJF8VqDJX3SHi6VqO5hkHfI8VTH+ijvgQvi/Vqm5YMM2a2nD/GqLt1LBcr9LdLBPWguCmHdYu3KwNgRyNv+xs9CUk+/mUrLeKt7AaMaXaQKIgg+sgTgxtwod4SJhQMok9YJRmCLxT8cvpHB7xsRy4fxqrMtIwgUkEgtaIFqKaUPETymA9X4KmuLGtynohfGT4EqEVEa+MyOV8Iq9ooBmJWUtXrGSnRuUbkQmviouauu2XP3jd+eupFUXu6lrLrgZf6HrDRwCpXLLWg7rUf9O8rVmtPJh2J9f6ULOj9FeMyYvXp5FEvKjCsqZNS+QOmO01cp9zCIDYCccSj2xeIvKQxVj3X/1/dO4nBcYK19dVID5eZuRwAeBFeuv+02nIscoD34TiAAt6MT5f90sAYgrgW3mNMFcxQqK70ZcpVCH8PvYa/R+8r3Q/IICeXd08zIRWarY6dB7TXxPmTQZJgsi35YciVNAxvHVusfcTK25D8ijjxCMAvWO/diwj6t7+U1YILGeKqv5DZBdCVjm+2+dwf5K5s0i3dj5SWwoE5c9F6vmDeA81nKobR4swSn1rd6ZxMfD5cK1LUXOfWa/g73AnkzNpeDq3262ebpH8Qd8PIMvCX4alU1mdP2hUID1laTns4D5ypDjkSOqe8B2xn99mL9fPViUXgFRmd6hVR0ORFhOwURjJeqON5TuOeycOQ6l/cswf5TFS1i4aq7orRhjTqV00wmrw2MFsTNyZoxGQnHkq92XIL0l9og6/YJ8gDU8ITiXDOWyhxqNAMNbKfnd1SOiNu0l3z7HvI88Mrc3FW0CLSw14fQ4eak6G8vlINGoOV5nwENEZMPN6jf1TTHiRf0NXPXdPbogvnMnJvveDJRPcyHEMxlSzgzu7+EfPchtd8zsCrKnceT3JoAaGx9X0BNglxdCpffempfkVTkt9SJlVSpVXw8U9Usz34A+pO3CVnf/0Y/OnESoBKgIOWU+PocX3Kpj8g20rhZwlJp6/SKXGdq1QoZCNHgzQMdTlsJiAmBIf6rWp1S7cDYnJitVXO5rpBMKuSiymc2PAzSck3zxJaxTs8nOSvgDcmwgeBe0OMQ1mSMRp1c2NPtdC8lVqILse+C4l6DP9yH51BvWgXXfJTCWX/ihqnMH4eAJx9EAIrxiqiMpRNRmE8n8usFW+x8VKOs53Motg/LGDP55Msap1q49759mNb+TyDp5kywYedJDcNrCDYC/sghRW3zIDeglbvfcs0jcUYRMtTbMBLSCyPS/eFrGJH2ojP1nsdxdC12hnoo0Xdix1R54DAmRtxmiSITSK0Cu76frGw7nIPXtEycfQTP40xMuFkQqZSOcxq2HA/SD1+z7gZZ36q87ZVnzzRRqfYehLWZ2sIR6NsdZVEy/FIg33vzaqSy00WJ6SLJQuzt0geCN3AZC7b4NZgoAd57hxxgS+lwGm9IBkXqf/7Q+75ayMyhI342sH66QvARTpDeED6e24VwYdJjmJ6nO8nJrA03Id6YnpLhPXxkIPiy6sTdi8SUK+X2CURfkTGOBvTwAIGQVP6EIB/61uvLMHBIAK42TPzxJkm4863kw9tjwIEsEeUtnOFggTgLs7NnJbMY8vdGuLrEtrJrRuLsS55BbAbTEtMwZEA7ZrIwMW7kAu9Ocsm5lSe1Rvam27V8BK5utdfiSb+1S3a1cKPgI1dfI+/smp6U3QjIavJSiw1v++wpquNWK5+zzOiWzYYNpYAtDbKi9RqcOYcxyk8Qezdfe7Qmx9CW/52iIpNkChOJPmvGEQecGlqNLU065ZBNq5urqeTCQisn0IlUlLCOdAUzpUdWaO7b1fyJ3spkWNhPlqvgDCIsXCdi39tUb4POrF0KeRvWWPFP/YVcjvIi+y50Kf6qxkguLHy6biIDl3HX45wrNlcvZor1u0dsarzRSNSp4WJsYEqjze8fJk8rbVBRDPQcezUFbQHGL/9n0K3jqnMpMeABvlcQ//rrNoC6lYIOQ74j0sFXa00DUofJggjdj8Bi4vCHDSOgpmkmiQx95oHFxnzBnUw+oldp61HUqpQCiDnGmYxPlWrqnMezI5BQL4AoJlMer2M3190WCPRuwtQkyxFOcrUtH7uRvIYRRNxBIcTdgmbVRp44JhH+F5aNCn6OryJzUSeGU0lnIBjxKsVaz4bu5p15mbQPnVi9pyhW2RADQaHqE8C5GMoMJfKaq/qAbyZ72sI5sjKtnkSWA9mwDykqTGVaN24eej65hHsHbTN0Qc/iWC0+9nsTC6oRKNp3I8xFMkEamzoZROGWNWrvbQCU3Fbex9KyG2z6G1UAjalyg9hxIfgtdqbGuO4HKt0EUSRQIX1sUy/btsU/R1WAUwu+iyOdciiPkcRKxAL3MbaKvzacUGLlX9Ieh0hkQeSVR308rSjg647YkIzPjE3RBJUuBFImUedMr5CXJLKfBkgRRS/9ZhDNfqMU62j52KZjV+tjHPcKMadmKr5zkfc16+iltS5OVECPvZleynLgDFiDQWWcFxrx3BHVf3STpOVAi5EVSbSttKThmh+jLZkrg56p9mMvTActA/c3p0Q02qOfemClgDvMRBeOgccNhiPRIhc0WyRptJUEIJeP2b64nNuIyTALJeKzdH46Jv0NGGzyTRFD8B3oTR7KhqpnkW6sJC+EsJQuRS80wmNL31/D7kuT2BwgEmzmygvyXfOVy7VDErohmrXa+wt9Zk+2+Vk3krbCQ2133mWdJPx5N2x1k5vHQ1Djq024FagcX5Rg2HQxyVVpre1FCSmiRdI3VLjHmSK96FfvQxiUD4b8drEVUzX5nDU8d4VnX9dqxaCGyP9S8CaNlswpU/1xbwq/4akmT+rywQCOaOFp967nGBc2XkKuAaHN1Lqfsr2ZoduRyjb5FM2PmDg1l4w116GDAJVd7p711dSckdQJ5veEQUB/w2PY3TJdBJbyVWezc/Tr1dIMAc+PD+iL5mLLzwloP/xhe9mfGcA6vuOp/AQFxbwGSScIoFDbkWiPIThVmW3rIfMP8onu0wl84lUuyPQfEAi5JoUry5srPqt/Nx7x+tqnGU3YrRRTPkiaRK/O62UTJJxvb3Je2Ra/vwSQJivs+5N92DjFYOIjJIQd6ytMoUFQUaQ7dzMhabMDaj1ef5qSeW4mIH9gW4FDJvg4G+9iwr2SqZA2Qcq8YVfTo5n2j03QSYuFRIRqrCIzf8meHVUOSZGqEPpdARk/5Th4BWoT/b4t+59vrRm/Tdlfl0qS3x6FwRsfFRkashPiYkMP9qPPT9W/tUvu0G/GBiCwl2dblnP7cxnczvVDdOu1fs0f2Hnfjyk4NnYc1hHy859krNRMsonwh4PmJyVpmN4q2MV/rmBcL5bsQJMn9Pxpm35Y26p6JHZ2zLYzrqqk7VK0899VnJYEvSveitepxuKnC2vpnHOuoz54iQcRCPrC+hW10bB3wzCrP6qHyET4B4v6fOllWWTrCSqs3XmstwQDtBuyx1Cq7pkasg3moFCXqFr9t++J/ykPZfqmPfXympJ4txcVR7912wSTLRrk8m35bEk8/foJFrPBE34frAH8zeN3owsc80Iq578LzxF4bt4XvVZ05nJjmEtxvWfQ1/M1XVjSyEzhIketxLOGFejNp87XWDweIQ5pwbLrX3RQb/lkCxZAJH78nK98MwNuXRVGSUi/FkjYiiE7Ed4HKSh6tVGhOZkwFa5D8iaNPKJAzLtt91HvaEwrb2IicsmuEQSdVkNy4GuhjFcHy/ad7+R9svfX0CSHO8UkFz10pwQD+U1thgGiXw4xStIdpcTyOcK8tQy3GM7YqMULK/jn0KuPZd/O2bcXuX3tmU6ZgZboB9A/4l8vgtRgCM52pa3T4wx9hD3M1T4kbEJDkAXFchP134VejGW8rmaoPlMU8g5msvz2tD3uzAeNP8iPoRiG2HSjF3UU8QZHDL5WZJOX2bXTrq15xPvTMdgDZVbxxs4WolONaqETo2448Pm/vS/ddbSE8v4XpdYKOVJ8jt8WbtjmOm4O+cIaGgYktJWU9UcD1ssjPrHSaWbIdgJJBRkT+MCYhtIsexcfAP+xMLXgzj73jlnyD+G+3O0Lhn11a9WJjVcFyZoYQi5sft4jzmBNq/OMBvXLUlsx4hOU5QQ0Fa9jbLkeKPuc7kGHPGWJeChzPYvOeIedq07zQ5B9jsfKxqobs8AXSxKOb01em8vQdenCd1i3RrL4Ds2MyjguE/3B8S0UZfklWtlTeibd1DI77OMDhAvcRDEaguDjbSxjzvBiMy03zwX3AF3uEBLINkll9qCI6Y3nqhd+f72z4HPmZeGrnkoqW4WWUagEfwh4XxsJAI1HOmhydHpzGejJwJHfulW9F9ux62Bmu7EMqQku8G01HTSgXSkZmbjp30ppsCLXSjLn/jtHmPHizfH1fKYZb85UJjAM5ZhVcuW19tps8fPxEYXxl4Nq7MgEJKwQFc8/IpNg+Oc8uD8nVGHlJQvb5/RcTfLsczlqUktYUOdSjnxvTbQsyOscMGL7+WLOG0v5rsGlHZ4K9i2JwspLy11v6HQybndOXbNsnOdkv1JZsLVQxA6yta+/24pGAWYJRWnFOppPhl5/YSkGYx/4WGWH9ecoWnFSXzsvozE5ut2CCGWaUzNgotDYNBw30zf/VoxUs8adeSdHXKNNhZ4dl+gjaC1W7VF83trXwzWf1RLKVNhnlk6kdg/Vw7P/el1nUHe9/3yasg3GaXOh/vNtM+OwWoErEbmtRPaCTpXYE55mkuPltObchDF2kqB7cfS0wAn+u+VYmAgGU+PpQ4yNOKboBCG591nzJfE6HU8/M20TB9adwq8LZB9zQ2KmyyBMANGK2iAHj4hi5tjGRQX1lEiEjsgQMq8T3+/KfNKrU2aXFJnQJvCmc0gdGRpR53xJ1crQxd/oqAija2QQEbVX/7FqXFPHyo/cjZBrHD9XwtR6Ef7e7Tps62QJPMvXULHB2iInBcO1GaGB6ajimaqb0pfTZCw4MfJnDZYc5QH//VWL6cyuj7+VDvTLD82whKUUkb+8Spzu2d4XRDkIGqGotu/cy18zFZpxzYa97GsiTgZ6IWmluveah+nsMvSfehYqzIfELWQ7Z3vRAAxuOtatymz2gJvT2I1+D1Ifdq/kpicxnfR45DlPDMDy/tW6hbKBnCKK5wA6R/nfAfGUKnyjfzVv1mCGSW3YNHQMSa4jJ9O3U4/WH/++0CGPDAqtiDK60cCNVQ1Iy9GfR0TfpZcw2ctT9v0hp3zV7Ztczv+QyTZnJhVTn/UbCnE8hssbui2O3I/W2/SRveU+ZzxXwElpj+jfgPuKOliJKJ0LsdQwILsVrAdwfHqG1xQfdJmKOIQGwpbdzBvfDldPykPHZ7iwNbWGI7MGuORRzOHepIgAi/gtCa8M1OoTRO3pdfAOhGH5bHM4/QecK364c8zW2XW/GQchhMcUu0/aGYi0lNyRiSfTaBeRtuOGp2FY/upSxoyQUE0cT8c+3XYeKLVBSOAfx4pl+XEaMB7tviXDUQA7Ed3Q2BqcYogAB5I4KbUYlxWGTirfeRkeg/0eiMl2cwPyDdk/6zIrA4Pis3zACqi8B7ZHQZOOL76Knvk5ooUU/CV4GgCdrMCCtTLSbemURQQwmaIQbW9z6unp87VLUbnZxukK/AesmIy9sFzK2HCNWs8p3ME2Bs4gn5LcPiHSs8PJJ2nqsMhEtVNF63RqkgxR+c99LGD7sXj7xe3gWzRzqEZDRvPu5/occNlX0y+jA6oKXoZBCNk+K4vW6c4109gfZel4mDXZmrC663NIrPP/A8GlTHWd3XOCZapKVxPPHuSQ9YTJ2nohzeCTZzj898xDV6MzAxTCke2kkDDWf9Cn0E/D02pZ/o2+4LoJyWnLHy13DFUsvsPCxDnRB7cbke6sKIcENyLEc76qBtJLHhoHuK1ZTqeetDa0e41nTcAW2UUiZ2h1FQW7mVnGpOIe77kydYYCR0L8vt7zOlBza7qkx+r7wIEiud3/+tjPsu4dCbWBPd+Vx7QR7x5WgANEH5X9e4/6qwA5bJrXTBCiphp3iczaMSn1wzD1zgWExTgldmsH/oilzTfT4L/1BKAZF8w/bxTpQIm7sRNauNnvC03z9heop14WYbOMJnW3JYXUI0DsUosUor1LM8nHO8fKSxTZ9eFwFEwaUQwapQWO/ooGoAIfxtX4u+bpq8t/4fapgRU9ORXTft13qse/pfU3bAuVbDsuj6iUxJeGO+xzMDo7tU0Eq7CC9/FBUgR9xTDxoM0NVWccHYihPQoKVubWF24Pn6yFxTMAHhPpG1OrL8eWwEQvrcXaRKyuKuc97iar0qOIKC8XKOBCPIAKSgr3b51ASbhXWkhE0y8bAF5GwskQtWEzBpVoCXNd0hNsazVx0ZWsXmEK4dMX9K0dA2c/GflA5NA7GhCdMAE1RfL1lkwdXLilifg5hZHBYY88qKjT+/PzB2HQYTJOZxd4qYBO+wyny3qkJFpERj6drLToXv5BLJe7agBNBLB/mH4oBII5ZhiT3n0sSqOhOjL/yTc6WCXQ6ufRr7opq7oSZmcH5kJkYj3OJPVYy6W8QdL0KEVT1Axj9yU4CQCkIG5dk0DhxyylWQdj0XjpZaqb02ZJDSCbVMlHT4ue7rL081pgeBDOtudvHGFMcyRvHKkVHiugINGQuapNDj+DAGnEjh+rT3DWmVBBhoBUGnv0tMbYNl7m4DsY/tWa75zSz3koXAUGxoaIPhpHnYkJQ06ruZIt1zyGxsHZX+it45jsj2y7wuMDqnTemqOvVQ4+DlIx6Cjd+Wm/Z838sXjh/bkojYv71oMVc69uVDU4gyXV/9eb+aJ1Ll7IJH2MLXoYjCjEbp/gLkvbRibezaMymtDr8zWHxKYrOF7Gpgay1FRrupqxYpkO+2zGVwd5hPgPQC9ABS+194gUO0Lbchlwh0UGqgeH9INuyeIAXKFzxm27Bo54o6BG4dodwNDcGCpf5SPRO7TuSSCyk2tiZFScZ2/h7BPqeGnILhpyWR1L7JXkBDME4G/2UlpWydn6RYq7Rkp1zpxhBFXHIHjqeBppn+mm3JkhXwReLhK9qohQeBi13GtdhnCvB6WLe/td/Z6MmjUCIqolrtYybQbA2kq8Fb44aGr1IsvPxQCWDzWC6/rRhU6x6x2llMUFd8fuSMhLJqdeHss9rjzia1GL6qe5Av42HdMXRR5KJgdYeGlB6kNDWXGn9H9N7FLCalnxzilNCNdJr14A5hVWah79GU5CY7nLif96y2KVfCT4BZokLxnNAl8QthFx4TcEqPw4v2wyae3xsnq6C0KGeSJFYy71VlxostKAHMUHWIpQPRNQAAA==" alt="Current SnapMap map interface with automotive spots, events, and weekly challenge shortcut" /></div><div class="caption">Current SnapMap alpha interface</div></div></div></div></section>
+<section class="section" id="features"><div class="shell"><div class="head"><span class="kicker">Made for the scene</span><h2>Less hunting. More shooting.</h2><p>The useful parts of automotive photography and local car culture, together in one place.</p></div><div class="grid"><article class="card"><div class="icon">⌖</div><h3>Find photo spots</h3><p>Discover garages, downtown angles, overlooks, waterfronts, backroads, murals, and other locations worth shooting.</p></article><article class="card"><div class="icon">◉</div><h3>Discover events</h3><p>See nearby meets, shows, cruises, and automotive events directly alongside the map.</p></article><article class="card"><div class="icon">＋</div><h3>Share your finds</h3><p>Add locations, photos, notes, and community posts so other people can discover the places you find.</p></article><article class="card"><div class="icon">★</div><h3>Weekly challenges</h3><p>Join a rotating photography prompt, submit a shot, and get featured when your entry is selected.</p></article></div></div></section>
+<section class="section"><div class="shell"><div class="head"><span class="kicker">Who it's for</span><h2>Cars first. Creativity always.</h2></div><div class="audience"><article class="aud-card"><h3>Car people + photographers</h3><p>SnapMap starts with the automotive scene: shoot locations, meets, shows, creators, cars, and the places that make a photo worth taking.</p></article><article class="aud-card"><h3>Not limited to cars</h3><p>Photographers, explorers, and anyone with a good location to share are welcome. Scenic overlooks, architecture, city spots, and hidden gems all belong.</p></article></div></div></section>
+<section class="section"><div class="shell"><div class="alpha"><div class="alpha-badge">α</div><div><h2>SnapMap is currently in alpha.</h2><p>We're still actively building and refining it. <strong>That's why SnapMap is a web app right now:</strong> we can ship improvements faster, fix bugs quickly, and shape the product around real feedback before locking it into an app-store release. Expect occasional rough edges and features that evolve as the app grows.</p><div class="install"><strong>Want it to feel like an app on iPhone?</strong> Open SnapMap in Safari, tap Share, then choose <strong>Add to Home Screen</strong>.</div></div></div></div></section>
+<section class="final"><div class="shell"><span class="kicker">Ready?</span><h2>Find somewhere worth driving to.</h2><p>Browse without an account. Sign in when you want to post, save, share, or join the community.</p><a class="btn primary" href="/app/">Open SnapMap →</a><div class="version">SnapMap alpha · Web app</div></div></section>
+</main>
 </body>
 </html>
