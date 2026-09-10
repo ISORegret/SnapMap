@@ -1,575 +1,286 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SnapMap — Photography & Spot Tracker</title>
-  <meta name="description" content="Discover photography and automotive spots, find nearby events, plan the best light, and save shoot routes with SnapMap." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SnapMap — Built for car people and photographers</title>
+  <meta name="description" content="SnapMap is a web app for car people, photographers, and explorers. Find shoot locations, discover events, share spots, connect with the community, and join weekly photo challenges." />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta property="og:title" content="SnapMap — Find spots. Shoot cars. Meet the community." />
+  <meta property="og:description" content="Discover photo spots, automotive events, community posts, and weekly photo challenges." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://snapmap.lol/" />
+  <meta property="og:image" content="https://snapmap.lol/screenshots/map.png" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0a0a0c;
-      --surface: #141418;
-      --card: #18181c;
-      --card-border: #2a2a30;
-      --text: #fafafa;
-      --muted: #a1a1aa;
-      --muted-strong: #71717a;
-      --accent: #10b981;
-      --accent-hover: #059669;
-      --accent-dim: #34d399;
+      --bg: #09090b;
+      --bg-2: #0f0f12;
+      --card: rgba(24,24,29,.86);
+      --card-strong: #17171c;
+      --line: rgba(255,255,255,.09);
+      --line-strong: rgba(255,255,255,.15);
+      --text: #f8f8f8;
+      --muted: #a5a5ad;
+      --muted-2: #75757e;
+      --accent: #f0b83f;
+      --accent-2: #ffd36a;
+      --accent-ink: #241902;
+      --radius: 24px;
+      --shadow: 0 26px 80px rgba(0,0,0,.42);
     }
-    *, *::before, *::after { box-sizing: border-box; }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--bg); }
     body {
       margin: 0;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
       min-height: 100vh;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 24px 24px;
-    }
-    main { width: 100%; display: block; }
-    .wrap {
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-      display: block;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% 4%, rgba(240,184,63,.13), transparent 26rem),
+        radial-gradient(circle at 8% 25%, rgba(255,255,255,.035), transparent 22rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ——— Hero (centered, like PepTalk) ——— */
-    .hero-block {
-      text-align: center;
-      padding: 2rem 0 2.5rem;
-    }
-    .hero-block .badge-pill,
-    .hero-block .hero-title,
-    .hero-block .hero-nav,
-    .hero-block .hero-tagline,
-    .hero-block .hero-dots,
-    .hero-block .hero-privacy { display: block; margin-left: auto; margin-right: auto; text-align: center; }
-    .badge-pill {
-      display: inline-block;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--text);
-      text-transform: uppercase;
-      background: var(--surface);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      margin-bottom: 0.75rem;
-    }
-    .hero-title {
-      font-size: clamp(2.25rem, 7vw, 3rem);
-      font-weight: 700;
-      margin: 0 0 0.4rem;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
-      color: var(--accent);
-    }
-    .hero-nav {
-      font-size: 0.75rem;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      color: var(--text);
-      text-transform: uppercase;
-      margin: 0 0 1rem;
-    }
-    .hero-tagline {
-      font-size: clamp(1.1rem, 3vw, 1.35rem);
-      font-weight: 700;
-      margin: 0 0 0.4rem;
-      color: var(--text);
-    }
-    .hero-dots {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin: 0 0 0.5rem;
-    }
-    .hero-privacy { font-size: 0.9rem; color: var(--muted); margin: 0; }
-    .hero-privacy strong { color: var(--text); }
-    .hero-privacy .highlight { color: var(--accent); font-weight: 600; }
+    a { color: inherit; }
+    img { display: block; max-width: 100%; }
+    .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
 
-    /* ——— What's inside: divider + centered pill (like PepTalk) ——— */
-    .divider-wrap { position: relative; margin: 2rem 0; }
-    .divider-wrap::before {
-      content: '';
-      display: block;
-      height: 1px;
-      background: var(--card-border);
-      width: 100%;
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: max(14px, env(safe-area-inset-top)) 0 12px;
+      background: linear-gradient(to bottom, rgba(9,9,11,.95), rgba(9,9,11,.74), transparent);
+      backdrop-filter: blur(16px);
     }
-    .whats-inside-pill {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      padding: 0.4rem 1rem;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: var(--text);
-      text-transform: uppercase;
-      background: var(--bg);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 900; letter-spacing: -.03em; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center;
+      background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 28px rgba(240,184,63,.2);
+      font-size: 18px;
     }
-    .inside-content { text-align: center; padding: 0.5rem 0 2rem; }
-    .inside-content .inside-lead,
-    .inside-content p { text-align: center; }
-    .inside-lead {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text);
-      margin: 0 0 0.5rem;
-    }
-    .inside-content p { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.4rem; line-height: 1.55; }
+    .top-open { text-decoration: none; font-size: 13px; font-weight: 850; color: var(--accent-2); }
 
-    /* ——— Feature cards (bordered boxes, 2x2, orange bar) ——— */
-    .features {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      padding: 0 0 2rem;
+    .hero { padding: 56px 0 72px; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, .75fr); gap: 60px; align-items: center; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 999px;
+      border: 1px solid rgba(240,184,63,.25); background: rgba(240,184,63,.07); color: var(--accent-2);
+      font-size: 11px; font-weight: 900; letter-spacing: .11em; text-transform: uppercase;
     }
-    @media (max-width: 520px) { .features { grid-template-columns: 1fr; } }
-    .feature-card {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 1.1rem 1.25rem;
+    .eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px rgba(240,184,63,.8); }
+    h1 { margin: 20px 0 18px; font-size: clamp(3rem, 8vw, 6.4rem); line-height: .94; letter-spacing: -.07em; max-width: 850px; }
+    .hero-accent { color: var(--accent); }
+    .hero-copy { max-width: 660px; margin: 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.16rem); line-height: 1.72; }
+    .hero-copy strong { color: var(--text); }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
+    .button {
+      display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 10px;
+      padding: 0 21px; border-radius: 15px; text-decoration: none; font-size: 14px; font-weight: 900;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
     }
-    .feature-card h3 {
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin: 0 0 0.35rem;
-      color: var(--text);
-      display: flex;
-      align-items: baseline;
-      gap: 0.35rem;
-    }
-    .feature-card h3 .bar { color: var(--accent); font-weight: 700; }
-    .feature-card > p { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.5rem; line-height: 1.5; }
-    .feature-card ul { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.8rem; line-height: 1.55; }
-    .feature-card li { margin-bottom: 0.2rem; }
+    .button:hover { transform: translateY(-2px); }
+    .button-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 16px 40px rgba(240,184,63,.18); }
+    .button-secondary { border: 1px solid var(--line-strong); background: rgba(255,255,255,.035); color: var(--text); }
+    .hero-note { margin-top: 13px; color: var(--muted-2); font-size: 12px; }
 
-    /* ——— Summary: phone mockups ——— */
-    .summary-section { padding: 1rem 0 2rem; text-align: center; }
-    .section-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted-strong);
-      margin: 0 0 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      text-align: center;
+    .device-wrap { position: relative; display: flex; justify-content: center; }
+    .device-glow { position: absolute; width: 320px; height: 320px; border-radius: 50%; background: rgba(240,184,63,.16); filter: blur(70px); top: 18%; }
+    .device {
+      position: relative; width: min(330px, 82vw); border-radius: 42px; padding: 9px; background: #050506;
+      border: 1px solid rgba(255,255,255,.16); box-shadow: var(--shadow); transform: rotate(2.2deg);
     }
-    .screens {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.75rem;
-    }
-    @media (max-width: 520px) { .screens { grid-template-columns: repeat(2, 1fr); } }
-    .screen {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 0.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .screen:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-    .screen-placeholder,
-    .screen img {
-      width: 100%;
-      aspect-ratio: 9/16;
-      max-height: 200px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin: 0 auto 0.5rem;
-      display: block;
-    }
-    .screen-placeholder {
-      background: linear-gradient(180deg, var(--surface) 0%, var(--card) 100%);
-    }
-    .screen span { font-size: 0.75rem; font-weight: 500; color: var(--muted); }
+    .device::before { content: ''; position: absolute; top: 17px; left: 50%; width: 90px; height: 22px; transform: translateX(-50%); border-radius: 30px; background: #060608; z-index: 3; }
+    .device img { width: 100%; border-radius: 34px; aspect-ratio: 9 / 19.5; object-fit: cover; object-position: top; }
 
-    /* ——— CTA ——— */
-    .cta-section {
-      padding: 2rem 0 2.5rem;
-      border-top: 1px solid var(--card-border);
-      text-align: center;
-    }
-    .cta-section .privacy { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; max-width: 100%; }
-    .cta-section .privacy strong { color: var(--text); }
-    .cta-section .footer-note { text-align: center; margin: 0; }
-    .btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1.5rem 2rem; margin-bottom: 1rem; }
-    .btns > div { min-width: 10rem; display: flex; flex-direction: column; align-items: center; }
-    .btn {
-      display: inline-block;
-      padding: 0.6rem 1.25rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .btn-primary { background: var(--accent); color: #0a0a0a; }
-    .btn-primary:hover { background: var(--accent-hover); color: #0a0a0a; }
-    .btn-ghost {
-      background: var(--card);
-      color: var(--text);
-      border: 1px solid var(--card-border);
-    }
-    .btn-ghost:hover { background: var(--surface); border-color: var(--muted-strong); }
-    .footer-note { font-size: 0.8rem; color: var(--muted-strong); line-height: 1.5; }
-    .version-under-btn { font-size: 0.65rem; color: var(--muted-strong); margin: 0.35rem 0 0; text-align: center; }
+    .section { padding: 76px 0; }
+    .section-heading { max-width: 720px; margin-bottom: 34px; }
+    .kicker { color: var(--accent); font-size: 11px; font-weight: 950; letter-spacing: .13em; text-transform: uppercase; }
+    h2 { margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 3.7rem); line-height: 1.02; letter-spacing: -.055em; }
+    .section-heading p { margin: 0; color: var(--muted); line-height: 1.7; }
 
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 1rem;
+    .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .feature {
+      min-height: 190px; padding: 22px; border-radius: var(--radius); border: 1px solid var(--line);
+      background: linear-gradient(155deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
     }
-    .modal.open { display: flex; }
-    .modal-content {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      max-width: 340px;
-      width: 100%;
-      position: relative;
-    }
-    .modal-close {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 1.4rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0.25rem;
-    }
-    .modal-close:hover { color: var(--text); }
-    .modal h3 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; }
-    .modal ol { margin: 0 0 1rem; padding-left: 1.2rem; color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
-    .modal .btn { margin-top: 0.25rem; background: var(--accent); color: #0a0a0a; }
+    .icon { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: rgba(240,184,63,.11); color: var(--accent-2); font-size: 20px; }
+    .feature h3 { margin: 22px 0 7px; font-size: 16px; letter-spacing: -.02em; }
+    .feature p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.62; }
 
-    /* Screenshot lightbox */
-    .lightbox {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.92);
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      padding: 2rem;
+    .audience {
+      display: grid; grid-template-columns: .82fr 1.18fr; gap: 18px; align-items: stretch;
+      border-radius: 32px; overflow: hidden; border: 1px solid var(--line); background: var(--card-strong);
     }
-    .lightbox.open { display: flex; }
-    .lightbox-inner {
-      position: relative;
-      max-width: 100%;
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .audience-copy { padding: clamp(28px, 6vw, 54px); display: flex; flex-direction: column; justify-content: center; }
+    .audience-copy p { color: var(--muted); line-height: 1.72; margin: 0; }
+    .audience-copy strong { color: var(--text); }
+    .audience-images { display: grid; grid-template-columns: 1fr 1fr; min-height: 470px; background: #070708; }
+    .audience-images img { width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: .92; }
+    .audience-images img + img { border-left: 1px solid var(--line); }
+
+    .alpha {
+      border: 1px solid rgba(240,184,63,.26); border-radius: 30px; padding: clamp(26px, 5vw, 44px);
+      background: linear-gradient(135deg, rgba(240,184,63,.095), rgba(255,255,255,.025));
+      display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;
     }
-    .lightbox-close {
-      position: absolute;
-      top: -2.5rem;
-      right: 0;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 1.75rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0.5rem;
-      z-index: 2;
+    .alpha-badge { width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; color: var(--accent-ink); background: var(--accent); font-weight: 950; }
+    .alpha h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin-top: 0; }
+    .alpha p { margin: 0; color: var(--muted); line-height: 1.7; max-width: 780px; }
+    .alpha strong { color: var(--text); }
+
+    .install-card {
+      margin-top: 16px; padding: 18px 20px; border: 1px solid var(--line); background: rgba(0,0,0,.2); border-radius: 18px;
+      color: var(--muted); font-size: 13px; line-height: 1.55;
     }
-    .lightbox-close:hover { color: var(--accent); }
-    .lightbox-img-wrap {
-      max-width: 100%;
-      max-height: calc(100vh - 6rem);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .install-card strong { color: var(--text); }
+
+    .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .screen-card { border: 1px solid var(--line); border-radius: 24px; overflow: hidden; background: var(--card); }
+    .screen-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; object-position: top; }
+    .screen-label { padding: 13px 14px 15px; font-size: 12px; font-weight: 850; color: var(--muted); }
+
+    .final { text-align: center; padding: 82px 0 max(74px, calc(env(safe-area-inset-bottom) + 50px)); }
+    .final h2 { max-width: 760px; margin-left: auto; margin-right: auto; }
+    .final p { max-width: 620px; margin: 0 auto 25px; color: var(--muted); line-height: 1.7; }
+    .version { margin-top: 15px; color: var(--muted-2); font-size: 11px; }
+
+    @media (max-width: 900px) {
+      .hero { padding-top: 32px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 46px; }
+      .hero-copy { max-width: 760px; }
+      .device { width: min(360px, 78vw); transform: rotate(0deg); }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .audience { grid-template-columns: 1fr; }
+      .audience-images { min-height: 430px; }
+      .screens { grid-template-columns: repeat(2, 1fr); }
     }
-    .lightbox-img-wrap img {
-      max-width: 100%;
-      max-height: calc(100vh - 6rem);
-      width: auto;
-      height: auto;
-      object-fit: contain;
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 24px, 1120px); }
+      .topbar-inner { padding-inline: 2px; }
+      .hero { padding-bottom: 54px; }
+      h1 { font-size: clamp(3.15rem, 16vw, 5rem); }
+      .actions { align-items: stretch; }
+      .button { width: 100%; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .feature { min-height: 0; }
+      .audience-images { min-height: 340px; }
+      .alpha { grid-template-columns: 1fr; }
+      .screens { gap: 10px; }
+      .screen-card { border-radius: 18px; }
     }
-    .lightbox-caption {
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .lightbox-nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      margin-top: 1rem;
-    }
-    .lightbox-prev,
-    .lightbox-next {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 1.25rem;
-      padding: 0;
-    }
-    .lightbox-prev:hover,
-    .lightbox-next:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
-  <main>
-    <div class="wrap">
-      <header class="hero-block">
-        <p class="badge-pill">Android · Free</p>
-        <h1 class="hero-title">SnapMap</h1>
-        <p class="hero-nav">Map · Spots · Events · Best light</p>
-        <h2 class="hero-tagline">Find the best places for photography and cars</h2>
-        <p class="hero-dots">Discover · Save · Shoot</p>
-        <p class="hero-privacy"><strong>Plan the shot.</strong> Browse without an account, then sign in to publish spots and sync your saved places.</p>
-      </header>
-
-      <div class="divider-wrap" aria-hidden="true">
-        <span class="whats-inside-pill">What's inside</span>
-      </div>
-
-      <div class="inside-content">
-        <p class="inside-lead">Everything you need</p>
-        <p>Discover photo locations and automotive meetups, check the light, build a route, and keep the places you want to shoot.</p>
-        <p>Use the map on the web or install SnapMap. Sign in when you want to publish, RSVP, post, or sync across devices.</p>
-      </div>
-
-      <div class="features">
-        <div class="feature-card">
-          <h3><span class="bar">|</span> Map & spots</h3>
-          <p>Find locations by map, category, distance, or search.</p>
-          <ul>
-            <li>Map view — see all spots and filters</li>
-            <li>Photos, access notes, parking, and directions</li>
-            <li>Publish your own location and shooting notes</li>
-          </ul>
-        </div>
-        <div class="feature-card">
-          <h3><span class="bar">|</span> Shoot planning</h3>
-          <p>Know when to go and how to get there.</p>
-          <ul>
-            <li>Sunrise, sunset, golden & blue hour</li>
-            <li>Pick a date — times update for the spot</li>
-            <li>Weather, directions, and multi-stop routes</li>
-          </ul>
-        </div>
-        <div class="feature-card">
-          <h3><span class="bar">|</span> Events</h3>
-          <p>Find car meets, photo walks, and community shoots.</p>
-          <ul>
-            <li>Browse upcoming events and host your own</li>
-            <li>RSVP, reminders, and event locations</li>
-            <li>See events alongside spots on the map</li>
-          </ul>
-        </div>
-        <div class="feature-card">
-          <h3><span class="bar">|</span> Save & community</h3>
-          <p>Keep your plans organized and share what you find.</p>
-          <ul>
-            <li>Favorites, custom lists, and route planning</li>
-            <li>Profiles, posts, comments, and follows</li>
-            <li>Account sync across web and installed app</li>
-          </ul>
-        </div>
-      </div>
-
-      <section class="summary-section">
-        <h2 class="section-title">Screenshots</h2>
-        <div class="screens" id="screenshot-list">
-          <div class="screen" data-screenshot-index="0" role="button" tabindex="0">
-            <img src="./screenshots/map.png" alt="Map screen — search, filters, tap to pin" loading="lazy" />
-            <span>Map</span>
-          </div>
-          <div class="screen" data-screenshot-index="1" role="button" tabindex="0">
-            <img src="./screenshots/feed.png" alt="Feed — spots list with search and filters" loading="lazy" />
-            <span>Feed</span>
-          </div>
-          <div class="screen" data-screenshot-index="2" role="button" tabindex="0">
-            <img src="./screenshots/saved.png" alt="Saved — favorites and lists" loading="lazy" />
-            <span>Saved</span>
-          </div>
-          <div class="screen" data-screenshot-index="3" role="button" tabindex="0">
-            <img src="./screenshots/spot.png" alt="Spot detail — photos, best light, directions" loading="lazy" />
-            <span>Spot</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="cta-section">
-        <p class="privacy"><strong>Browse freely.</strong> Sign in to publish spots, join events, and sync saved places across devices. We don’t sell your data.</p>
-        <div class="btns">
-          <div>
-            <a href="./snapmap.apk" class="btn btn-primary" id="download-apk-btn" download="SnapMap.apk">Download APK</a>
-            <p class="version-under-btn">v<span data-app-version>2.29.8</span></p>
-          </div>
-          <div>
-            <a href="./app/" class="btn btn-primary">Use web app / iOS install</a>
-            <p class="version-under-btn">iOS: open in Safari, then Share → Add to Home Screen</p>
-          </div>
-        </div>
-        <p class="footer-note">Free · Android: APK above · Web &amp; iOS: use web app</p>
-        <p class="footer-note" style="margin-top: 0.5rem;">App v<span data-app-version>2.29.8</span></p>
-      </section>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="#top"><span class="brand-mark">⌖</span><span>SnapMap</span></a>
+      <a class="top-open" href="/app/">Open SnapMap →</a>
     </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <span class="eyebrow"><span class="eyebrow-dot"></span> Web app · Alpha</span>
+          <h1>Find the spot.<br><span class="hero-accent">Shoot the car.</span><br>Meet the community.</h1>
+          <p class="hero-copy"><strong>SnapMap is built for car people and photographers.</strong> Find shoot locations, discover automotive events, share spots, connect with other creators, and jump into weekly photo challenges. Scenic spots and hidden gems are welcome too.</p>
+          <div class="actions">
+            <a class="button button-primary" href="/app/">Open SnapMap <span aria-hidden="true">→</span></a>
+            <a class="button button-secondary" href="#features">See what it does</a>
+          </div>
+          <p class="hero-note">No download required. Works on iPhone, Android, tablet, and desktop.</p>
+        </div>
+        <div class="device-wrap" aria-label="SnapMap app preview">
+          <div class="device-glow"></div>
+          <div class="device"><img src="./screenshots/map.png" alt="SnapMap map view showing photo spots and events" /></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="shell">
+        <div class="section-heading">
+          <span class="kicker">Made for the scene</span>
+          <h2>Less hunting. More shooting.</h2>
+          <p>SnapMap brings the useful pieces of automotive photography and local car culture into one place without turning it into another noisy social app.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature"><div class="icon">⌖</div><h3>Find photo spots</h3><p>Discover garages, downtown angles, overlooks, murals, backroads, industrial locations, and other community-shared places worth shooting.</p></article>
+          <article class="feature"><div class="icon">◉</div><h3>Discover events</h3><p>Find nearby car meets, shows, cruises, and gatherings with dates, locations, directions, and community updates.</p></article>
+          <article class="feature"><div class="icon">▣</div><h3>Share your work</h3><p>Post photos from spots and events, credit photographers, build a creator profile, and connect with people who actually care about the same scene.</p></article>
+          <article class="feature"><div class="icon">★</div><h3>Weekly challenges</h3><p>Get a fresh photo theme each week, submit your shot, browse community entries, and earn a featured winner spot.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shell audience">
+        <div class="audience-copy">
+          <span class="kicker">Who it's for</span>
+          <h2>Cars and photography first.</h2>
+          <p><strong>Automotive photographers, enthusiasts, creators, and meet-goers are the core of SnapMap.</strong> But if you're chasing a great city view, scenic overlook, architecture spot, or hidden location, you're not left out. A good spot is a good spot.</p>
+        </div>
+        <div class="audience-images">
+          <img src="./screenshots/feed.png" alt="SnapMap community feed" />
+          <img src="./screenshots/spot.png" alt="SnapMap photo spot details" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shell">
+        <div class="alpha">
+          <div class="alpha-badge">α</div>
+          <div>
+            <h2>SnapMap is currently in Alpha.</h2>
+            <p>That's why SnapMap is a <strong>web app right now.</strong> Keeping it on the web lets us ship fixes, polish features, and respond to real feedback much faster while the app is still evolving. You may run into the occasional bug, unfinished edge, or feature that changes as we improve it.</p>
+            <div class="install-card"><strong>Want it to feel like an app on iPhone?</strong> Open SnapMap in Safari, tap Share, then choose <strong>Add to Home Screen</strong>. You'll get a full-screen icon and app-like launch without downloading anything.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shell">
+        <div class="section-heading">
+          <span class="kicker">Inside SnapMap</span>
+          <h2>Built around the drive and the shot.</h2>
+          <p>Explore the map, save locations, browse the community, and keep useful spots ready for the next shoot.</p>
+        </div>
+        <div class="screens">
+          <div class="screen-card"><img src="./screenshots/map.png" alt="Map view" /><div class="screen-label">Explore the map</div></div>
+          <div class="screen-card"><img src="./screenshots/spot.png" alt="Spot detail view" /><div class="screen-label">Scout a location</div></div>
+          <div class="screen-card"><img src="./screenshots/feed.png" alt="Community feed" /><div class="screen-label">Share with the community</div></div>
+          <div class="screen-card"><img src="./screenshots/saved.png" alt="Saved spots" /><div class="screen-label">Save it for later</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="shell">
+        <span class="kicker">Discover · Share · Explore</span>
+        <h2>Your next shoot starts with a spot.</h2>
+        <p>Open SnapMap, see what's around you, and help build a better map for the automotive and photography community.</p>
+        <a class="button button-primary" href="/app/">Open SnapMap <span aria-hidden="true">→</span></a>
+        <div class="version" id="versionText">Web Alpha</div>
+      </div>
+    </section>
   </main>
 
-  <div class="lightbox" id="screenshot-lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
-    <div class="lightbox-inner">
-      <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
-      <div class="lightbox-img-wrap">
-        <img id="lightbox-img" src="" alt="" />
-      </div>
-      <p class="lightbox-caption" id="lightbox-caption"></p>
-      <div class="lightbox-nav">
-        <button type="button" class="lightbox-prev" id="lightbox-prev" aria-label="Previous">&larr;</button>
-        <button type="button" class="lightbox-next" id="lightbox-next" aria-label="Next">&rarr;</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    (function () {
-      // Register root SW so / serves the landing page, not cached app
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js', { scope: '/' }).catch(function () {});
-      }
-      var downloadBtn = document.getElementById('download-apk-btn');
-      fetch('./app/version.json', { cache: 'no-store' })
-        .then(function (response) { return response.ok ? response.json() : null; })
-        .then(function (data) {
-          if (!data || !data.version) return;
-          document.querySelectorAll('[data-app-version]').forEach(function (node) {
-            node.textContent = data.version;
-          });
-        })
-        .catch(function () {});
-      if (downloadBtn) {
-        downloadBtn.addEventListener('click', function (e) {
-          var href = downloadBtn.getAttribute('href');
-          if (!href) return;
-          e.preventDefault();
-          var a = document.createElement('a');
-          a.href = href;
-          a.download = 'SnapMap.apk';
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
-      }
-
-      (function lightbox() {
-        var screenshots = [
-          { src: './screenshots/map.png', label: 'Map' },
-          { src: './screenshots/feed.png', label: 'Feed' },
-          { src: './screenshots/saved.png', label: 'Saved' },
-          { src: './screenshots/spot.png', label: 'Spot' }
-        ];
-        var lb = document.getElementById('screenshot-lightbox');
-        var lbImg = document.getElementById('lightbox-img');
-        var lbCaption = document.getElementById('lightbox-caption');
-        var lbClose = document.getElementById('lightbox-close');
-        var lbPrev = document.getElementById('lightbox-prev');
-        var lbNext = document.getElementById('lightbox-next');
-        var currentIndex = 0;
-
-        function showAt(index) {
-          currentIndex = (index + screenshots.length) % screenshots.length;
-          var item = screenshots[currentIndex];
-          lbImg.src = item.src;
-          lbImg.alt = item.label;
-          lbCaption.textContent = item.label;
-          lbPrev.style.visibility = screenshots.length > 1 ? 'visible' : 'hidden';
-          lbNext.style.visibility = screenshots.length > 1 ? 'visible' : 'hidden';
-        }
-        function openLightbox(index) {
-          currentIndex = index;
-          showAt(currentIndex);
-          lb.classList.add('open');
-          lb.setAttribute('aria-hidden', 'false');
-          document.body.style.overflow = 'hidden';
-        }
-        function closeLightbox() {
-          lb.classList.remove('open');
-          lb.setAttribute('aria-hidden', 'true');
-          document.body.style.overflow = '';
-        }
-        function goPrev() { showAt(currentIndex - 1); }
-        function goNext() { showAt(currentIndex + 1); }
-
-        lbClose.addEventListener('click', closeLightbox);
-        lbPrev.addEventListener('click', goPrev);
-        lbNext.addEventListener('click', goNext);
-        lb.addEventListener('click', function (e) { if (e.target === lb) closeLightbox(); });
-
-        document.addEventListener('keydown', function (e) {
-          if (!lb.classList.contains('open')) return;
-          if (e.key === 'Escape') { closeLightbox(); return; }
-          if (e.key === 'ArrowLeft') { goPrev(); e.preventDefault(); return; }
-          if (e.key === 'ArrowRight') { goNext(); e.preventDefault(); }
-        });
-
-        var list = document.getElementById('screenshot-list');
-        if (list) {
-          list.addEventListener('click', function (e) {
-            var screen = e.target.closest('.screen[data-screenshot-index]');
-            if (!screen) return;
-            var i = parseInt(screen.getAttribute('data-screenshot-index'), 10);
-            if (!isNaN(i) && i >= 0 && i < screenshots.length) openLightbox(i);
-          });
-          list.addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            var screen = e.target.closest('.screen[data-screenshot-index]');
-            if (!screen) return;
-            e.preventDefault();
-            var i = parseInt(screen.getAttribute('data-screenshot-index'), 10);
-            if (!isNaN(i) && i >= 0 && i < screenshots.length) openLightbox(i);
-          });
-        }
-      })();
-    })();
+    fetch('/app/version.json', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (data?.version) document.getElementById('versionText').textContent = `Web Alpha · v${data.version}`;
+      })
+      .catch(() => {});
   </script>
 </body>
 </html>
