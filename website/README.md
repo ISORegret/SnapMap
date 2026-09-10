@@ -1,11 +1,7 @@
 # SnapMap landing site
 
-Static marketing page deployed with the app by GitHub Pages.
+Static marketing page deployed at `snapmap.lol/` with the web app published at `snapmap.lol/app/`.
 
-The deployment workflow copies the built app to `website/app/`, then publishes this directory.
+SnapMap is currently presented as a web app while it is in alpha. The landing page is intentionally web-first: there is no APK/download CTA.
 
-## APK
-
-"Download APK" links to `./snapmap.apk`. Replace that file with the latest signed build when publishing an Android release.
-
-The landing page reads `app/version.json` at runtime, so the displayed version follows the deployed app build.
+The landing page reads `app/version.json` at runtime so the displayed version follows the deployed app build.
