@@ -2,6 +2,15 @@ import { supabase, hasSupabase } from './supabase';
 
 const DEFAULT_IMAGE_URI = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 
+// Keep this list explicit. In particular, do not fetch the legacy image_uri
+// column: its first image is already present in images, and older records may
+// contain a large base64 copy in both columns.
+const COMMUNITY_SPOT_SELECT = `
+  id, name, description, address, parking, how_to_access, latitude, longitude,
+  best_time, crowd_level, score, tags, images, photo_by, link_url, link_label,
+  created_at, created_by, created_by_display_name, last_edited_by, owner_id
+`;
+
 function parseArray(value) {
   if (Array.isArray(value)) return value;
   if (value == null || value === '') return [];
@@ -82,7 +91,7 @@ export async function fetchCommunitySpots() {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('spots')
-    .select('*')
+    .select(COMMUNITY_SPOT_SELECT)
     .order('created_at', { ascending: false });
   if (error) {
     console.warn('SnapMap: fetch community spots failed', error);
