@@ -327,33 +327,6 @@ export default function App() {
     };
   }, [isOnline, ready]);
 
-  // Periodic refetch while app is visible (backup if Realtime is not enabled for spots)
-  const REFETCH_INTERVAL_MS = 45 * 1000;
-  useEffect(() => {
-    if (!isOnline) return;
-    let intervalId = null;
-    const schedule = () => {
-      if (typeof document === 'undefined' || document.visibilityState !== 'visible' || intervalId) return;
-      intervalId = setInterval(() => {
-        if (document.visibilityState !== 'visible') return;
-        fetchCommunitySpots().then(setCommunitySpots);
-      }, REFETCH_INTERVAL_MS);
-    };
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') schedule();
-      else if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
-    if (document.visibilityState === 'visible') schedule();
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isOnline]);
-
   useEffect(() => {
     if (!isOnline) return;
     checkUpdateAvailable(appVersion).then(setUpdateAvailable);
