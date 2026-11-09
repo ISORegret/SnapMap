@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Heart, Star, Search, Info, ArrowUpRight, Navigation, SlidersHorizontal, X, Users, User, UserPlus, UserCheck, Clock3, CalendarDays } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 import { haversineKm, getCurrentPosition, kmToMi } from '../utils/geo';
 import { getSpotRatingsForSpotIds } from '../api/ratings';
 import { hasSupabase } from '../api/supabase';
@@ -13,6 +13,8 @@ import SpotFeed from '../components/SpotFeed';
 import EventHub from '../components/EventHub';
 import DiscoverSearch from '../components/DiscoverSearch';
 import PhotoChallengeHighlight from '../components/PhotoChallengeHighlight';
+
+const EXPLORE_PAGE_SIZE = 20;
 
 function matchesSearch(spot, q) {
   if (!q.trim()) return true;
@@ -60,6 +62,9 @@ export default function Explore({
   const [friendConnections, setFriendConnections] = useState({ friends: [], incoming: [], outgoing: [] });
   const [friendActionId, setFriendActionId] = useState(null);
   const [blockedUserIds, setBlockedUserIds] = useState([]);
+  // Only render the first page of the filtered list; "Show more" appends the
+  // next page. Rendering every match at once was mounting all card images.
+  const [visibleSpotCount, setVisibleSpotCount] = useState(EXPLORE_PAGE_SIZE);
   const sortChosenRef = useRef(false);
   const userPosition = userPositionProp;
 
@@ -159,6 +164,13 @@ export default function Explore({
       .slice(0, 8)
       .map((x) => x.spot);
   }, [allSpots, userPosition]);
+
+  // A new search / filter / sort starts back at the first page.
+  useEffect(() => {
+    setVisibleSpotCount(EXPLORE_PAGE_SIZE);
+  }, [searchQuery, category, sortMode, parkingOnly, minRating, bestTime]);
+
+  const visibleSpots = filteredSpots.slice(0, visibleSpotCount);
 
   useEffect(() => {
     if (!hasSupabase || matchedSpots.length === 0) {
@@ -303,7 +315,7 @@ export default function Explore({
                   return (
                     <article key={creator.id} className="surface-card flex gap-3 rounded-[1.5rem] p-4">
                       <Link to={`/user/${creator.username}`} state={{ from: '/explore?view=community' }} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                        {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
+                        {creator.avatar_url ? <img src={creator.avatar_url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
                       </Link>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
@@ -346,7 +358,7 @@ export default function Explore({
                 const dist = units === 'km' ? `${km.toFixed(1)} km` : `${kmToMi(km).toFixed(1)} mi`;
                 return (
                   <Link key={spot.id} to={`/spot/${spot.id}`} className="surface-card group relative aspect-[4/5] w-[13.5rem] shrink-0 snap-start overflow-hidden rounded-[1.5rem]">
-                    <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                    <img src={getSpotThumbnailImage(spot)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-black/10" />
                     <div className="absolute inset-x-0 bottom-0 p-4">
                       <span className="inline-flex rounded-full bg-accent-500 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#211603]">{dist}</span>
@@ -449,13 +461,13 @@ export default function Explore({
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {filteredSpots.map((spot) => {
+              {visibleSpots.map((spot) => {
                 const r = spotRatings[spot.id];
                 const avg = r?.average ?? 0;
                 return (
                   <Link key={spot.id} to={`/spot/${spot.id}`} className="surface-card group overflow-hidden rounded-[1.6rem] transition duration-300 hover:-translate-y-0.5 hover:border-accent-500/30">
                     <div className="relative aspect-[16/10] overflow-hidden">
-                      <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]" />
+                      <img src={getSpotThumbnailImage(spot)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-black/15" />
                       <button
                         type="button"
@@ -492,6 +504,15 @@ export default function Explore({
                 );
               })}
             </div>
+          )}
+          {filteredSpots.length > visibleSpotCount && (
+            <button
+              type="button"
+              onClick={() => setVisibleSpotCount((count) => count + EXPLORE_PAGE_SIZE)}
+              className="mt-4 w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-input)] px-4 py-3 text-sm font-extrabold text-primary transition hover:border-accent-500/40 hover:text-accent-400"
+            >
+              Show more spots ({filteredSpots.length - visibleSpotCount} remaining)
+            </button>
           )}
         </section>
         </>}

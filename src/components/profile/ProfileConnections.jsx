@@ -20,7 +20,7 @@ export default function ProfileConnections({ connections, isOwnProfile, location
             <div key={creator.id} className="flex items-center gap-3 rounded-2xl bg-black/10 p-2.5">
               <Link to={`/user/${creator.username}`} state={{ from: locationPath }} className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                  {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
+                  {creator.avatar_url ? <img loading="lazy" decoding="async" src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0"><p className="truncate text-sm font-bold text-primary">{creator.display_name || 'SnapMap user'}</p><p className="truncate text-xs text-slate-500">SnapMap creator</p></div>
               </Link>
@@ -39,7 +39,7 @@ export default function ProfileConnections({ connections, isOwnProfile, location
           {connections.friends.map((creator) => (
             <Link key={creator.id} to={`/user/${creator.username}`} state={{ from: locationPath }} className="surface-card w-28 shrink-0 rounded-[1.35rem] p-3 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                {creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
+                {creator.avatar_url ? <img loading="lazy" decoding="async" src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
               </div>
               <p className="mt-2 truncate text-xs font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</p>
               <p className="truncate text-[10px] text-slate-500">SnapMap creator</p>

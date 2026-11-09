@@ -4,7 +4,7 @@ import { navigateBackOr } from '../utils/navigation';
 import { ArrowLeft, Heart, MapPin, ExternalLink, Car, Sun, Cloud, Copy, Share2, Users, User, Navigation, Trash2, Image, Flag, Pencil, Star, MessageCircle, Reply, Camera } from 'lucide-react';
 import SunCalc from 'suncalc';
 import { createSpotSharePng } from '../utils/shareSpotCard';
-import { getSpotImages, getSpotPrimaryImage, resizeImageToDataUrl } from '../utils/spotImages';
+import { getSpotImages, resizeImageWithThumbnail } from '../utils/spotImages';
 import { haversineKm, kmToMi } from '../utils/geo';
 import { insertSpotReport, fetchSpotNotes, insertSpotNote, deleteSpotNote } from '../api/spots';
 import { getCheckInCount, hasCheckedIn, addCheckIn } from '../api/checkIns';
@@ -47,6 +47,8 @@ function SpotImageGallery({ images, spotName }) {
         <img
           src={current.uri}
           alt={spotName}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover select-none"
           draggable={false}
         />
@@ -92,7 +94,7 @@ function SpotImageGallery({ images, spotName }) {
                   i === index ? 'border-accent-500' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
-                <img src={img.uri} alt={`${spotName} photo ${i + 1}`} className="h-full w-full object-cover" />
+                <img src={img.thumbnail || img.uri} alt={`${spotName} photo ${i + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -499,9 +501,9 @@ export default function SpotDetail({
     setAddPhotoLoading(true);
     const attributedTo = photoByLabel(currentUserProfile);
     try {
-      const dataUrl = await resizeImageToDataUrl(file, 1200);
+      const { uri: dataUrl, thumbnail } = await resizeImageWithThumbnail(file, 1200);
       const current = getSpotImages(spot);
-      const saved = await updateSpot(spot.id, { images: [...current, { uri: dataUrl, photoBy: attributedTo, uploadedBy: attributedTo }] });
+      const saved = await updateSpot(spot.id, { images: [...current, { uri: dataUrl, thumbnail, photoBy: attributedTo, uploadedBy: attributedTo }] });
       if (!saved) setAddPhotoError('Your photo could not sync. Check your connection and try again.');
     } catch {
       setAddPhotoError('Could not add that photo. Try another image.');
@@ -823,7 +825,7 @@ export default function SpotDetail({
                   return (
                     <div key={comment.id} className={`flex gap-3 ${nested ? 'ml-8 border-l border-white/10 pl-3 pt-2' : 'border-b border-white/[0.06] pb-3 last:border-0'}`}>
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-                        {author?.avatar_url ? <img src={author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
+                        {author?.avatar_url ? <img src={author.avatar_url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-x-2">

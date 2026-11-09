@@ -6,7 +6,7 @@ import { fetchPosts } from '../api/posts';
 import { searchProfiles } from '../api/profiles';
 import { hasSupabase } from '../api/supabase';
 import { getBlockedUserIds } from '../api/safety';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 
 const RECENT_SEARCHES_KEY = 'snapmap_recent_searches_v1';
 const SEARCH_SUGGESTIONS = ['Car show', 'Cars & coffee', 'Night', 'Parking'];
@@ -137,7 +137,7 @@ export default function DiscoverSearch({ allSpots = [], favoriteIds = [], toggle
           {results.spots.length > 0 && <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-extrabold text-primary"><MapPin className="h-5 w-5 text-accent-400" />Spots</h2><span className="text-xs font-bold text-muted">{results.spots.length}</span></div>
             <div className="grid gap-2 md:grid-cols-2">{results.spots.map((spot) => <div key={spot.id} className={resultLinkClass}>
-              <Link to={`/spot/${spot.id}`} onClick={rememberSearch} className="flex min-w-0 flex-1 items-center gap-3"><img src={getSpotPrimaryImage(spot)} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" /><div className="min-w-0"><h3 className="truncate text-sm font-extrabold text-primary">{spot.name}</h3><p className="mt-1 truncate text-xs text-muted">{spot.address || 'Pinned location'}</p></div></Link>
+              <Link to={`/spot/${spot.id}`} onClick={rememberSearch} className="flex min-w-0 flex-1 items-center gap-3"><img loading="lazy" decoding="async" src={getSpotThumbnailImage(spot)} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" /><div className="min-w-0"><h3 className="truncate text-sm font-extrabold text-primary">{spot.name}</h3><p className="mt-1 truncate text-xs text-muted">{spot.address || 'Pinned location'}</p></div></Link>
               <button type="button" onClick={() => toggleFavorite?.(spot.id)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-secondary" aria-label={favoriteIds.includes(spot.id) ? 'Remove from saved' : 'Save spot'}><Heart className={`h-5 w-5 ${favoriteIds.includes(spot.id) ? 'fill-rose-400 text-rose-400' : ''}`} /></button>
             </div>)}</div>
           </section>}
@@ -145,21 +145,21 @@ export default function DiscoverSearch({ allSpots = [], favoriteIds = [], toggle
           {results.events.length > 0 && <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-extrabold text-primary"><CalendarDays className="h-5 w-5 text-cyan-300" />Events</h2><span className="text-xs font-bold text-muted">{results.events.length}</span></div>
             <div className="grid gap-2 md:grid-cols-2">{results.events.map((event) => <Link key={event.id} to={`/event/${event.id}`} onClick={rememberSearch} className={resultLinkClass}>
-              <img src={event.coverImageUrl || getSpotPrimaryImage(event.spot)} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{event.title}</h3><p className="mt-1 truncate text-xs font-bold text-cyan-300">{eventDate(event.startsAt)}</p><p className="mt-0.5 truncate text-xs text-muted">{event.venueName || event.address || 'Location to be announced'}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+              <img loading="lazy" decoding="async" src={event.coverImageUrl || getSpotThumbnailImage(event.spot)} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{event.title}</h3><p className="mt-1 truncate text-xs font-bold text-cyan-300">{eventDate(event.startsAt)}</p><p className="mt-0.5 truncate text-xs text-muted">{event.venueName || event.address || 'Location to be announced'}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
             </Link>)}</div>
           </section>}
 
           {results.creators.length > 0 && <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-extrabold text-primary"><User className="h-5 w-5 text-accent-400" />Creators</h2><span className="text-xs font-bold text-muted">{results.creators.length}</span></div>
             <div className="grid gap-2 md:grid-cols-2">{results.creators.map((creator) => <Link key={creator.id} to={`/user/${creator.username}`} state={{ from: '/explore?view=search' }} onClick={rememberSearch} className={resultLinkClass}>
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/10 text-accent-400">{creator.avatar_url ? <img src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}</div><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</h3>{creator.bio && <p className="mt-1 line-clamp-1 text-xs text-secondary">{creator.bio}</p>}</div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/10 text-accent-400">{creator.avatar_url ? <img loading="lazy" decoding="async" src={creator.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}</div><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{creator.display_name || 'SnapMap user'}</h3>{creator.bio && <p className="mt-1 line-clamp-1 text-xs text-secondary">{creator.bio}</p>}</div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
             </Link>)}</div>
           </section>}
 
           {results.posts.length > 0 && <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-extrabold text-primary"><Camera className="h-5 w-5 text-accent-400" />Posts</h2><span className="text-xs font-bold text-muted">{results.posts.length}</span></div>
             <div className="grid gap-2 md:grid-cols-2">{results.posts.map((post) => <Link key={post.id} to={`/explore?post=${post.id}`} onClick={rememberSearch} className={resultLinkClass}>
-              <img src={post.images?.[0]?.public_url} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-black object-cover" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || 'Creator'}</h3><p className="mt-1 truncate text-xs font-bold text-accent-400">{post.locationName}</p><p className="mt-1 line-clamp-1 text-xs text-muted">{post.caption || 'Photo post'}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+              <img loading="lazy" decoding="async" src={post.images?.[0]?.public_url} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-black object-cover" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || 'Creator'}</h3><p className="mt-1 truncate text-xs font-bold text-accent-400">{post.locationName}</p><p className="mt-1 line-clamp-1 text-xs text-muted">{post.caption || 'Photo post'}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-muted" />
             </Link>)}</div>
           </section>}
         </div>

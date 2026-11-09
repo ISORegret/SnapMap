@@ -344,32 +344,49 @@ export default function App() {
       .finally(() => setCommunitySpotsLoading(false));
   }, [isOnline]);
 
-  // Refetch community spots when tab becomes visible so other device's edits show up
+  // Refetch community spots when the tab becomes visible again, but only if
+  // it was hidden for a while — a quick app switch shouldn't re-download
+  // the whole list. 5 minutes is the stale threshold.
+  const spotsHiddenAtRef = React.useRef(0);
   useEffect(() => {
     if (!isOnline) return;
-    const onVisible = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') refetchCommunitySpots();
+    const onVisibilityChange = () => {
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState === 'hidden') {
+        spotsHiddenAtRef.current = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        const hiddenForMs = Date.now() - (spotsHiddenAtRef.current || 0);
+        if (spotsHiddenAtRef.current === 0 || hiddenForMs > 5 * 60 * 1000) refetchCommunitySpots();
+        spotsHiddenAtRef.current = 0;
+      }
     };
     if (typeof document !== 'undefined' && document.addEventListener) {
-      document.addEventListener('visibilitychange', onVisible);
-      return () => document.removeEventListener('visibilitychange', onVisible);
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', onVisibilityChange);
     }
   }, [isOnline, refetchCommunitySpots]);
 
   // Supabase Realtime: refetch community spots as soon as any spot is inserted/updated/deleted (sync across devices)
   useEffect(() => {
     if (!isOnline || !ready || !hasSupabase || !supabase) return;
+    let debounceTimer = null;
     const channel = supabase
       .channel('spots-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'spots' },
         () => {
-          fetchCommunitySpots().then(setCommunitySpots);
+          // Debounce: a bulk edit fires one event per row, so wait briefly
+          // and refetch once instead of once per row.
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchCommunitySpots().then(setCommunitySpots);
+          }, 1500);
         }
       )
       .subscribe();
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [isOnline, ready]);
@@ -726,7 +743,7 @@ export default function App() {
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-accent-500/20 blur-2xl" />
               <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-accent-500/30 bg-[var(--bg-page)] shadow-[0_0_40px_-8px_rgba(232,167,53,0.4)]">
-                <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" className="h-20 w-20 object-contain" aria-hidden />
+                <img src={`${import.meta.env.BASE_URL}snapmap-icon.svg`} alt="" loading="lazy" decoding="async" className="h-20 w-20 object-contain" aria-hidden />
               </div>
             </div>
             <div className="text-center">

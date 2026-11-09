@@ -8,7 +8,7 @@ import 'leaflet.markercluster';
 import { MapPin, Heart, Search, ChevronDown, RefreshCw, Layers as LayersIcon, Check, LocateFixed, X, Navigation, Clock3, Camera, CalendarDays, Milestone as Route } from 'lucide-react';
 import { CATEGORIES, matchesCategory } from '../utils/categories';
 import { haversineKm, getCurrentPosition, DISTANCE_OPTIONS_MI, milesToKm } from '../utils/geo';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 import { fetchActiveSpotActivity, subscribeToMapActivity, SPOT_CONDITIONS } from '../api/spotActivity';
 import { fetchMapPosts, subscribeToFeed } from '../api/posts';
 import DirectionsLauncher from '../components/DirectionsLauncher';
@@ -83,7 +83,7 @@ function liveSpotIcon(summary, post = null) {
     const markerClass = alertCondition ? 'is-alert' : summary ? 'is-live' : '';
     return L.divIcon({
       className: 'snapmap-marker-wrap',
-      html: `<span class="snapmap-photo-marker ${markerClass}"><img src="${safeImageUrl(post.imageUrl)}" alt="" /><i></i></span>`,
+      html: `<span class="snapmap-photo-marker ${markerClass}"><img src="${safeImageUrl(post.imageUrl)}" alt="" loading="lazy" decoding="async" /><i></i></span>`,
       iconSize: [46, 52],
       iconAnchor: [23, 48],
       popupAnchor: [0, -44],
@@ -370,7 +370,9 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     });
     refresh();
     const unsubscribe = subscribeToMapActivity(refresh);
-    const interval = window.setInterval(refresh, 60000);
+    // Realtime already pushes activity updates; the interval is only a
+    // safety net, so 5 minutes is plenty (was 60 seconds).
+    const interval = window.setInterval(refresh, 5 * 60 * 1000);
     return () => {
       cancelled = true;
       unsubscribe();
@@ -384,7 +386,9 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
     const refresh = () => fetchActiveEventCheckInCounts(mapEvents.map((event) => event.id)).then((counts) => { if (active) setEventLiveCounts(counts); });
     refresh();
     const unsubscribe = subscribeToEventCheckIns(refresh);
-    const interval = window.setInterval(refresh, 60000);
+    // Realtime already pushes check-in updates; the interval is only a
+    // safety net, so 5 minutes is plenty (was 60 seconds).
+    const interval = window.setInterval(refresh, 5 * 60 * 1000);
     return () => { active = false; unsubscribe(); window.clearInterval(interval); };
   }, [mapEvents]);
 
@@ -759,7 +763,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-2.5 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
           <div className="flex gap-3">
             <Link to={`/spot/${selectedSpot.id}`} className="h-24 w-28 shrink-0 overflow-hidden rounded-[1.1rem] bg-black/20">
-              <img src={getSpotPrimaryImage(selectedSpot)} alt="" className="h-full w-full object-cover" />
+              <img src={getSpotThumbnailImage(selectedSpot)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </Link>
             <div className="min-w-0 flex-1 py-1">
               <div className="flex items-start gap-2">
@@ -803,7 +807,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-2.5 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
           <div className="flex gap-3">
             <Link to={`/explore?post=${selectedPost.id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-[1.1rem] bg-black/20">
-              <img src={selectedPost.imageUrl} alt="" className="h-full w-full object-cover" />
+              <img src={selectedPost.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </Link>
             <div className="min-w-0 flex-1 py-1">
               <div className="flex items-start gap-2">
@@ -826,7 +830,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         <div className="surface-card absolute bottom-[11.1rem] left-3 right-3 z-[1004] overflow-hidden rounded-[1.5rem] p-3 sm:left-1/2 sm:max-w-md sm:-translate-x-1/2">
           <div className="flex gap-3">
             <Link to={`/event/${selectedEvent.id}`} className="grid h-24 w-20 shrink-0 place-items-center overflow-hidden rounded-[1.1rem] bg-cyan-400/10 text-cyan-300">
-              {selectedEvent.coverImageUrl ? <img src={selectedEvent.coverImageUrl} alt="" className="h-full w-full object-cover" /> : <CalendarDays className="h-8 w-8" />}
+              {selectedEvent.coverImageUrl ? <img src={selectedEvent.coverImageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <CalendarDays className="h-8 w-8" />}
             </Link>
             <div className="min-w-0 flex-1 py-1">
               <div className="flex items-start gap-2">

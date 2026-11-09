@@ -1,6 +1,6 @@
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80';
 
-export function resizeImageToDataUrl(file, maxDim = 1200, quality = 0.85) {
+function resizeImageFileToDataUrl(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -36,10 +36,31 @@ export function resizeImageToDataUrl(file, maxDim = 1200, quality = 0.85) {
   });
 }
 
+export function resizeImageToDataUrl(file, maxDim = 1200, quality = 0.85) {
+  return resizeImageFileToDataUrl(file, maxDim, quality);
+}
+
 /**
- * Returns an array of { uri, photoBy, uploadedBy } for a spot.
+ * Resize an upload to a full-size data URL plus a small thumbnail data URL.
+ * List views (Explore, map bottom sheet, feed) render the ~400px thumbnail
+ * instead of the 1200px original, so scrolling a list no longer downloads
+ * full-size base64 photos. The thumbnail is stored alongside the full image
+ * in the spot's images JSON column ({ uri, thumbnail, photoBy, uploadedBy });
+ * older records without a thumbnail fall back to the full image.
+ */
+export async function resizeImageWithThumbnail(file, maxDim = 1200, quality = 0.85, thumbDim = 400, thumbQuality = 0.8) {
+  const [uri, thumbnail] = await Promise.all([
+    resizeImageFileToDataUrl(file, maxDim, quality),
+    resizeImageFileToDataUrl(file, thumbDim, thumbQuality),
+  ]);
+  return { uri, thumbnail };
+}
+
+/**
+ * Returns an array of { uri, thumbnail, photoBy, uploadedBy } for a spot.
  * photoBy is the photographer credit; uploadedBy identifies who submitted the image.
  * Older images fall back to the spot creator as the uploader when available.
+ * thumbnail is '' for records uploaded before thumbnails existed.
  */
 export function getSpotImages(spot) {
   if (!spot) return [];
@@ -47,6 +68,7 @@ export function getSpotImages(spot) {
   if (spot.images?.length) {
     return spot.images.map((img) => ({
       uri: img.uri || DEFAULT_IMAGE,
+      thumbnail: typeof img.thumbnail === 'string' ? img.thumbnail : '',
       photoBy: img.photoBy || 'Unknown',
       uploadedBy: img.uploadedBy || legacyUploader,
     }));
@@ -54,6 +76,7 @@ export function getSpotImages(spot) {
   const uri = spot.imageUri?.trim() || DEFAULT_IMAGE;
   return [{
     uri,
+    thumbnail: '',
     photoBy: spot.photoBy?.trim() || 'Unknown',
     uploadedBy: legacyUploader,
   }];
@@ -63,4 +86,10 @@ export function getSpotImages(spot) {
 export function getSpotPrimaryImage(spot) {
   const imgs = getSpotImages(spot);
   return imgs[0]?.uri || DEFAULT_IMAGE;
+}
+
+/** First image's thumbnail for list/card views; falls back to the full image. */
+export function getSpotThumbnailImage(spot) {
+  const imgs = getSpotImages(spot);
+  return imgs[0]?.thumbnail || imgs[0]?.uri || DEFAULT_IMAGE;
 }
