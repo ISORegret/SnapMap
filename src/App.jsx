@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Map as MapIcon, Compass, Plus, Heart, User, WifiOff, Lock } from 'lucide-react';
-import { CURATED_SPOTS } from './data/curatedSpots';
 import {
   loadUserSpots,
   saveUserSpots,
@@ -28,7 +27,6 @@ const Add = lazy(() => import('./pages/Add'));
 const Saved = lazy(() => import('./pages/Saved'));
 const SpotDetail = lazy(() => import('./pages/SpotDetail'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Account = lazy(() => import('./pages/Account'));
 const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const SignIn = lazy(() => import('./pages/SignIn'));
@@ -59,6 +57,32 @@ function RouteScrollReset() {
   return null;
 }
 
+// /profile used to be a separate Account page that only redirected. Inlined here
+// so the route goes straight to the profile / sign-in logic.
+function ProfileRoute({ currentUser, currentUserProfile }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser && currentUserProfile?.username) {
+      navigate(`/user/${currentUserProfile.username}`, { replace: true });
+    }
+  }, [currentUser, currentUserProfile?.username, navigate]);
+
+  if (currentUser && !currentUserProfile?.username) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-4">
+        <p className="text-slate-500">Loading profile…</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <SignIn currentUser={currentUser} />;
+  }
+
+  return null;
+}
+
 export default function App() {
   const [userSpots, setUserSpots] = useState([]);
   const [communitySpots, setCommunitySpots] = useState([]);
@@ -70,6 +94,8 @@ export default function App() {
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [authReady, setAuthReady] = useState(!hasSupabase);
   const [ready, setReady] = useState(false);
+  // Set once the first paint is done so non-map work can be deferred off startup.
+  const [deferredReady, setDeferredReady] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [theme, setThemeState] = useState(() =>
     typeof localStorage !== 'undefined' ? (localStorage.getItem('snapmap_theme') || 'dark') : 'dark'
@@ -135,6 +161,24 @@ export default function App() {
     setCollections(loadCollections());
     setSyncCodeState(loadSyncCode());
     setReady(true);
+  }, []);
+
+  // Defer non-critical subscriptions until after first paint (idle callback,
+  // or 2s at the latest) so startup stays focused on the map + spots.
+  useEffect(() => {
+    let done = false;
+    const markReady = () => { if (!done) { done = true; setDeferredReady(true); } };
+    let idleId;
+    let timeoutId;
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(markReady, { timeout: 2000 });
+    }
+    timeoutId = setTimeout(markReady, 2000);
+    return () => {
+      done = true;
+      if (idleId != null && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -234,6 +278,7 @@ export default function App() {
   }, [currentUser?.id]);
 
   useEffect(() => {
+    if (!deferredReady) return;
     if (!currentUser?.id || !hasSupabase) {
       setUnreadMessages(0);
       return;
@@ -243,9 +288,10 @@ export default function App() {
     refresh();
     const unsubscribe = subscribeToMessages(refresh);
     return () => { cancelled = true; unsubscribe(); };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, deferredReady]);
 
   useEffect(() => {
+    if (!deferredReady) return;
     if (!currentUser?.id || !hasSupabase) {
       setUnreadNotifications(0);
       return;
@@ -257,9 +303,10 @@ export default function App() {
     refresh();
     const unsubscribe = subscribeToNotifications(currentUser.id, refresh);
     return () => { cancelled = true; unsubscribe(); };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, deferredReady]);
 
   useEffect(() => {
+    if (!deferredReady) return;
     if (!currentUser?.id || !hasSupabase || !isOnline) return;
     let cancelled = false;
     let intervalId;
@@ -277,7 +324,7 @@ export default function App() {
     intervalId = setInterval(checkReminders, 5 * 60 * 1000);
     document.addEventListener('visibilitychange', onVisible);
     return () => { cancelled = true; clearInterval(intervalId); document.removeEventListener('visibilitychange', onVisible); };
-  }, [currentUser?.id, isOnline, navigate, showToast]);
+  }, [currentUser?.id, isOnline, navigate, showToast, deferredReady]);
 
   useEffect(() => {
     if (!ready) return;
@@ -422,7 +469,6 @@ export default function App() {
 
   // Prefer userSpots over communitySpots when same id (so local edits persist after reopen)
   const allSpotsRaw = [
-    ...CURATED_SPOTS,
     ...communitySpots.filter((c) => !userSpots.some((u) => u.id === c.id)),
     ...userSpots,
   ];
@@ -764,7 +810,7 @@ export default function App() {
               ? <Add onAdd={addSpot} onUpdate={updateSpot} currentUser={currentUser} currentUserProfile={currentUserProfile} />
               : <Navigate to="/signin" replace state={{ from: '/add', authMessage: 'Sign in or create an account to publish a spot.' }} />}
           />
-          <Route path="/profile" element={<Account allSpots={allSpots} currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
+          <Route path="/profile" element={<ProfileRoute currentUser={currentUser} currentUserProfile={currentUserProfile} />} />
           <Route path="/about" element={<About allSpots={allSpots} />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/submissions" element={<MySubmissions currentUser={currentUser} />} />

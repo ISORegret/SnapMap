@@ -360,8 +360,6 @@ export default function SpotDetail({
   }
 
   const { latitude, longitude } = spot;
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-  const appleMapsUrl = `https://maps.apple.com/?q=${latitude},${longitude}`;
   const wazeUrl = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
   const otherCollections = collections.filter((c) => c.id !== 'favorites');
   const isInCollection = (collId) => collections.find((c) => c.id === collId)?.spotIds?.includes(spot.id) ?? false;
@@ -698,6 +696,16 @@ export default function SpotDetail({
         {spot.description && (
           <p className="mt-3 text-sm text-slate-400 leading-relaxed">{spot.description}</p>
         )}
+
+        {/* Primary action: open the spot in the user's preferred maps app (see mapNavigation.js) */}
+        <DirectionsLauncher
+          googleUrl={googleDirectionsUrl(latitude, longitude)}
+          appleUrl={appleDirectionsUrl(latitude, longitude)}
+          className="primary-button mt-4 w-full py-3 text-sm"
+          title="Open in Maps"
+        >
+          <Navigation className="h-4 w-4" /> Open in Maps
+        </DirectionsLauncher>
         {(spot.score != null && spot.score > 0) && (
           <p className="mt-2 text-sm text-slate-500">Score {spot.score}</p>
         )}
@@ -777,32 +785,12 @@ export default function SpotDetail({
         <WeatherAtSpot latitude={latitude} longitude={longitude} units={units} />
         </section>
 
-        {/* Additional navigation apps */}
+        {/* Waze lives here — Google/Apple Maps moved to the "Open in Maps" button above */}
         <details className="surface-card group mt-4 rounded-2xl px-4 py-3">
           <summary className="cursor-pointer list-none text-sm font-bold text-secondary marker:hidden">
             <span className="flex items-center justify-between gap-3"><span>More navigation options</span><span className="text-xs font-extrabold text-accent-400 group-open:hidden">Show</span><span className="hidden text-xs font-extrabold text-accent-400 group-open:inline">Hide</span></span>
           </summary>
           <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--border-subtle)] pt-3">
-            <a
-              href={googleMapsUrl}
-              onClick={() => recordDiagnostic('directions', { page: 'spot' })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-accent-400 transition hover:bg-[var(--bg-card-hover)]"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Google Maps
-            </a>
-            <a
-              href={appleMapsUrl}
-              onClick={() => recordDiagnostic('directions', { page: 'spot' })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-1 min-w-[100px] items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-[var(--bg-card-solid)] py-2.5 text-sm font-medium text-slate-300 transition hover:bg-[var(--bg-card-hover)]"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Apple Maps
-            </a>
             <a
               href={wazeUrl}
               onClick={() => recordDiagnostic('directions', { page: 'spot' })}

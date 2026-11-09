@@ -130,7 +130,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
     if (!meaningful) return undefined;
     const id = setTimeout(() => {
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, description, address, parking, howToAccess, lat, lng, bestTime, crowdLevel, images, tags, linkUrl, linkLabel, createdBy, showDetails, savedAt: Date.now() }));
+        // Photos stay in memory only: base64 images routinely exceed the ~5 MB
+        // localStorage quota on phones, so the draft saves text fields alone.
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, description, address, parking, howToAccess, lat, lng, bestTime, crowdLevel, tags, linkUrl, linkLabel, createdBy, showDetails, savedAt: Date.now() }));
       } catch (_) {
         setPhotoError('Draft is too large for this device. Your form is still open.');
       }
