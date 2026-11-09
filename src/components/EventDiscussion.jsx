@@ -19,7 +19,7 @@ function Comment({ item, currentUser, canManage, busy, onDelete }) {
   const canDelete = currentUser?.id === item.userId || canManage;
   return <article className={`group rounded-2xl p-3.5 ${item.isOrganizerUpdate ? 'border border-cyan-400/20 bg-cyan-400/[0.07]' : 'bg-white/[0.035]'}`}>
     <div className="flex items-start gap-3">
-      <Link to={item.author?.username ? `/user/${item.author.username}` : '#'} className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{item.author?.avatar_url ? <img src={item.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}</Link>
+      <Link to={item.author?.username ? `/user/${item.author.username}` : '#'} className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">{item.author?.avatar_url ? <img loading="lazy" decoding="async" src={item.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}</Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2"><p className="truncate text-sm font-extrabold text-primary">{name}</p>{item.isOrganizerUpdate && <span className="flex shrink-0 items-center gap-1 rounded-full bg-cyan-400/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-cyan-300"><Megaphone className="h-3 w-3" />Update</span>}<span className="ml-auto shrink-0 text-[11px] text-muted">{relativeTime(item.createdAt)}</span></div>
         <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-secondary">{item.body}</p>

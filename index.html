@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="snapmap-icon.svg" />
+    <!-- iOS Safari ignores SVG touch icons, so point at the PNG. A dedicated
+         180x180 apple-touch-icon.png (plus 192/512/maskable PNGs) is staged
+         to replace this once the icon files land in public/. -->
+    <link rel="apple-touch-icon" href="snapmap-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="SnapMap" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#080a0d" />

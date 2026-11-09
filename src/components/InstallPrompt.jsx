@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Share } from 'lucide-react';
 
 const DISMISS_KEY = 'snapmap-install-dismissed';
 const DISMISS_DAYS = 7;
@@ -8,6 +8,13 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches
     || window.navigator.standalone === true
     || document.referrer.includes('android-app://');
+}
+
+function isIosSafari() {
+  const ua = window.navigator.userAgent || '';
+  const isIosDevice = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
+  return isIosDevice && isSafari;
 }
 
 function wasDismissedRecently() {
@@ -25,10 +32,18 @@ export default function InstallPrompt({ enabled = true }) {
   const [installEvent, setInstallEvent] = useState(null);
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
+  // beforeinstallprompt never fires on iOS Safari, so iOS gets manual
+  // Share → "Add to Home Screen" instructions instead of the install button.
+  const [iosInstructions, setIosInstructions] = useState(false);
 
   useEffect(() => {
     if (isStandalone() || wasDismissedRecently()) {
       setInstalled(true);
+      return;
+    }
+    if (isIosSafari()) {
+      setIosInstructions(true);
+      setVisible(enabled);
       return;
     }
     const onBeforeInstall = (e) => {
@@ -61,6 +76,7 @@ export default function InstallPrompt({ enabled = true }) {
     } catch {}
     setVisible(false);
     setInstallEvent(null);
+    setIosInstructions(false);
   };
 
   if (!visible || installed) return null;
@@ -68,7 +84,13 @@ export default function InstallPrompt({ enabled = true }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-accent-500/20 bg-accent-950/40 px-4 py-2.5 backdrop-blur">
       <p className="text-sm font-medium text-accent-200">
-        Install SnapMap for quick access and offline spots.
+        {iosInstructions ? (
+          <>
+            Add SnapMap to your Home Screen: tap <Share className="inline h-3.5 w-3.5 align-[-2px]" /> Share below, then “Add to Home Screen”.
+          </>
+        ) : (
+          'Install SnapMap for quick access and offline spots.'
+        )}
       </p>
       <div className="flex shrink-0 gap-2">
         <button
@@ -76,16 +98,18 @@ export default function InstallPrompt({ enabled = true }) {
           onClick={handleDismiss}
           className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 hover:text-slate-300"
         >
-          Not now
+          {iosInstructions ? 'Got it' : 'Not now'}
         </button>
-        <button
-          type="button"
-          onClick={handleInstall}
-          className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-400"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Install
-        </button>
+        {!iosInstructions && (
+          <button
+            type="button"
+            onClick={handleInstall}
+            className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-400"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Install
+          </button>
+        )}
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ export default function EventEditor({ event, spot, onCancel, onSaved, showToast 
 
       <div className="mt-4">
         <div className="relative aspect-[16/9] overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/25">
-          <img src={displayedPhoto} alt="Event cover preview" className="h-full w-full object-cover" />
+          <img loading="lazy" decoding="async" src={displayedPhoto} alt="Event cover preview" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
           <span className="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-1.5 text-xs font-extrabold text-white backdrop-blur">{photo ? 'New event photo' : removePhoto ? 'Location photo fallback' : event.coverImageUrl ? 'Current event photo' : 'Location photo fallback'}</span>
         </div>

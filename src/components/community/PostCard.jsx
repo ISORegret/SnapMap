@@ -100,7 +100,7 @@ export default function PostCard({ post, currentUser, units, recommendationReaso
     <article id={`post-${post.id}`} className="surface-card overflow-hidden rounded-[1.65rem]">
       <div className="flex items-center gap-3 p-4">
         <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400">
-          {post.author?.avatar_url ? <img src={post.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
+          {post.author?.avatar_url ? <img loading="lazy" decoding="async" src={post.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
         </Link>
         <div className="min-w-0 flex-1">
           <Link to={`/user/${post.author?.username}`} state={{ from: '/explore' }} className="truncate text-sm font-extrabold text-primary">{post.author?.display_name || 'Creator'}</Link>
@@ -120,7 +120,7 @@ export default function PostCard({ post, currentUser, units, recommendationReaso
       </div>
 
       <div className="relative aspect-[4/5] max-h-[42rem] bg-black">
-        <img src={image?.public_url} alt={`Photo ${slide + 1} from ${post.locationName}`} className="h-full w-full object-contain" />
+        <img loading="lazy" decoding="async" src={image?.public_url} alt={`Photo ${slide + 1} from ${post.locationName}`} className="h-full w-full object-contain" />
         {post.images.length > 1 && <>
           <button type="button" disabled={slide === 0} onClick={() => setSlide((value) => value - 1)} className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur disabled:opacity-20" aria-label="Previous photo"><ChevronLeft className="h-5 w-5" /></button>
           <button type="button" disabled={slide === post.images.length - 1} onClick={() => setSlide((value) => value + 1)} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur disabled:opacity-20" aria-label="Next photo"><ChevronRight className="h-5 w-5" /></button>
@@ -146,7 +146,7 @@ export default function PostCard({ post, currentUser, units, recommendationReaso
           <div className="max-h-64 space-y-3 overflow-y-auto">
             {post.comments.length === 0 && <p className="text-xs text-muted">No comments yet. Start the conversation.</p>}
             {post.comments.map((item) => <div key={item.id} className="group flex gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/10 text-accent-400">{item.author?.avatar_url ? <img src={item.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-500/10 text-accent-400">{item.author?.avatar_url ? <img loading="lazy" decoding="async" src={item.author.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-3.5 w-3.5" />}</div>
               <div className="min-w-0 flex-1 rounded-2xl bg-black/10 px-3 py-2"><p className="text-xs"><Link to={`/user/${item.author?.username}`} state={{ from: '/explore' }} className="font-extrabold text-primary">{item.author?.display_name || 'Community member'}</Link><span className="ml-2 text-secondary">{item.body}</span></p><p className="mt-1 text-[10px] text-muted">{timeAgo(item.created_at)}</p></div>
               {currentUser?.id === item.user_id && <button type="button" onClick={async () => { if (await deletePostComment(item.id)) onChanged?.(); }} className="self-center p-1 text-muted opacity-0 transition group-hover:opacity-100" aria-label="Delete comment"><Trash2 className="h-3.5 w-3.5" /></button>}
             </div>)}

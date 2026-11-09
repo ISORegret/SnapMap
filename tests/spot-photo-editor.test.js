@@ -24,6 +24,7 @@ function setup() {
   return { state, renderer, button: (label) => renderer.root.findAllByType('button').find((button) => button.props['aria-label'] === label || button.props.children === label) };
 }
 
+
 test('cover and reorder controls keep photographer attribution with each image', () => {
   const { state, renderer, button } = setup();
   act(() => button('Move photo 3 earlier').props.onClick());
@@ -58,7 +59,7 @@ test('replacement stays in its original position and credits the new uploader', 
   try {
     act(() => button('Replace photo 2').props.onClick());
     await act(async () => { await renderer.root.findByProps({ 'aria-label': 'Replace spot photo' }).props.onChange({ target: { files: [new Blob(['ok'], { type: 'image/jpeg' })], value: '' } }); });
-    assert.deepEqual(state.images, [originals[0], { uri: 'data:image/jpeg;base64,new', photoBy: 'Owner', uploadedBy: 'Owner' }, originals[2]]);
+    assert.deepEqual(state.images, [originals[0], { uri: 'data:image/jpeg;base64,new', thumbnail: 'data:image/jpeg;base64,new', photoBy: 'Owner', uploadedBy: 'Owner' }, originals[2]]);
     assert.equal(state.error, '');
     assert.equal(state.busy, false);
   } finally { globalThis.Image = oldImage; globalThis.document = oldDocument; act(() => renderer.unmount()); }

@@ -3,7 +3,7 @@ import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'reac
 import { ArrowLeft, MapPin, User, Pencil, X, Settings, UserPlus, UserCheck, Clock3, Users, Bell, Ban, CalendarDays, Camera, MessageCircle, Share2, Sparkles, Globe2 } from 'lucide-react';
 import { getProfileByUsername, normalizeSocialLinks, updateProfile, uploadAvatar } from '../api/profiles';
 import { getFriendState, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getFriendConnections } from '../api/follows';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 import { navigateBackOr } from '../utils/navigation';
 import { blockUser, unblockUser, isUserBlocked } from '../api/safety';
 import { fetchPosts } from '../api/posts';
@@ -299,7 +299,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         <div className="flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.55rem] border border-accent-500/20 bg-accent-500/10 text-accent-400 shadow-glow-sm">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+              <img loading="lazy" decoding="async" src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
               <User className="h-8 w-8" />
             )}
@@ -367,7 +367,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                 <div className="mt-2 flex items-center gap-4">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
                     {(editAvatarUrl || profile.avatar_url) ? (
-                      <img src={editAvatarUrl || profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                      <img loading="lazy" decoding="async" src={editAvatarUrl || profile.avatar_url} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-7 w-7" /></div>
                     )}
@@ -501,7 +501,7 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
         {profilePosts.length === 0 ? <div className="surface-card rounded-[1.5rem] px-5 py-8 text-center"><p className="text-sm font-bold text-primary">No photo posts yet</p><p className="mt-1 text-xs text-muted">Location stories will appear here.</p></div>
         : <div className="grid grid-cols-3 gap-1.5 overflow-hidden rounded-[1.25rem]">
           {profilePosts.map((post) => <Link key={post.id} to={`/explore?post=${post.id}`} className="group relative aspect-square overflow-hidden bg-black">
-            <img src={post.images[0]?.public_url} alt={post.locationName} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+            <img loading="lazy" decoding="async" src={post.images[0]?.public_url} alt={post.locationName} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
             {post.images.length > 1 && <span className="absolute right-1.5 top-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[9px] font-bold text-white">+{post.images.length - 1}</span>}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6"><p className="truncate text-[10px] font-bold text-white">{post.locationName}</p></div>
           </Link>)}
@@ -523,8 +523,8 @@ export default function Profile({ allSpots = [], currentUser, onProfileUpdated, 
                   className="flex gap-3 rounded-2xl border border-white/[0.06] bg-[var(--bg-card-solid)] p-3 transition hover:border-accent-500/20 hover:bg-[var(--bg-card-hover)]"
                 >
                   <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-800">
-                    <img
-                      src={getSpotPrimaryImage(spot)}
+                    <img loading="lazy" decoding="async"
+                      src={getSpotThumbnailImage(spot)}
                       alt=""
                       className="h-full w-full object-cover"
                     />

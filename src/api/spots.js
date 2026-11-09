@@ -87,12 +87,31 @@ function rowToSpot(row) {
   };
 }
 
-export async function fetchCommunitySpots() {
+export const COMMUNITY_SPOTS_PAGE_SIZE = 100;
+
+export async function fetchCommunitySpots(options = {}) {
   if (!hasSupabase) return [];
-  const { data, error } = await supabase
+  const { limit = COMMUNITY_SPOTS_PAGE_SIZE, offset = 0, bounds = null } = options;
+  let query = supabase
     .from('spots')
     .select(COMMUNITY_SPOT_SELECT)
     .order('created_at', { ascending: false });
+  // Viewport-bounded query for the map: only spots inside the visible area.
+  if (bounds) {
+    const { minLat, maxLat, minLng, maxLng } = bounds;
+    if ([minLat, maxLat, minLng, maxLng].every((v) => Number.isFinite(Number(v)))) {
+      query = query
+        .gte('latitude', Number(minLat))
+        .lte('latitude', Number(maxLat))
+        .gte('longitude', Number(minLng))
+        .lte('longitude', Number(maxLng));
+    }
+  }
+  // Bound the payload: never fetch the whole table in one go. Callers page
+  // with .range() via offset/limit when they need more than one page.
+  const pageSize = Math.max(1, Math.min(Number(limit) || COMMUNITY_SPOTS_PAGE_SIZE, 1000));
+  const start = Math.max(0, Number(offset) || 0);
+  const { data, error } = await query.range(start, start + pageSize - 1);
   if (error) {
     console.warn('SnapMap: fetch community spots failed', error);
     return [];

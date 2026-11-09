@@ -15,7 +15,7 @@ function timeLabel(value) {
 }
 
 function Avatar({ profile, className = 'h-12 w-12' }) {
-  return <span className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400 ${className}`}>{profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}</span>;
+  return <span className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-accent-500/15 text-accent-400 ${className}`}>{profile?.avatar_url ? <img loading="lazy" decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}</span>;
 }
 
 function shareHref(message) {
@@ -28,7 +28,7 @@ function ShareCard({ share, onRemove }) {
   if (!share) return null;
   const Icon = share.type === 'event' ? CalendarDays : share.type === 'post' ? Camera : MapPin;
   return <div className="flex items-center gap-3 rounded-2xl border border-accent-500/20 bg-accent-500/[0.07] p-3">
-    {share.imageUrl ? <img src={share.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" /> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-accent-500/15 text-accent-400"><Icon className="h-5 w-5" /></span>}
+    {share.imageUrl ? <img loading="lazy" decoding="async" src={share.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" /> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-accent-500/15 text-accent-400"><Icon className="h-5 w-5" /></span>}
     <div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase tracking-widest text-accent-400">Sharing {share.type}</p><p className="truncate text-sm font-extrabold text-primary">{share.title || 'SnapMap share'}</p>{share.subtitle && <p className="truncate text-xs text-muted">{share.subtitle}</p>}</div>
     {onRemove && <button type="button" onClick={onRemove} className="icon-button h-8 w-8 rounded-xl" aria-label="Remove share"><X className="h-4 w-4" /></button>}
   </div>;
