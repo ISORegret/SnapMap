@@ -23,7 +23,7 @@ function ReportCard({ item, busy, onDismiss, onRemove, onSuspend }) {
     : item.kind === 'spot' ? target.image_uri : item.kind === 'event' ? target.cover_image_url : null;
 
   return <article className="surface-card overflow-hidden rounded-[1.55rem]">
-    {image && <div className="aspect-[16/8] overflow-hidden bg-black"><img src={image} alt="" className="h-full w-full object-cover" /></div>}
+    {image && <div className="aspect-[16/8] overflow-hidden bg-black"><img loading="lazy" decoding="async" src={image} alt="" className="h-full w-full object-cover" /></div>}
     <div className="p-4">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400"><Flag className="h-4 w-4" /></span>
@@ -55,7 +55,7 @@ function ClaimCard({ claim, busy, onReview }) {
   const event = claim.event || {};
   const claimant = claim.claimant || {};
   return <article className="surface-card overflow-hidden rounded-[1.55rem] border-cyan-400/20">
-    {event.cover_image_url && <div className="aspect-[16/7] overflow-hidden bg-black"><img src={event.cover_image_url} alt="" className="h-full w-full object-cover" /></div>}
+    {event.cover_image_url && <div className="aspect-[16/7] overflow-hidden bg-black"><img loading="lazy" decoding="async" src={event.cover_image_url} alt="" className="h-full w-full object-cover" /></div>}
     <div className="p-4"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-400/10 text-cyan-300"><BadgeCheck className="h-5 w-5" /></span><div className="min-w-0"><span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-cyan-300">Ownership claim</span><h2 className="mt-2 truncate text-base font-extrabold text-primary">{event.title || 'Imported event'}</h2><p className="mt-0.5 text-xs font-semibold text-secondary">{claimant.display_name || claimant.username || 'Creator'} · {cleanReason(claim.organizer_role)}</p></div></div>
       <div className="mt-4 space-y-3 rounded-2xl bg-white/[0.035] p-3 text-sm"><div><p className="text-[10px] font-black uppercase tracking-wider text-muted">Verification contact</p><p className="mt-1 break-words font-semibold text-primary">{claim.verification_contact}</p></div><div><p className="text-[10px] font-black uppercase tracking-wider text-muted">Proof</p><p className="mt-1 whitespace-pre-wrap leading-relaxed text-secondary">{claim.proof_note}</p></div></div>
       <Link to={`/event/${event.id}`} className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] py-2.5 text-xs font-extrabold text-secondary"><ExternalLink className="h-4 w-4" />Review event</Link>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { navigateBackOr } from '../utils/navigation';
 import { MapPin, Camera, Heart, Sun, Share2, Map, ArrowLeft } from 'lucide-react';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 
 export default function About({ allSpots = [] }) {
   const navigate = useNavigate();
@@ -96,8 +96,8 @@ export default function About({ allSpots = [] }) {
                   className="surface-card group block overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/30"
                 >
                   <div className="aspect-[4/3] relative">
-                    <img
-                      src={getSpotPrimaryImage(spot)}
+                    <img loading="lazy" decoding="async"
+                      src={getSpotThumbnailImage(spot)}
                       alt={spot.name}
                       className="h-full w-full object-cover transition group-hover:scale-105"
                     />

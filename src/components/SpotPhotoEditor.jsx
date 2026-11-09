@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { resizeImageToDataUrl } from '../utils/spotImages';
+import { resizeImageWithThumbnail } from '../utils/spotImages';
 
 export default function SpotPhotoEditor({ images, setImages, uploaderName, onError, onBusyChange, disabled }) {
   const addInput = useRef(null);
@@ -24,11 +24,10 @@ export default function SpotPhotoEditor({ images, setImages, uploaderName, onErr
     onError('');
     try {
       const selected = replace ? files.slice(0, 1) : files;
-      const photos = await Promise.all(selected.map(async (file) => ({
-        uri: await resizeImageToDataUrl(file, 1200, 0.85),
-        photoBy: uploaderName,
-        uploadedBy: uploaderName,
-      })));
+      const photos = await Promise.all(selected.map(async (file) => {
+        const { uri, thumbnail } = await resizeImageWithThumbnail(file, 1200, 0.85);
+        return { uri, thumbnail, photoBy: uploaderName, uploadedBy: uploaderName };
+      }));
       setImages((current) => index == null
         ? [...current, ...photos]
         : current.map((photo, i) => i === index ? photos[0] : photo));
@@ -59,7 +58,7 @@ export default function SpotPhotoEditor({ images, setImages, uploaderName, onErr
     <input ref={replaceInput} type="file" accept="image/*" onChange={(event) => loadPhotos(event, true)} className="hidden" aria-label="Replace spot photo" />
     {images.map((photo, index) => <div key={index} className="rounded-2xl border border-white/10 bg-[var(--bg-input)] p-3">
       <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-800">
-        <img src={photo.uri} alt={`Spot photo ${index + 1}`} className="h-full w-full object-cover" />
+        <img src={photo.uri} alt={`Spot photo ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <span className="absolute left-2 top-2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">{index === 0 ? 'Cover photo' : `Photo ${index + 1}`}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">

@@ -5,7 +5,7 @@ import { fetchPosts, subscribeToFeed } from '../api/posts';
 import { fetchEvent, fetchUpcomingEvents } from '../api/events';
 import { getFriendConnections } from '../api/follows';
 import { haversineKm, kmToMi } from '../utils/geo';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 import PostCard from './community/PostCard';
 import PostComposer from './community/PostComposer';
 import PostEditor from './community/PostEditor';
@@ -161,7 +161,7 @@ export default function SpotFeed({ allSpots = [], favoriteIds = [], currentUser,
         <div className="mb-2.5 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-extrabold text-primary"><MapPin className="h-4 w-4 text-accent-400" />Fresh spots nearby</p><Link to="/explore?view=spots" className="text-xs font-extrabold text-accent-400">Browse spots</Link></div>
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
           {freshSpots.map(({ spot, distanceKm }) => <Link key={spot.id} to={`/spot/${spot.id}`} className="surface-card min-w-[10.5rem] snap-start overflow-hidden rounded-[1.25rem]">
-            <img src={getSpotPrimaryImage(spot)} alt="" className="aspect-[16/10] w-full object-cover" />
+            <img src={getSpotThumbnailImage(spot)} alt="" loading="lazy" decoding="async" className="aspect-[16/10] w-full object-cover" />
             <div className="p-3"><p className="truncate text-xs font-extrabold text-primary">{spot.name}</p><p className="mt-1 truncate text-[10px] text-muted">{distanceKm != null ? `${units === 'km' ? distanceKm.toFixed(1) : kmToMi(distanceKm).toFixed(1)} ${units === 'km' ? 'km' : 'mi'} away` : spot.address || 'View location'}</p></div>
           </Link>)}
         </div>

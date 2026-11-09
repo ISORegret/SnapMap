@@ -66,6 +66,28 @@ export default defineConfig(({ mode }) => ({
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'open-meteo', expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 } },
           },
+          {
+            // Supabase REST (spots, profiles, posts, …). The project URL comes
+            // from VITE_SUPABASE_URL at runtime, so match any *.supabase.co
+            // REST origin. NetworkFirst keeps data fresh when online and
+            // serves the last good response when offline.
+            urlPattern: /^https:\/\/[a-z0-9-]+\.supabase\.co\/rest\/v1\/.*/i,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'supabase-api', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }, networkTimeoutSeconds: 5 },
+          },
+          {
+            // Unsplash images used as default/seed spot photos.
+            urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'unsplash-images', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }, networkTimeoutSeconds: 5 },
+          },
+          {
+            // Nominatim geocoding (address search). Results are stable, so
+            // serve the cache while revalidating in the background.
+            urlPattern: /^https:\/\/nominatim\.openstreetmap\.org\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'nominatim', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
         ],
       },
       devOptions: { enabled: true },

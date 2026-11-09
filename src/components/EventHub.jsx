@@ -4,7 +4,7 @@ import { CalendarDays, Check, Clock3, ImagePlus, MapPin, Plus, Search, SlidersHo
 import { fetchUpcomingEvents, setEventRsvpStatus, subscribeToEvents } from '../api/events';
 import { createHostedEventSeries } from '../api/hostedEvents';
 import { compressPostImage } from '../api/posts';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 import { haversineKm, milesToKm } from '../utils/geo';
 import { fetchActiveEventCheckInCounts, subscribeToEventCheckIns } from '../api/eventCheckIns';
 
@@ -281,7 +281,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
               <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseCoverPhoto} className="hidden" />
               {coverPhoto?.previewUrl ? (
                 <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-                  <img src={coverPhoto.previewUrl} alt="Event cover preview" className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={coverPhoto.previewUrl} alt="Event cover preview" className="h-full w-full object-cover" />
                   <button type="button" onClick={() => { setCoverPhoto(null); setPhotoError(''); }} className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl bg-black/65 text-white backdrop-blur" aria-label="Remove event cover"><X className="h-4 w-4" /></button>
                 </div>
               ) : null}
@@ -337,7 +337,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
             return (
               <article key={event.id} className="surface-card overflow-hidden rounded-[1.6rem]">
                 <Link to={`/event/${event.id}`} className="relative block aspect-[16/9] overflow-hidden bg-black/20">
-                  <img src={event.coverImageUrl || getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={event.coverImageUrl || getSpotThumbnailImage(spot)} alt="" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
                   <span className="absolute bottom-3 left-3 rounded-full bg-accent-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#211603]">{date.day}</span>
                   {liveCounts[event.id] > 0 && <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#06291d] shadow-[0_0_20px_rgba(52,211,153,0.5)]"><i className="h-2 w-2 animate-pulse rounded-full bg-[#06291d]" />Live · {liveCounts[event.id]}</span>}
@@ -345,7 +345,7 @@ export default function EventHub({ allSpots = [], currentUser, userPosition = nu
                 <div className="p-4">
                   <Link to={`/event/${event.id}`}><h3 className="line-clamp-1 text-base font-extrabold text-primary">{event.title}</h3><p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-secondary"><Clock3 className="h-3.5 w-3.5 text-accent-400" />{date.time}</p><p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="h-3.5 w-3.5 text-accent-400" />{event.venueName || event.spot?.name || 'Location TBD'}</p></Link>
                   <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
-                    {event.listingType === 'listed' ? <span className="truncate text-[11px] font-bold text-secondary">Listed from {event.sourceLabel}{event.lastVerifiedAt ? ` · ${verifiedLabel(event.lastVerifiedAt)}` : ''}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=community'} className="flex min-w-0 items-center gap-2"><span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-accent-500/15">{event.host?.avatar_url && <img src={event.host.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="truncate text-[11px] font-bold text-secondary">{event.host?.display_name || 'Creator'}</span></Link>}
+                    {event.listingType === 'listed' ? <span className="truncate text-[11px] font-bold text-secondary">Listed from {event.sourceLabel}{event.lastVerifiedAt ? ` · ${verifiedLabel(event.lastVerifiedAt)}` : ''}</span> : <Link to={event.host?.username ? `/user/${event.host.username}` : '/explore?view=community'} className="flex min-w-0 items-center gap-2"><span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-accent-500/15">{event.host?.avatar_url && <img loading="lazy" decoding="async" src={event.host.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="truncate text-[11px] font-bold text-secondary">{event.host?.display_name || 'Creator'}</span></Link>}
                     {isHost ? <span className="shrink-0 rounded-xl bg-accent-500/10 px-3 py-2 text-[11px] font-extrabold text-accent-400">Hosting</span> : currentUser ? <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => chooseRsvp(event, 'interested')} disabled={rsvpBusy === event.id} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'interested' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-white/[0.055] text-secondary'}`}>Interested</button><button type="button" onClick={() => chooseRsvp(event, 'going')} disabled={rsvpBusy === event.id || (full && event.rsvpStatus !== 'going')} className={`rounded-xl px-2.5 py-2 text-[11px] font-extrabold disabled:opacity-50 ${event.rsvpStatus === 'going' ? 'bg-emerald-400/15 text-emerald-400' : 'bg-accent-500 text-[#211603]'}`}>{rsvpBusy === event.id ? '…' : full && event.rsvpStatus !== 'going' ? 'Full' : 'Going'}</button></div> : <Link to="/signin" className="text-[11px] font-extrabold text-accent-400">Sign in to RSVP</Link>}
                   </div>
                   <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted"><Users className="h-3.5 w-3.5" />{event.attendeeCount} going · {event.interestedCount || 0} interested{event.maxAttendees ? ` · ${event.maxAttendees} max` : ''}</p>

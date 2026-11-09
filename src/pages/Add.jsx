@@ -502,7 +502,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
               <div className="mt-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-[var(--bg-input)] px-3 py-2">
                 <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-accent-500/20">
                   {currentUserProfile?.avatar_url ? (
-                    <img src={currentUserProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                    <img src={currentUserProfile.avatar_url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-accent-400"><User className="h-4 w-4" /></div>
                   )}

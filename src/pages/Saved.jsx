@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Heart, MapPin, ChevronRight, FolderPlus, Trash2, Search, Sun, Moon, Download, Copy, Link2, Milestone, X, Compass } from 'lucide-react';
-import { getSpotPrimaryImage } from '../utils/spotImages';
+import { getSpotThumbnailImage } from '../utils/spotImages';
 
 function generateSyncCode() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -24,7 +24,7 @@ function SpotCard({ spot, onUnsave, onDismissSpotError, compact, showRemove = tr
     <div className="surface-card group flex gap-3 overflow-hidden rounded-[1.35rem] transition hover:-translate-y-0.5 hover:border-accent-500/25">
       <div className={`relative shrink-0 overflow-hidden rounded-lg bg-slate-800 ${compact ? 'h-14 w-16' : 'h-24 w-28'}`}>
         <Link to={`/spot/${spot.id}`} className="block h-full w-full" aria-label={`Open ${spot.name}`}>
-          <img src={getSpotPrimaryImage(spot)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+          <img loading="lazy" decoding="async" src={getSpotThumbnailImage(spot)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
         </Link>
         {(spot.uploadError || spot.syncError) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-amber-950/95 p-1.5 text-center backdrop-blur-sm">
