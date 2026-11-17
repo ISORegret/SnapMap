@@ -638,7 +638,7 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
         </div>
       )}
 
-      {filteredSpots.length === 0 && (
+      {validSpots.length === 0 && (
         <div className="absolute inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-[var(--bg-page)] px-6 backdrop-blur-sm">
           <p className="text-center text-sm font-medium text-slate-300">
             No spots yet. Add your first spot to see it on the map.
@@ -650,6 +650,18 @@ export default function MapPage({ allSpots = [], favoriteIds = [], toggleFavorit
           >
             <MapPin className="h-4 w-4" />
             Add a spot
+          </button>
+        </div>
+      )}
+      {validSpots.length > 0 && filteredSpots.length === 0 && (
+        <div className="surface-card pointer-events-auto absolute left-1/2 top-[8rem] z-[1002] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl px-4 py-2.5 shadow-lg">
+          <p className="text-xs font-bold text-secondary">No spots match these filters.</p>
+          <button
+            type="button"
+            onClick={() => { setFilter('all'); setDistanceFilterMi(null); }}
+            className="text-xs font-extrabold text-accent-400"
+          >
+            Clear filters
           </button>
         </div>
       )}

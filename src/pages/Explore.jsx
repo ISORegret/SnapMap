@@ -464,6 +464,10 @@ export default function Explore({
               {visibleSpots.map((spot) => {
                 const r = spotRatings[spot.id];
                 const avg = r?.average ?? 0;
+                const spotCategories = CATEGORIES.filter((c) => c.id !== 'all' && matchesCategory(spot, c.id));
+                const dist = userPosition && spot.latitude != null && spot.longitude != null
+                  ? (() => { const km = haversineKm(userPosition.lat, userPosition.lng, spot.latitude, spot.longitude); return units === 'km' ? `${km.toFixed(1)} km` : `${kmToMi(km).toFixed(1)} mi`; })()
+                  : null;
                 return (
                   <Link key={spot.id} to={`/spot/${spot.id}`} className="surface-card group overflow-hidden rounded-[1.6rem] transition duration-300 hover:-translate-y-0.5 hover:border-accent-500/30">
                     <div className="relative aspect-[16/10] overflow-hidden">
@@ -495,6 +499,18 @@ export default function Explore({
                           <MapPin className="h-3.5 w-3.5 shrink-0 text-accent-400" />
                           <span className="truncate">{spot.address && spot.address !== 'Not specified' ? spot.address : 'Pinned location'}</span>
                         </p>
+                        {(spotCategories.length > 0 || dist) && (
+                          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+                            {spotCategories.map((c) => (
+                              <span key={c.id} className="rounded-full bg-[var(--bg-input)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-secondary">{c.label}</span>
+                            ))}
+                            {dist && (
+                              <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] font-bold text-muted">
+                                <Navigation className="h-3 w-3 text-accent-400" />{dist}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-muted)] text-accent-400 transition group-hover:bg-accent-500 group-hover:text-[#211603]">
                         <ArrowUpRight className="h-4 w-4" />
