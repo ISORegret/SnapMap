@@ -278,7 +278,13 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
           setTimeout(() => navigate(`/spot/${editSpot.id}`, { replace: true }), 1500);
         }
       } else {
-        await onAdd(payload);
+        setSaveFeedback(null);
+        try {
+          await onAdd(payload);
+        } catch {
+          setSaveFeedback('error');
+          return;
+        }
         localStorage.removeItem(DRAFT_KEY);
       }
     } finally {
@@ -299,7 +305,7 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             : currentUser && hasSupabase
               ? 'This spot will be published to the community map.'
               : hasSupabase
-                ? 'This spot will stay on this device. Sign in first to publish it to the community map.'
+                ? 'Sign in to publish this spot to the community map.'
                 : 'Data stays on your device. Add Supabase in .env to share spots.'}
         </p>
       </header>
@@ -591,9 +597,9 @@ export default function Add({ onAdd, onUpdate, currentUser, currentUserProfile }
             Successfully saved.
           </p>
         )}
-        {editSpot && saveFeedback === 'error' && (
+        {saveFeedback === 'error' && (
           <p className="mt-2 text-center text-sm text-amber-400" role="alert">
-            Failed to save. Check connection and try again.
+            {editSpot ? 'Failed to save. Check connection and try again.' : 'Couldn’t publish that spot. Check connection and try again — your form is still here.'}
           </p>
         )}
       </form>

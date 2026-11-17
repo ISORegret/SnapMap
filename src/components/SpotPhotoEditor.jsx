@@ -56,7 +56,7 @@ export default function SpotPhotoEditor({ images, setImages, uploaderName, onErr
     <p className="text-xs text-muted">The first photo is the cover. Changes take effect when you save the spot.</p>
     <input ref={addInput} type="file" multiple accept="image/*" onChange={(event) => loadPhotos(event)} className="hidden" aria-label="Add spot photos" />
     <input ref={replaceInput} type="file" accept="image/*" onChange={(event) => loadPhotos(event, true)} className="hidden" aria-label="Replace spot photo" />
-    {images.map((photo, index) => <div key={index} className="rounded-2xl border border-white/10 bg-[var(--bg-input)] p-3">
+    {images.map((photo, index) => <div key={photo.uri || index} className="rounded-2xl border border-white/10 bg-[var(--bg-input)] p-3">
       <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-800">
         <img src={photo.uri} alt={`Spot photo ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <span className="absolute left-2 top-2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">{index === 0 ? 'Cover photo' : `Photo ${index + 1}`}</span>

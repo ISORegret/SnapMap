@@ -20,6 +20,30 @@ function formatTime(d) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// Date inputs ("YYYY-MM-DD") parse as UTC midnight, which lands on the wrong
+// day for evening viewers west of UTC. Build the date from local components
+// instead, at noon to dodge DST midnight edge cases.
+function localDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function localDateFromInput(value) {
+  const [year, month, day] = String(value || '').split('-').map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day, 12);
+}
+
+// SunCalc azimuth is radians from south, going west. Convert to a compass
+// bearing from north so photographers know where the sun will be.
+function compassFromAzimuth(radians) {
+  const degrees = (radians * 180 / Math.PI + 180) % 360;
+  const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return points[Math.round(degrees / 22.5) % 16];
+}
+
 function SpotImageGallery({ images, spotName }) {
   const [index, setIndex] = React.useState(0);
   React.useEffect(() => { setIndex((current) => Math.min(current, Math.max(0, (images?.length || 0) - 1))); }, [images?.length]);
@@ -235,10 +259,7 @@ export default function SpotDetail({
   const { id } = useParams();
   const navigate = useNavigate();
   const spot = getSpotById(id);
-  const [sunDate, setSunDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  const [sunDate, setSunDate] = useState(() => localDateString(new Date()));
   const [copyFeedback, setCopyFeedback] = useState(null);
   const [addPhotoLoading, setAddPhotoLoading] = useState(false);
   const [addPhotoError, setAddPhotoError] = useState('');
@@ -310,9 +331,11 @@ export default function SpotDetail({
 
   const sunTimes = useMemo(() => {
     if (spot?.latitude == null || spot?.longitude == null) return null;
-    const d = new Date(sunDate);
+    const d = localDateFromInput(sunDate);
     const times = SunCalc.getTimes(d, spot.latitude, spot.longitude);
     const { sunrise, sunset, dawn, dusk, goldenHour, goldenHourEnd } = times;
+    const sunrisePos = SunCalc.getPosition(sunrise, spot.latitude, spot.longitude);
+    const sunsetPos = SunCalc.getPosition(sunset, spot.latitude, spot.longitude);
     // Golden hour AM: sunrise → goldenHourEnd (soft morning light)
     // Golden hour PM: goldenHour → sunset (soft evening light)
     // Blue hour AM: dawn → sunrise
@@ -320,6 +343,8 @@ export default function SpotDetail({
     return {
       sunrise: formatTime(sunrise),
       sunset: formatTime(sunset),
+      sunriseDir: compassFromAzimuth(sunrisePos.azimuth),
+      sunsetDir: compassFromAzimuth(sunsetPos.azimuth),
       goldenAmStart: formatTime(sunrise),
       goldenAmEnd: formatTime(goldenHourEnd),
       goldenPmStart: formatTime(goldenHour),
@@ -767,8 +792,8 @@ export default function SpotDetail({
               className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--bg-page)] px-2 py-1.5 text-xs text-slate-300"
             />
             <ul className="mt-3 space-y-2 text-xs text-slate-400">
-              <li>Sunrise {sunTimes.sunrise}</li>
-              <li>Sunset {sunTimes.sunset}</li>
+              <li>Sunrise {sunTimes.sunrise} · rises {sunTimes.sunriseDir}</li>
+              <li>Sunset {sunTimes.sunset} · sets {sunTimes.sunsetDir}</li>
               <li className="text-amber-400/90">
                 Golden hour (AM) {sunTimes.goldenAmStart} – {sunTimes.goldenAmEnd}
               </li>
